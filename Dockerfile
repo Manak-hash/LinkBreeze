@@ -19,16 +19,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV DATABASE_PATH=/app/data/linkbreeze.db
 
-# Non-root user
-USER node
+# Create data directory as root BEFORE switching to node user
+RUN mkdir -p /app/data && chown node:node /app/data
 
-# Copy built app
+# Copy built app with correct ownership
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 
-# Create data directory
-RUN mkdir -p /app/data && chown node:node /app/data
+# Switch to non-root user
+USER node
 
 EXPOSE 3000
 
