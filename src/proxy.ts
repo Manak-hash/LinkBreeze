@@ -32,7 +32,7 @@ const ADMIN_RESERVED = new Set([
   "/settings",
 ]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always allow the explicit public set.
