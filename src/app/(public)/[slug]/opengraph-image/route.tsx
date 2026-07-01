@@ -3,18 +3,22 @@ import { headers } from "next/headers";
 import { getActiveProfile, getActiveTheme } from "@/server/queries";
 
 export const runtime = "nodejs";
-export const alt = "LinkBreeze page";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
 
 /**
- * Branded social preview image for the public page. Next auto-wires the
- * generated file as og:image and twitter:image. Uses the active theme's
- * palette so the preview matches the page.
+ * Branded social preview image for the public page.
+ *
+ * Originally an `opengraph-image.tsx` metadata file convention, but Next.js
+ * standalone Docker output doesn't resolve metadata routes under dynamic
+ * segments ([slug]) — it returns 404. Converting to a regular route handler
+ * fixes that. The page's `generateMetadata` references this route explicitly.
  */
-export default async function Image() {
+export async function GET() {
   const h = await headers();
-  const host = (h.get("x-forwarded-host") || h.get("host") || "localhost").toString();
+  const host = (
+    h.get("x-forwarded-host") ||
+    h.get("host") ||
+    "localhost"
+  ).toString();
   const proto = (h.get("x-forwarded-proto") || "http").toString();
   const origin = `${proto}://${host}`;
 
@@ -79,7 +83,9 @@ export default async function Image() {
         >
           {name}
         </div>
-        <div style={{ display: "flex", fontSize: 32, color: textColor, opacity: 0.7 }}>
+        <div
+          style={{ display: "flex", fontSize: 32, color: textColor, opacity: 0.7 }}
+        >
           {bio}
         </div>
         <div
@@ -106,6 +112,6 @@ export default async function Image() {
         </div>
       </div>
     ),
-    { ...size }
+    { width: 1200, height: 630 }
   );
 }

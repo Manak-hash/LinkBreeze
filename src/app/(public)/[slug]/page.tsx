@@ -49,6 +49,8 @@ export async function generateMetadata({
   const origin = await getOrigin();
   const url = `${origin}/${slug}`;
 
+  const ogImage = `${origin}/${slug}/opengraph-image`;
+
   return {
     title,
     description,
@@ -59,11 +61,13 @@ export async function generateMetadata({
       url,
       type: "profile",
       siteName: title,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [ogImage],
     },
   };
 }
