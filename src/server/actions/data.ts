@@ -21,6 +21,8 @@ import {
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
+const SUPPORTED_BACKUP_VERSION = 1;
+
 interface BackupPayload {
   version: number;
   exportedAt: string;
@@ -69,12 +71,20 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
 
   if (
     !parsed ||
+    typeof parsed.version !== "number" ||
     !Array.isArray(parsed.profile) ||
     !Array.isArray(parsed.links) ||
     !Array.isArray(parsed.settings) ||
     !Array.isArray(parsed.themes)
   ) {
     return { success: false, error: "Not a valid LinkBreeze backup" };
+  }
+
+  if (parsed.version !== SUPPORTED_BACKUP_VERSION) {
+    return {
+      success: false,
+      error: `Unsupported backup version: ${parsed.version}. This instance expects version ${SUPPORTED_BACKUP_VERSION}.`,
+    };
   }
 
   try {
