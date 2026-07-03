@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { demoBlock } from "@/lib/demo";
+import { isAllowedLinkUrl } from "@/lib/link-url";
 import {
   createLink as createLinkQuery,
   updateLink as updateLinkQuery,
@@ -19,23 +20,28 @@ async function requireAuth(): Promise<boolean> {
   return !!session;
 }
 
-const linkSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().min(1, "Title is required").max(120),
-  url: z.string().min(1, "URL is required").max(2048),
-  description: z.string().max(300).optional().nullable(),
-  type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file"]).default("url"),
-  isHighlighted: z
-    .union([z.string(), z.boolean()])
-    .transform((v) => v === true || v === "true" || v === "on")
-    .default(false),
-  isActive: z
-    .union([z.string(), z.boolean()])
-    .transform((v) => v === true || v === "true" || v === "on")
-    .default(true),
-  scheduleStart: z.string().optional().nullable(),
-  scheduleEnd: z.string().optional().nullable(),
-});
+const linkSchema = z
+  .object({
+    id: z.string().optional(),
+    title: z.string().min(1, "Title is required").max(120),
+    url: z.string().min(1, "URL is required").max(2048),
+    description: z.string().max(300).optional().nullable(),
+    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file"]).default("url"),
+    isHighlighted: z
+      .union([z.string(), z.boolean()])
+      .transform((v) => v === true || v === "true" || v === "on")
+      .default(false),
+    isActive: z
+      .union([z.string(), z.boolean()])
+      .transform((v) => v === true || v === "true" || v === "on")
+      .default(true),
+    scheduleStart: z.string().optional().nullable(),
+    scheduleEnd: z.string().optional().nullable(),
+  })
+  .refine((link) => isAllowedLinkUrl(link.type, link.url), {
+    path: ["url"],
+    message: "URL scheme is not allowed for this link type",
+  });
 
 export async function createLink(formData: FormData): Promise<ActionResult> {
   const demo = demoBlock();
