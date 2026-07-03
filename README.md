@@ -5,11 +5,14 @@
 <br/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![CI](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml/badge.svg)](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/users/Manak-hash/packages/container/package/linkbreeze)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![OmniRise](https://img.shields.io/badge/OmniRise-omnirise.dev-06B6D4?style=for-the-badge)](https://omnirise.dev)
+
+<br/>
+
+[![CI](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml/badge.svg)](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml)
 
 </div>
 
