@@ -46,19 +46,15 @@ LinkBreeze implements the following security practices:
 - **CSRF protection**: Next.js 16 Server Actions verify the `Origin` header
   against the `Host` header on every non-GET submission. Cross-site form posts
   are rejected automatically by the framework — no manual CSRF token needed.
-- **Rate limiting**: Analytics tracking endpoint (60 req/min per IP) + QR
-  generation endpoint (30 req/min per IP)
-- **CSP on SVG**: Content-Security-Policy strips scripts/sandbox from served SVG images
+- **Rate limiting**: Login endpoint (5 attempts/min per IP), analytics tracking endpoint (60 req/min per IP), QR generation endpoint (30 req/min per IP)
+- **SVG uploads blocked**: SVG files are no longer accepted as uploads. The uploads serving route also sends `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` headers as defense-in-depth.
 - **Privacy-first analytics**: No raw IP storage — visitor hashes use SHA-256 with a daily-rotating salt
 
-## Known Limitations (v1.0.0)
+## Known Limitations (v1.0.3)
 
 The following are NOT yet implemented. If you need these, track the corresponding
 issue or contribute:
 
-- **Login rate limiting**: The login form does not currently rate-limit failed
-  attempts. Protect behind a reverse proxy with rate limiting (e.g., Caddy,
-  Cloudflare) if exposed to the public internet.
 - **Password recovery**: No self-service reset flow. If you lose your password,
   see the [Troubleshooting guide](TROUBLESHOOTING.md#forgot-admin-password)
   for three recovery methods (hash reset, full reset, or database deletion).

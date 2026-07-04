@@ -19,7 +19,6 @@ import {
   desc,
   isNull,
   sql,
-  inArray,
 } from "drizzle-orm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +48,11 @@ export async function getProfile(): Promise<ProfileRow | null> {
   return rows[0] ?? null;
 }
 
+/**
+ * Profile for public display. Currently identical to getProfile(), but kept
+ * as a separate entry point so future filtering (e.g. per-user profiles,
+ * published/unpublished flag) can go here without touching every caller.
+ */
 export async function getActiveProfile(): Promise<ProfileRow | null> {
   return getProfile();
 }
@@ -161,18 +165,20 @@ export async function updateLink(
 }
 
 export async function deleteLink(id: number): Promise<void> {
+  // Delete analytics clicks first so orphaned rows don't linger on
+  // databases created before the FK constraint was added to the schema.
+  await db.delete(analyticsClicks).where(eq(analyticsClicks.linkId, id));
   await db.delete(links).where(eq(links.id, id));
 }
 
 export async function reorderLinks(orderedIds: number[]): Promise<void> {
   if (orderedIds.length === 0) return;
-  // Update each link's order index in sequence.
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db
-      .update(links)
-      .set({ orderIndex: i })
-      .where(eq(links.id, orderedIds[i]));
-  }
+  // Batch all updates in a single transaction so reorder is atomic and fast.
+  db.transaction((tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      tx.update(links).set({ orderIndex: i }).where(eq(links.id, orderedIds[i])).run();
+    }
+  });
 }
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
@@ -214,10 +220,12 @@ export async function getAllThemes(): Promise<ThemeRow[]> {
 }
 
 export async function setActiveTheme(id: number): Promise<void> {
-  // better-sqlite3 is synchronous — can't use async transaction callback.
-  // Two sequential updates are fine for this simple case.
-  await db.update(themes).set({ isActive: false });
-  await db.update(themes).set({ isActive: true }).where(eq(themes.id, id));
+  // Single transaction: deactivate all, then activate the target. If the
+  // process crashes between them, the whole operation rolls back.
+  db.transaction((tx) => {
+    tx.update(themes).set({ isActive: false }).run();
+    tx.update(themes).set({ isActive: true }).where(eq(themes.id, id)).run();
+  });
 }
 
 export async function updateTheme(
@@ -359,6 +367,13 @@ export async function createUser(
   return created[0];
 }
 
+export async function updateUserPassword(
+  userId: number,
+  passwordHash: string,
+): Promise<void> {
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 // Cached retention window so we don't read settings on every pageview.
@@ -412,7 +427,10 @@ export async function recordClick(
     .where(eq(links.id, linkId));
 }
 
-export type AnalyticsRange = "7d" | "30d" | "90d" | "all";
+// AnalyticsRange is re-exported from the shared analytics-range module so there
+// is a single source of truth for the type + sinceExpr logic.
+export type { AnalyticsRange } from "@/lib/analytics-range";
+import { sinceExpr, type AnalyticsRange } from "@/lib/analytics-range";
 
 export interface BreakdownEntry {
   label: string;
@@ -430,13 +448,6 @@ export interface LinkStats {
   totalClicks: number;
   clicksPerDay: Array<{ date: string; clicks: number }>;
   topReferrers: BreakdownEntry[];
-}
-
-/** SQL expression bounding the start of the analytics window. */
-function sinceExpr(range: AnalyticsRange) {
-  if (range === "all") return sql`datetime('1970-01-01')`;
-  const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
-  return sql`datetime('now', ${`-${days} days`})`;
 }
 
 /** Number of day-buckets to render for a range. */
@@ -612,6 +623,3 @@ export async function getLink(id: number): Promise<LinkRow | null> {
   const rows = await db.select().from(links).where(eq(links.id, id)).limit(1);
   return rows[0] ?? null;
 }
-
-// Keep `inArray` import used (for potential future batch queries)
-void inArray;

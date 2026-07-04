@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getUserCount: vi.fn(async (): Promise<number> => 1),
   createUser: vi.fn(async () => ({ id: 1, username: "newuser" })),
   getSetting: vi.fn(async () => "1"),
+  rateLimit: vi.fn(() => ({ ok: true, remaining: 4, resetAt: Date.now() + 60000 })),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -28,6 +29,8 @@ vi.mock("@/server/queries", () => ({
 vi.mock("@/db", () => ({ db: {} }));
 vi.mock("@/db/schema", () => ({ users: {} }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ rateLimit: mocks.rateLimit }));
+vi.mock("next/headers", () => ({ headers: vi.fn(async () => new Headers({ "x-forwarded-for": "127.0.0.1" })) }));
 
 import { login, setup } from "@/server/actions/auth";
 
@@ -71,6 +74,15 @@ describe("login", () => {
     const res = await login(makeFormData({ username: "admin", password: "wrong" }));
     expect(res.success).toBe(false);
     if (!res.success) expect(res.error).toBe("Invalid username or password");
+  });
+
+  it("blocks login after rate limit is exceeded", async () => {
+    mocks.rateLimit.mockReturnValueOnce({ ok: false, remaining: 0, resetAt: Date.now() + 30000 });
+    const res = await login(makeFormData({ username: "admin", password: "pass1234" }));
+    expect(res.success).toBe(false);
+    if (!res.success) expect(res.error).toContain("Too many login attempts");
+    // verifyPassword should never be called when rate-limited
+    expect(mocks.verifyPassword).not.toHaveBeenCalled();
   });
 });
 

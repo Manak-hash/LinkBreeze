@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/db";
 import {
   profile,
@@ -23,6 +24,53 @@ export type ActionResult = { success: true } | { success: false; error: string }
 
 const SUPPORTED_BACKUP_VERSION = 1;
 
+// Zod schemas validating the shape of each table's rows. Unknown fields are
+// stripped so a backup from a newer version with extra columns can't corrupt
+// the DB insert.
+const profileRowSchema = z.object({
+  id: z.number().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  displayName: z.string().optional(),
+  bio: z.string().optional(),
+  badgeText: z.string().nullable().optional(),
+  socialLinks: z.string().optional(),
+});
+
+const linkRowSchema = z.object({
+  id: z.number().optional(),
+  orderIndex: z.number().optional(),
+  type: z.string().optional(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  url: z.string(),
+  icon: z.string().nullable().optional(),
+  isHighlighted: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  scheduleStart: z.string().nullable().optional(),
+  scheduleEnd: z.string().nullable().optional(),
+  clicksCount: z.number().optional(),
+  metadata: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+const settingRowSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+});
+
+const themeRowSchema = z.object({
+  id: z.number().optional(),
+  name: z.string(),
+  backgroundType: z.string().optional(),
+  backgroundValue: z.string().optional(),
+  fontFamily: z.string().optional(),
+  primaryColor: z.string().optional(),
+  textColor: z.string().optional(),
+  linkStyle: z.string().optional(),
+  animationType: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
 interface BackupPayload {
   version: number;
   exportedAt: string;
@@ -41,7 +89,7 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
     db.select().from(themes),
   ]);
   return {
-    version: 1,
+    version: SUPPORTED_BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     profile: p,
     links: l,
@@ -87,6 +135,20 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
     };
   }
 
+  // Validate every row's shape before touching the DB. A malformed backup
+  // file is rejected here instead of corrupting tables inside the transaction.
+  const validatedProfile = z.array(profileRowSchema).safeParse(parsed.profile);
+  const validatedLinks = z.array(linkRowSchema).safeParse(parsed.links);
+  const validatedSettings = z.array(settingRowSchema).safeParse(parsed.settings);
+  const validatedThemes = z.array(themeRowSchema).safeParse(parsed.themes);
+  if (!validatedProfile.success || !validatedLinks.success || !validatedSettings.success || !validatedThemes.success) {
+    return { success: false, error: "Backup contains malformed data — rows don't match the expected schema" };
+  }
+  parsed.profile = validatedProfile.data as ProfileRow[];
+  parsed.links = validatedLinks.data as LinkRow[];
+  parsed.settings = validatedSettings.data as Array<{ key: string; value: string }>;
+  parsed.themes = validatedThemes.data as ThemeRow[];
+
   try {
     db.transaction((tx) => {
       tx.delete(profile).run();
@@ -114,9 +176,11 @@ export async function clearAnalytics(): Promise<ActionResult> {
   if (demo) return { success: false, error: demo };
   if (!(await getSession())) return { success: false, error: "Unauthorized" };
 
-  db.delete(analyticsPageviews).run();
-  db.delete(analyticsClicks).run();
-  db.update(links).set({ clicksCount: 0 }).run();
+  db.transaction((tx) => {
+    tx.delete(analyticsPageviews).run();
+    tx.delete(analyticsClicks).run();
+    tx.update(links).set({ clicksCount: 0 }).run();
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/links");

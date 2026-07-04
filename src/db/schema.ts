@@ -70,7 +70,7 @@ export const analyticsPageviews = sqliteTable("analytics_pageviews", {
 
 export const analyticsClicks = sqliteTable("analytics_clicks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  linkId: integer("link_id").notNull(),
+  linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   visitorHash: text("visitor_hash").notNull(),
   referrer: text("referrer"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),

@@ -19,10 +19,6 @@ describe("contentTypeFor", () => {
     expect(contentTypeFor("pic.webp")).toBe("image/webp");
   });
 
-  it("returns image/svg+xml for .svg", () => {
-    expect(contentTypeFor("logo.svg")).toBe("image/svg+xml");
-  });
-
   it("returns image/avif for .avif", () => {
     expect(contentTypeFor("next-gen.avif")).toBe("image/avif");
   });

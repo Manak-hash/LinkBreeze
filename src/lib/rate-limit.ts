@@ -27,12 +27,26 @@ export interface RateLimitResult {
  * Consumes one token from `key`'s window. Returns `ok: false` (→ HTTP 429)
  * once `limit` is exceeded within `windowMs`.
  */
+/** Configurable: how often to run a cleanup sweep of expired buckets. */
+const CLEANUP_INTERVAL_MS = 30_000;
+let lastCleanup = 0;
+
 export function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
 ): RateLimitResult {
   const now = Date.now();
+
+  // Proactive cleanup: sweep expired entries periodically (not just on overflow)
+  // so the map doesn't grow unboundedly with unique IPs under the MAX_KEYS threshold.
+  if (now - lastCleanup > CLEANUP_INTERVAL_MS && buckets.size > 100) {
+    lastCleanup = now;
+    for (const [k, b] of buckets) {
+      if (b.resetAt <= now) buckets.delete(k);
+    }
+  }
+
   let bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {

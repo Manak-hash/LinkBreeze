@@ -64,6 +64,13 @@ export function proxy(request: NextRequest) {
     const sessionCookie = request.cookies.get("lb_session")?.value;
     // Verify the token — not just cookie existence. A forged or expired
     // cookie is redirected to login just like a missing one.
+    //
+    // NOTE: This checks signature + expiry only. The password version (pv)
+    // is NOT checked here because the middleware has no DB access. After a
+    // password change, a stale cookie passes this gate but is rejected by
+    // getSession() inside the page layout (which reads the DB). This is a
+    // deliberate defense-in-depth split: middleware is the fast first gate,
+    // getSession() is the authoritative second gate.
     if (!sessionCookie || !verifyToken(sessionCookie)) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
