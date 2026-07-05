@@ -27,6 +27,8 @@ export async function GET(
     headers: {
       "Content-Type": contentTypeFor(file),
       "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; img-src 'self'",
     },
   });
 }

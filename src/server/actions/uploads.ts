@@ -19,7 +19,6 @@ const ALLOWED_EXT = new Set([
   ".jpeg",
   ".gif",
   ".webp",
-  ".svg",
   ".avif",
 ]);
 

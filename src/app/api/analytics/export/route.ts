@@ -2,23 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { analyticsPageviews, analyticsClicks, links } from "@/db/schema";
-import { eq, gt, sql } from "drizzle-orm";
+import { eq, gt } from "drizzle-orm";
+import { parseRange, sinceExpr } from "@/lib/analytics-range";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type Range = "7d" | "30d" | "90d" | "all";
-const VALID: Range[] = ["7d", "30d", "90d", "all"];
-
-function parseRange(v: string | null): Range {
-  return v && (VALID as string[]).includes(v) ? (v as Range) : "7d";
-}
-
-function sinceExpr(range: Range) {
-  if (range === "all") return sql`datetime('1970-01-01')`;
-  const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
-  return sql`datetime('now', ${`-${days} days`})`;
-}
 
 function csvCell(v: unknown): string {
   const s = v == null ? "" : String(v);
