@@ -8,6 +8,7 @@ import {
   themes,
   analyticsPageviews,
   analyticsClicks,
+  subscribers,
 } from "@/db/schema";
 import {
   eq,
@@ -114,6 +115,7 @@ export async function createLink(
         | "type"
         | "description"
         | "icon"
+        | "imageUrl"
         | "isHighlighted"
         | "isActive"
         | "scheduleStart"
@@ -134,6 +136,7 @@ export async function createLink(
       type: data.type ?? "url",
       description: data.description ?? null,
       icon: data.icon ?? null,
+      imageUrl: data.imageUrl ?? null,
       isHighlighted: data.isHighlighted ?? false,
       isActive: data.isActive ?? true,
       scheduleStart: data.scheduleStart ?? null,
@@ -154,6 +157,7 @@ export async function updateLink(
       | "type"
       | "description"
       | "icon"
+      | "imageUrl"
       | "isHighlighted"
       | "isActive"
       | "scheduleStart"
@@ -626,4 +630,25 @@ export async function getLinkStats(linkId: number, range: AnalyticsRange = "30d"
 export async function getLink(id: number): Promise<LinkRow | null> {
   const rows = await db.select().from(links).where(eq(links.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+// ─── Subscribers (email capture) ──────────────────────────────────────────────
+
+export type SubscriberRow = typeof subscribers.$inferSelect;
+
+export async function addSubscriber(email: string): Promise<void> {
+  await db.insert(subscribers).values({ email });
+}
+
+export async function getSubscriberCount(): Promise<number> {
+  const rows = await db.select({ c: sql<number>`count(*)` }).from(subscribers);
+  return rows[0]?.c ?? 0;
+}
+
+export async function getAllSubscribers(): Promise<SubscriberRow[]> {
+  return db.select().from(subscribers).orderBy(desc(subscribers.createdAt));
+}
+
+export async function clearSubscribers(): Promise<void> {
+  db.delete(subscribers).run();
 }

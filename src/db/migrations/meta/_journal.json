@@ -15,6 +15,20 @@
       "when": 1783229786082,
       "tag": "0001_remove_link_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783263788375,
+      "tag": "0002_add_image_url_to_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783264418923,
+      "tag": "0003_add_subscribers_table",
+      "breakpoints": true
     }
   ]
 }

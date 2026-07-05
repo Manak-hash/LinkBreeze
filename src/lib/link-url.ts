@@ -6,6 +6,7 @@ const ALLOWED_SCHEMES_BY_TYPE: Record<string, Set<string>> = {
   sms: new Set(["sms:"]),
   vcard: new Set(["https:", "http:"]),
   file: new Set(["/", "https:", "http:"]),
+  embed: new Set(["https:"]),
 };
 
 export function isAllowedLinkUrl(type: string, value: string): boolean {

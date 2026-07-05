@@ -34,6 +34,7 @@ export const links = sqliteTable("links", {
   description: text("description"),
   url: text("url").notNull(),
   icon: text("icon"),
+  imageUrl: text("image_url"),
   isHighlighted: integer("is_highlighted", { mode: "boolean" }).notNull().default(false),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   scheduleStart: text("schedule_start"),
@@ -72,6 +73,13 @@ export const analyticsClicks = sqliteTable("analytics_clicks", {
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   visitorHash: text("visitor_hash").notNull(),
   referrer: text("referrer"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ─── Subscribers (email capture) ──────────────────────
+export const subscribers = sqliteTable("subscribers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

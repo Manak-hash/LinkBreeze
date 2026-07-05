@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (v1.0.3)
 
+### Added
+
+- **External analytics injection** — Paste a Plausible, Umami, Matomo, or Google Analytics `<script>` snippet into Settings; it's injected onto your public page. Self-hosters no longer need to choose between LinkBreeze's built-in analytics and their existing stack.
+- **Custom CSS injection** — Raw CSS textarea in Settings, injected as a `<style>` tag on the public page. Power users can fine-tune anything the theme customizer can't reach.
+- **20 new social icons** — Threads, Bluesky, Mastodon, Reddit, Facebook, Pinterest, Snapchat, Patreon, Substack, Gumroad, Behance, Dribbble, SoundCloud, Bandcamp, Vimeo, Signal, PayPal, Buy Me a Coffee, Ko-fi, Medium. Total platform count: 32 (was 12).
+- **Link thumbnails** — Optional image URL per link. Renders as a card with the image on top, text below — like a Discord/Slack link preview.
+- **Embed widgets** — New link type `embed`. Paste a YouTube, Spotify, SoundCloud, Vimeo, or Bandcamp URL and it renders as an inline iframe on your public page instead of a link.
+- **Email capture** — Toggle in Settings adds an email signup form to the public page. Subscribers stored in SQLite, exportable to CSV from Settings. Free alternative to Linktree's $9/mo email feature.
+- **Theme import/export** — Export any theme as JSON from the Theme page, import on another instance. Share presets without manual recreation. API endpoints at `/api/themes/export` and `/api/themes/import`.
+- **Link scheduling UI** — The link scheduler existed in the database and query layer since v1.0.0 but had no admin UI. Added a Schedule toggle with datetime pickers (Show from / Hide after) in the link dialog, plus a "Scheduled" badge with clock icon on the links list.
+- **DEV_ORIGINS env var** — For dev servers accessed via Tailscale or LAN IPs. Set `DEV_ORIGINS` in `.env` to allow Server Actions from external origins (see `.env.example`).
+
 ### Fixed
 
 - **Atomic click tracking** — `recordClick()` now wraps the analytics insert and the `clicksCount` increment in a single `db.transaction()`. Previously these were two separate statements that could drift out of sync if the second failed, leaving the denormalized count permanently wrong.
@@ -15,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Removed dead `metadata` column** — The `links.metadata` column (default `"{}"`) was defined in the schema but never read or written anywhere in the codebase. Removed from the schema, backup Zod validation, and a new migration (`0001_remove_link_metadata.sql`) drops it from existing databases.
+- **allowedDevOrigins via env** — `next.config.ts` now reads `DEV_ORIGINS` from the environment instead of hardcoding IPs. Safe to commit — no private IPs in the repo.
+- **README features + comparison** — Features list expanded from 8 to 14 items. Comparison table expanded from 12 to 17 rows, now includes External Analytics, Email Capture, Embed Widgets, Link Thumbnails, Custom CSS, and Themes Import/Export.
+- **CONTRIBUTING.md** — Updated theme submission instructions to reference the new dedicated theme export feature.
+- **Migrations** — Three new migrations: `0001_remove_link_metadata`, `0002_add_image_url_to_links`, `0003_add_subscribers_table`. All run automatically on next startup.
+
+### Dependencies
+
+- Bumped `actions/checkout` from v4 to v7 (#21)
+- Bumped `actions/setup-node` from v4 to v6 (#20)
 
 ## [1.0.2] - 2026-07-04
 

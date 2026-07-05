@@ -17,6 +17,9 @@ const settingsSchema = z.object({
   title: z.string().max(120).optional().default(""),
   description: z.string().max(300).optional().default(""),
   footerText: z.string().max(200).optional().default(""),
+  analyticsScript: z.string().max(2000).optional().default(""),
+  customCss: z.string().max(10000).optional().default(""),
+  emailCapture: z.string().optional().default(""),
   activeThemeId: z.string().optional().nullable(),
 });
 
@@ -30,6 +33,9 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
     title: formData.get("title") || "",
     description: formData.get("description") || "",
     footerText: formData.get("footerText") || "",
+    analyticsScript: formData.get("analyticsScript") || "",
+    customCss: formData.get("customCss") || "",
+    emailCapture: formData.get("emailCapture") === "on" ? "true" : "false",
     activeThemeId: formData.get("activeThemeId") || undefined,
   });
   if (!parsed.success) {
@@ -41,6 +47,9 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   await updateSettingQuery("title", d.title);
   await updateSettingQuery("description", d.description);
   await updateSettingQuery("footerText", d.footerText);
+  await updateSettingQuery("analyticsScript", d.analyticsScript);
+  await updateSettingQuery("customCss", d.customCss);
+  await updateSettingQuery("emailCapture", d.emailCapture);
 
   // Persist active theme if provided.
   if (d.activeThemeId) {

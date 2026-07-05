@@ -9,8 +9,8 @@ import {
 } from "@/lib/social-icons";
 
 describe("SUPPORTED_PLATFORMS", () => {
-  it("contains all 12 platforms", () => {
-    expect(SUPPORTED_PLATFORMS).toHaveLength(12);
+  it("contains all 32 platforms", () => {
+    expect(SUPPORTED_PLATFORMS).toHaveLength(32);
   });
 });
 
@@ -90,6 +90,20 @@ describe("getSocialIconSvg", () => {
       "instagram", "tiktok", "youtube", "twitter", "github",
       "discord", "twitch", "spotify", "linkedin", "telegram",
       "whatsapp", "email",
+    ];
+    for (const p of platforms) {
+      const svg = getSocialIconSvg(p);
+      expect(svg).toContain("<svg");
+      expect(svg).toContain("</svg>");
+    }
+  });
+
+  it("returns SVG markup for each new platform", () => {
+    const platforms: SocialPlatform[] = [
+      "threads", "bluesky", "mastodon", "reddit", "facebook",
+      "pinterest", "snapchat", "patreon", "substack", "gumroad",
+      "behance", "dribbble", "soundcloud", "bandcamp", "vimeo",
+      "signal", "paypal", "buymeacoffee", "kofi", "medium",
     ];
     for (const p of platforms) {
       const svg = getSocialIconSvg(p);

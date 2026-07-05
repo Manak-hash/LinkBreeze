@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   profile,
@@ -69,6 +70,24 @@ const themeRowSchema = z.object({
   animationType: z.string().optional(),
   isActive: z.boolean().optional(),
 });
+
+/** Shape of an exported theme (all cosmetic fields, no id/isActive). */
+const exportableThemeSchema = z.object({
+  version: z.literal(1),
+  app: z.literal("linkbreeze"),
+  kind: z.literal("theme"),
+  name: z.string().min(1).max(120),
+  backgroundType: z.string().max(60),
+  backgroundValue: z.string().max(500),
+  fontFamily: z.string().max(300),
+  primaryColor: z.string().max(60),
+  textColor: z.string().max(60),
+  linkStyle: z.string().max(60),
+  animationType: z.string().max(60),
+  exportedAt: z.string(),
+});
+
+type ExportableTheme = z.infer<typeof exportableThemeSchema>;
 
 interface BackupPayload {
   version: number;
@@ -197,5 +216,72 @@ export async function setRetention(formData: FormData): Promise<ActionResult> {
   await updateSetting("analyticsRetentionDays", String(days));
 
   revalidatePath("/settings");
+  return { success: true };
+}
+
+/**
+ * Export a single theme as a portable, JSON-serializable object (all cosmetic
+ * fields, minus id and isActive). Auth + demo gated. Throws on auth failure so
+ * the API route can map to a 401.
+ */
+export async function exportTheme(id: number): Promise<ExportableTheme> {
+  if (demoBlock()) throw new Error("read-only");
+  if (!(await getSession())) throw new Error("Unauthorized");
+
+  const rows = await db.select().from(themes).where(eq(themes.id, id)).limit(1);
+  const theme = rows[0];
+  if (!theme) throw new Error("Theme not found");
+
+  return {
+    version: 1,
+    app: "linkbreeze",
+    kind: "theme",
+    name: theme.name,
+    backgroundType: theme.backgroundType,
+    backgroundValue: theme.backgroundValue,
+    fontFamily: theme.fontFamily,
+    primaryColor: theme.primaryColor,
+    textColor: theme.textColor,
+    linkStyle: theme.linkStyle,
+    animationType: theme.animationType,
+    exportedAt: new Date().toISOString(),
+  };
+}
+
+/** Import a previously-exported theme, creating a new (inactive) copy. */
+export async function importTheme(json: string): Promise<ActionResult> {
+  const demo = demoBlock();
+  if (demo) return { success: false, error: demo };
+  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { success: false, error: "Invalid JSON" };
+  }
+
+  const result = exportableThemeSchema.safeParse(parsed);
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error.issues[0]?.message ?? "Invalid theme file",
+    };
+  }
+  const t = result.data;
+
+  await db.insert(themes).values({
+    name: t.name,
+    backgroundType: t.backgroundType,
+    backgroundValue: t.backgroundValue,
+    fontFamily: t.fontFamily,
+    primaryColor: t.primaryColor,
+    textColor: t.textColor,
+    linkStyle: t.linkStyle,
+    animationType: t.animationType,
+    isActive: false,
+  });
+
+  revalidatePath("/theme");
   return { success: true };
 }

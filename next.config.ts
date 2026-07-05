@@ -14,6 +14,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
 
+  // Allow Server Actions from external IPs during dev (Tailscale, LAN, etc.)
+  // Set DEV_ORIGINS="http://100.x.x.x:3000,http://192.168.x.x:3000" in .env
+  allowedDevOrigins: process.env.DEV_ORIGINS?.split(",").map((s) => s.trim()) ?? [],
+
   // better-sqlite3 is a native module — exclude it from the server bundling
   // so the standalone server loads it from node_modules at runtime.
   serverExternalPackages: ["better-sqlite3"],

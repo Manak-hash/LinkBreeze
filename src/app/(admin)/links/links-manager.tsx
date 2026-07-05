@@ -26,6 +26,7 @@ import {
   Trash2,
   ExternalLink,
   BarChart3,
+  Clock,
 } from "lucide-react";
 import {
   createLink,
@@ -67,6 +68,7 @@ const LINK_TYPES = [
   { value: "phone", label: "Phone" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "sms", label: "SMS" },
+  { value: "embed", label: "Embed (YouTube, Spotify, etc.)" },
 ] as const;
 
 interface SortableLinkProps {
@@ -123,6 +125,12 @@ function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
               {!link.isActive ? (
                 <Badge variant="outline" className="shrink-0">
                   Hidden
+                </Badge>
+              ) : null}
+              {link.scheduleStart || link.scheduleEnd ? (
+                <Badge variant="outline" className="shrink-0 gap-1">
+                  <Clock className="size-3" />
+                  Scheduled
                 </Badge>
               ) : null}
             </div>
@@ -193,6 +201,7 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
   const [type, setType] = React.useState(editing?.type ?? "url");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
+  const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
   const router = useRouter();
 
   // Reset local form state whenever the dialog opens (or switches target).
@@ -206,6 +215,7 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
       setType(editing?.type ?? "url");
       setHighlighted(editing?.isHighlighted ?? false);
       setActive(editing?.isActive ?? true);
+      setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
     }
   }
 
@@ -238,6 +248,12 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
     formData.set("type", type);
     formData.set("isHighlighted", highlighted ? "on" : "off");
     formData.set("isActive", active ? "on" : "off");
+
+    // If scheduling is toggled off, clear any stale schedule values.
+    if (!scheduled) {
+      formData.delete("scheduleStart");
+      formData.delete("scheduleEnd");
+    }
 
     startTransition(async () => {
       if (editing) {
@@ -298,6 +314,17 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
           </div>
 
           <div className="flex flex-col gap-2">
+            <Label htmlFor="imageUrl">Thumbnail image URL (optional)</Label>
+            <Input
+              id="imageUrl"
+              name="imageUrl"
+              defaultValue={editing?.imageUrl ?? ""}
+              maxLength={2048}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
             <Label>Type</Label>
             <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
               <SelectTrigger className="w-full">
@@ -322,6 +349,41 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
               <Switch checked={active} onCheckedChange={setActive} />
               Active
             </label>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={scheduled} onCheckedChange={setScheduled} />
+              Schedule
+            </label>
+            {scheduled ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                <div className="flex flex-1 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Show from</span>
+                  <Input
+                    type="datetime-local"
+                    name="scheduleStart"
+                    defaultValue={
+                      editing?.scheduleStart
+                        ? editing.scheduleStart.replace(" ", "T").slice(0, 16)
+                        : ""
+                    }
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Hide after</span>
+                  <Input
+                    type="datetime-local"
+                    name="scheduleEnd"
+                    defaultValue={
+                      editing?.scheduleEnd
+                        ? editing.scheduleEnd.replace(" ", "T").slice(0, 16)
+                        : ""
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <DialogFooter>

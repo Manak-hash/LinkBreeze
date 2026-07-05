@@ -15,6 +15,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getCountry } from "@/lib/geo";
 import { ProfileHeader } from "@/components/public/ProfileHeader";
 import { LinkCard } from "@/components/public/LinkCard";
+import { EmbedWidget } from "@/components/public/EmbedWidget";
+import { EmailCapture } from "@/components/public/EmailCapture";
 import { SocialIcons } from "@/components/public/SocialIcons";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import { resolveBackground, isAnimatedAurora } from "@/lib/theme-background";
@@ -140,6 +142,12 @@ export default async function PublicPage({ params }: PageProps) {
   return (
     <>
       {useAurora ? <AuroraBackground /> : null}
+      {allSettings.analyticsScript ? (
+        <div dangerouslySetInnerHTML={{ __html: allSettings.analyticsScript }} />
+      ) : null}
+      {allSettings.customCss ? (
+        <style dangerouslySetInnerHTML={{ __html: allSettings.customCss }} />
+      ) : null}
       <main
         style={
           useAurora
@@ -159,20 +167,30 @@ export default async function PublicPage({ params }: PageProps) {
 
         <div className="mt-6">
           {activeLinks.length > 0 ? (
-            activeLinks.map((link, i) => (
-              <LinkCard
-                key={link.id}
-                link={link}
-                profile={profile}
-                index={i}
-                theme={{
-                  textColor,
-                  primaryColor,
-                  linkStyle: theme?.linkStyle || "glass",
-                  animationType: theme?.animationType || "lift",
-                }}
-              />
-            ))
+            activeLinks.map((link, i) =>
+              link.type === "embed" ? (
+                <EmbedWidget
+                  key={link.id}
+                  url={link.url}
+                  title={link.title}
+                  index={i}
+                  animationType={theme?.animationType || "lift"}
+                />
+              ) : (
+                <LinkCard
+                  key={link.id}
+                  link={link}
+                  profile={profile}
+                  index={i}
+                  theme={{
+                    textColor,
+                    primaryColor,
+                    linkStyle: theme?.linkStyle || "glass",
+                    animationType: theme?.animationType || "lift",
+                  }}
+                />
+              ),
+            )
           ) : (
             <p
               className="text-center text-sm opacity-60"
@@ -182,6 +200,10 @@ export default async function PublicPage({ params }: PageProps) {
             </p>
           )}
         </div>
+
+        {allSettings.emailCapture === "true" ? (
+          <EmailCapture accentColor={primaryColor} textColor={textColor} />
+        ) : null}
 
         {allSettings.footerText ? (
           <footer

@@ -26,7 +26,8 @@ const linkSchema = z
     title: z.string().min(1, "Title is required").max(120),
     url: z.string().min(1, "URL is required").max(2048),
     description: z.string().max(300).optional().nullable(),
-    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file"]).default("url"),
+    imageUrl: z.string().max(2048).optional().nullable(),
+    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed"]).default("url"),
     isHighlighted: z
       .union([z.string(), z.boolean()])
       .transform((v) => v === true || v === "true" || v === "on")
@@ -52,6 +53,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     title: formData.get("title"),
     url: formData.get("url"),
     description: formData.get("description") || undefined,
+    imageUrl: formData.get("imageUrl") || undefined,
     type: formData.get("type") || "url",
     isHighlighted: formData.get("isHighlighted"),
     isActive: formData.get("isActive"),
@@ -67,6 +69,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     title: d.title,
     url: d.url,
     description: d.description || null,
+    imageUrl: d.imageUrl || null,
     type: d.type,
     isHighlighted: d.isHighlighted,
     isActive: d.isActive,
@@ -89,6 +92,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     title: formData.get("title"),
     url: formData.get("url"),
     description: formData.get("description") || undefined,
+    imageUrl: formData.get("imageUrl") || undefined,
     type: formData.get("type") || "url",
     isHighlighted: formData.get("isHighlighted"),
     isActive: formData.get("isActive"),
@@ -107,6 +111,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     title: d.title,
     url: d.url,
     description: d.description || null,
+    imageUrl: d.imageUrl || null,
     type: d.type,
     isHighlighted: d.isHighlighted,
     isActive: d.isActive,

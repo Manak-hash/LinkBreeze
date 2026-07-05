@@ -1,7 +1,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
-import { getSettings, getSetting, getAllThemes, getActiveTheme } from "@/server/queries";
+import { getSettings, getSetting, getAllThemes, getActiveTheme, getSubscriberCount } from "@/server/queries";
 import { SettingsForm } from "./settings-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
@@ -16,10 +16,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [settings, themes, active] = await Promise.all([
+  const [settings, themes, active, subscriberCount] = await Promise.all([
     getSettings(),
     getAllThemes(),
     getActiveTheme(),
+    getSubscriberCount(),
   ]);
   const retentionDays = await getSetting("analyticsRetentionDays");
 
@@ -38,6 +39,10 @@ export default async function SettingsPage() {
         title={settings.title || ""}
         description={settings.description || ""}
         footerText={settings.footerText || ""}
+        analyticsScript={settings.analyticsScript || ""}
+        customCss={settings.customCss || ""}
+        emailCapture={settings.emailCapture === "true"}
+        subscriberCount={subscriberCount}
         themes={themes}
         activeThemeId={active?.id ?? null}
       />

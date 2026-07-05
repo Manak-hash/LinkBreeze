@@ -26,11 +26,16 @@
 ## ✨ Features
 
 - **🔗 Link Management** — Add, reorder, and customize unlimited links with drag-and-drop
+- **🖼️ Link Thumbnails** — Add images to your links for visual preview cards
+- **🎵 Embed Widgets** — Embed YouTube, Spotify, SoundCloud, Vimeo, or Bandcamp directly on your page
+- **⏰ Link Scheduling** — Schedule links to appear/disappear automatically with date/time controls
 - **📊 Privacy-First Analytics** — Page views, click tracking, referrers — no cookies, no tracking
-- **🎨 Themes** — 5 built-in presets + full customizer (colors, fonts, backgrounds, animations)
+- **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
+- **🎨 Themes** — 5 built-in presets + full customizer (colors, fonts, backgrounds, animations) + theme import/export
+- **✏️ Custom CSS** — Fine-tune your page with raw CSS injection
+- **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
 - **📱 Mobile-First** — Gorgeous on every screen. Loads in under 300ms. Zero client JavaScript.
 - **🎯 QR Codes** — Auto-generated for your page. Download as SVG or PNG.
-- **⏰ Link Scheduling** — Schedule links to appear/disappear automatically
 - **🔒 Self-Hosted** — Your data, your server. No tracking. No ads. No subscription.
 - **🐳 One-Command Deploy** — Docker compose and you're live
 
@@ -222,10 +227,15 @@ cloudflared tunnel --url http://localhost:3000
 | **Price** | $15/mo | Free | Free | Free | **Free** |
 | **Admin Panel** | ✅ | Slow | ❌ | ❌ | **✅ Fast** |
 | **Database** | Theirs | MySQL | None | None | **SQLite** |
-| **Analytics** | Paid | Basic | ❌ | ❌ | **✅ Full** |
+| **Built-in Analytics** | Paid | Basic | ❌ | ❌ | **✅ Full** |
+| **External Analytics** | ✅ | ✅ | ❌ | ❌ | **✅** |
+| **Email Capture** | $9/mo | ❌ | ❌ | ❌ | **✅** |
+| **Embed Widgets** | Paid | ❌ | ❌ | ❌ | **✅** |
+| **Link Thumbnails** | Paid | ❌ | ❌ | ❌ | **✅** |
 | **QR Codes** | ❌ | ❌ | ❌ | ❌ | **✅** |
 | **Link Scheduling** | Paid | ❌ | ❌ | ❌ | **✅** |
-| **Themes** | Paid | Limited | CSS only | Config | **✅ Full** |
+| **Themes** | Paid | Limited | CSS only | Config | **✅ Full + Import/Export** |
+| **Custom CSS** | ❌ | ❌ | ✅ | ❌ | **✅** |
 | **Self-Hosted** | ❌ | ✅ | ✅ | ✅ | **✅** |
 | **Language** | Closed | PHP | HTML | Astro | **TypeScript** |
 | **Docker Deploy** | N/A | Complex | Simple | Simple | **One command** |

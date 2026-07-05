@@ -23,6 +23,10 @@ interface SettingsFormProps {
   title: string;
   description: string;
   footerText: string;
+  analyticsScript: string;
+  customCss: string;
+  emailCapture: boolean;
+  subscriberCount: number;
   themes: ThemeRow[];
   activeThemeId: number | null;
 }
@@ -32,6 +36,10 @@ export function SettingsForm({
   title,
   description,
   footerText,
+  analyticsScript,
+  customCss,
+  emailCapture,
+  subscriberCount,
   themes,
   activeThemeId,
 }: SettingsFormProps) {
@@ -123,6 +131,63 @@ export function SettingsForm({
               maxLength={200}
               placeholder="© 2026 Jane Doe"
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="analyticsScript">Analytics script (optional)</Label>
+            <textarea
+              id="analyticsScript"
+              name="analyticsScript"
+              defaultValue={analyticsScript}
+              maxLength={2000}
+              placeholder={'<script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>'}
+              className="min-h-[80px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+              spellCheck={false}
+            />
+            <p className="text-xs text-muted-foreground">
+              Paste a <code>{'<script>'}</code> snippet for Plausible, Umami,
+              Matomo, Google Analytics, etc. It is injected onto your public
+              page only.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="customCss">Custom CSS (optional)</Label>
+            <textarea
+              id="customCss"
+              name="customCss"
+              defaultValue={customCss}
+              maxLength={10000}
+              placeholder={"/* Custom styles for your public page */\n:root { --accent: #533fd6; }"}
+              className="min-h-[100px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+              spellCheck={false}
+            />
+            <p className="text-xs text-muted-foreground">
+              Raw CSS injected into a <code>{'<style>'}</code> tag on your public
+              page. Use it to fine-tune fonts, spacing or colours.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="emailCapture">Email capture</Label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                id="emailCapture"
+                name="emailCapture"
+                defaultChecked={emailCapture}
+                className="size-4 rounded border-input"
+              />
+              Show email signup form on public page
+            </label>
+            {emailCapture && subscriberCount > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {subscriberCount} subscriber{subscriberCount !== 1 ? "s" : ""} ·{" "}
+                <a href="/api/subscribers/export" className="underline">
+                  Export CSV
+                </a>
+              </p>
+            ) : null}
           </div>
 
           {themes.length > 0 ? (

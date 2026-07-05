@@ -65,11 +65,17 @@ export function buildLinkCardHtml(
 
   const clickHandler = `navigator.sendBeacon('/api/track', JSON.stringify({type:'click',linkId:${link.id}}))`;
 
+  // Thumbnail rendered at the top of the card (inside the <a>) when set.
+  // flex-wrap so the title row stays on its own line beneath the image.
+  const image = link.imageUrl
+    ? `<img src="${esc(link.imageUrl)}" alt="${title}" loading="lazy" style="display:block;width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:${radius};margin:0 0 10px;flex-basis:100%" />`
+    : "";
+
   return `<a
   href="${href}"${targetAttr}
   onclick="${clickHandler}"
   style="
-    display:flex;align-items:center;text-decoration:none;width:100%;box-sizing:border-box;
+    display:flex;flex-wrap:wrap;align-items:center;text-decoration:none;width:100%;box-sizing:border-box;
     padding:14px 18px;margin:0 0 12px;background:${cardBg};border:${border};border-radius:${radius};
     color:${theme.textColor};transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);${reveal}
@@ -77,6 +83,7 @@ export function buildLinkCardHtml(
   onmouseover="this.style.transform='${hoverTransform}';this.style.boxShadow='0 8px 30px rgba(0,0,0,0.35)';this.style.borderColor='${theme.primaryColor}'"
   onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(167,139,250,0.16)'"
 >
+  ${image}
   <span style="display:flex;flex-direction:column;flex:1;min-width:0">
     <span style="display:flex;align-items:center;font-weight:600;font-size:15px">${highlightDot}${title}</span>
     ${description}

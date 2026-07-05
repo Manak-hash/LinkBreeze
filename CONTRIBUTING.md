@@ -61,8 +61,9 @@ panel's theme customizer. There is no JSON file system — themes are live confi
 2. **Open the theme customizer** at `http://localhost:3000/theme`
 3. **Design your theme** — set colors, fonts, backgrounds, animations, link styles
 4. **Take a screenshot** of the public page with your theme applied (mobile view preferred)
-5. **Export the theme values** — use the backup export feature (`/settings` → Export)
-   and extract the theme object, or manually copy the values from the customizer
+5. **Export the theme** — use the theme export button on the Theme page
+   (`/theme` → Export), or use the backup export feature (`/settings` → Export)
+   and extract the theme object
 6. **Open a [Theme Submission issue](https://github.com/Manak-hash/LinkBreeze/issues/new?template=theme_submission.md)** with the values and screenshot
 
 ### Theme Properties
