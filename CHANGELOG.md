@@ -5,6 +5,48 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] (v1.0.3)
+
+### Fixed
+
+- **Atomic click tracking** — `recordClick()` now wraps the analytics insert and the `clicksCount` increment in a single `db.transaction()`. Previously these were two separate statements that could drift out of sync if the second failed, leaving the denormalized count permanently wrong.
+- **JSON-LD XSS hardening** — The structured data `<script>` tag now escapes `<` characters (`\u003c`) in the `JSON.stringify` output, preventing profile text fields (displayName, bio) from breaking out of the script context.
+
+### Changed
+
+- **Removed dead `metadata` column** — The `links.metadata` column (default `"{}"`) was defined in the schema but never read or written anywhere in the codebase. Removed from the schema, backup Zod validation, and a new migration (`0001_remove_link_metadata.sql`) drops it from existing databases.
+
+## [1.0.2] - 2026-07-04
+
+### Security
+
+- **SVG upload XSS eliminated** — Removed `.svg` from the upload allowlist entirely. Added `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` headers to the uploads serving route as defense-in-depth. Closes #15.
+- **Login rate limiting** — The login form is now rate-limited to 5 attempts/min per IP, preventing brute-force password attacks. Closes #1.
+- **Production secret key warning** — When `SECRET_KEY` is unset in production, both `session-token.ts` and `visitor.ts` now log a loud console warning. The `/api/health` endpoint exposes `secretKeySet: boolean` so monitoring tools can detect misconfiguration. Closes #9.
+- **Backup row validation** — `restoreBackup()` now validates every row (profiles, links, settings, themes) with Zod schemas before the database transaction. Malformed backup files are rejected instead of corrupting the DB.
+- **Analytics foreign key** — `analytics_clicks.link_id` now has a foreign key reference to `links.id` with `ON DELETE CASCADE`. `deleteLink()` also explicitly cleans up orphaned analytics rows for databases created before this constraint existed.
+
+### Added
+
+- **Comprehensive test suite** — 134 tests across 16 files covering pure functions, server actions, and security validation. Includes tests for: rate limiting, visitor hashing, device detection, geo/country lookup, QR code generation, session tokens, social icon detection/normalization, link URL scheme validation, demo mode guards, upload content types, version reading, theme backgrounds, link card rendering, auth (login + setup), settings updates, link CRUD, and backup validation. (Closes #6, #17)
+
+### Fixed
+
+- **Login sidebar bug** — When already logged in, visiting `/login` showed the login form inside the admin sidebar layout. Now `/login` is a server component that redirects authenticated users to `/dashboard`. The page split into `page.tsx` (server, session check) + `login-form.tsx` (client, interactive form).
+- **Health endpoint version** — `/api/health` now reads the version dynamically from `package.json` instead of returning a hardcoded `1.0.0`.
+- **Backup version constant** — `exportBackup()` now uses `SUPPORTED_BACKUP_VERSION` instead of a hardcoded `1` literal.
+
+### Changed
+
+- **Atomic transactions** — `reorderLinks()`, `clearAnalytics()`, and `setActiveTheme()` now wrap their multi-statement operations in `db.transaction()`. Crashes mid-operation no longer leave the database in an inconsistent state.
+- **Proactive rate-limit cleanup** — The rate-limit bucket map now sweeps expired entries every 30 seconds (when map exceeds 100 entries) instead of only on overflow at 10,000 keys. Prevents slow memory growth under sustained traffic.
+- **Shared analytics-range module** — Extracted duplicated `sinceExpr`/`parseRange` logic from `queries/index.ts` and `api/analytics/export/route.ts` into `src/lib/analytics-range.ts`. Single source of truth for range types and SQL window expressions.
+- **Code cleanup** — Moved `updateUserPassword` from server actions to queries layer. Removed unused `inArray` import and dead `void inArray` statement. Documented `getActiveProfile` as an intentional extension point.
+- **Dependency overrides** — Added npm overrides for `postcss >= 8.5.10` and `esbuild >= 0.25.0`. `npm audit` now reports 0 vulnerabilities (was 6 moderate).
+- **Proxy documentation** — Documented the defense-in-depth session validation split: middleware checks signature + expiry (fast first gate), `getSession()` checks password version (authoritative second gate).
+- **CI workflow** — Now runs `npm run test` (Vitest) in addition to tsc + build. Closes #2.
+- **Docker release workflow** — Added `.github/workflows/release.yml` that builds and pushes Docker images to GHCR automatically on tag push (`v*`). Tags both `latest` and the version number.
+
 ## [1.0.1] - 2026-07-03
 
 ### Security

@@ -2,9 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import {
   getSession,
   createSession,
@@ -39,6 +36,20 @@ const setupSchema = z.object({
 export type ActionResult = { success: true } | { success: false; error: string };
 
 export async function login(formData: FormData): Promise<ActionResult> {
+  // Rate limit: 5 login attempts per minute per IP to prevent brute-force.
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  const ip =
+    (h.get("x-forwarded-for")?.split(",")[0] || "").trim() ||
+    (h.get("x-real-ip") || "").toString() ||
+    "0.0.0.0";
+  const { rateLimit } = await import("@/lib/rate-limit");
+  const rl = rateLimit(`login:${ip}`, 5, 60_000);
+  if (!rl.ok) {
+    const retryAfter = Math.ceil((rl.resetAt - Date.now()) / 1000);
+    return { success: false, error: `Too many login attempts. Try again in ${retryAfter}s.` };
+  }
+
   const parsed = loginSchema.safeParse({
     username: formData.get("username"),
     password: formData.get("password"),
@@ -134,23 +145,14 @@ export async function changePassword(formData: FormData): Promise<ActionResult> 
   }
 
   const newHash = await hashPassword(parsed.data.newPassword);
-  await updateUserPassword(user.id, newHash);
 
   // Bump session version to invalidate any other sessions (e.g. stolen cookies)
-  const { updateSetting } = await import("@/server/queries");
+  const { updateSetting, updateUserPassword } = await import("@/server/queries");
+  await updateUserPassword(user.id, newHash);
   const currentVersion = Number(await getSetting("sessionVersion")) || 0;
   await updateSetting("sessionVersion", String(currentVersion + 1));
 
   // Re-issue the current session with the new version
   await createSession(user.id, user.username);
   return { success: true };
-}
-
-// Re-exported for completeness; db import lives at the top of the file.
-
-export async function updateUserPassword(
-  userId: number,
-  passwordHash: string,
-): Promise<void> {
-  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
 }

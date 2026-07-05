@@ -8,6 +8,13 @@
       "when": 1782690538554,
       "tag": "0000_wide_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783229786082,
+      "tag": "0001_remove_link_metadata",
+      "breakpoints": true
     }
   ]
 }

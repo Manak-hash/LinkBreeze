@@ -2,17 +2,17 @@
 
 <img src="public/Public-Page-iPhone-Dashboard-iMac(-10MB).png" alt="Banner" width="100%" />
 
-<br/>
+---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/users/Manak-hash/packages/container/package/linkbreeze)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/users/Manak-hash/packages/container/package/linkbreeze)
 [![OmniRise](https://img.shields.io/badge/OmniRise-omnirise.dev-06B6D4?style=for-the-badge)](https://omnirise.dev)
 
-<br/>
-
-[![CI](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml/badge.svg)](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Manak-hash/LinkBreeze/ci.yml?style=for-the-badge&logo=githubactions&label=CI&logoColor=white)](https://github.com/Manak-hash/LinkBreeze/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/Manak-hash/LinkBreeze?style=for-the-badge&logo=github&color=blue)](https://github.com/Manak-hash/LinkBreeze/releases/latest)
+[![Last Commit](https://img.shields.io/github/last-commit/Manak-hash/LinkBreeze?style=for-the-badge&logo=git&color=green)](https://github.com/Manak-hash/LinkBreeze/commits)
 
 </div>
 
@@ -22,6 +22,12 @@
 > QR codes, themes, and a real admin panel — free, forever, in one Docker command.
 
 **[🔗 Live Demo](https://linkbreeze-demo.omnirise.dev/alex)** — see it in action (read-only).
+
+<div align="center">
+
+<video src="public/linkbreeze-vid.mp4" controls muted width="100%"></video>
+
+</div>
 
 ## ✨ Features
 

@@ -1,11 +1,22 @@
 import "server-only";
 import * as crypto from "crypto";
 
+const DEFAULT_SECRET = "linkbreeze-dev-secret-key-change-me-in-production-please";
+
 function getSecret(): string {
-  return (
-    process.env.SECRET_KEY ||
-    "linkbreeze-dev-secret-key-change-me-in-production-please"
-  );
+  const key = process.env.SECRET_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "\x1b[33m%s\x1b[0m",
+        "[LinkBreeze] WARNING: SECRET_KEY is not set. " +
+          "Visitor hashes are predictable. " +
+          "Set SECRET_KEY to a random string (e.g. `openssl rand -hex 32`).",
+      );
+    }
+    return DEFAULT_SECRET;
+  }
+  return key;
 }
 
 /**
