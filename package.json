@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
