@@ -30,6 +30,18 @@ export async function GET(
     return NextResponse.json({ error: "Link not found" }, { status: 404 });
   }
 
+  // Defense-in-depth: only redirect to http(s) URLs. The create/update
+  // validators already block javascript:/data: schemes, but a stale or
+  // tampered DB row could bypass that. Never 302 to a non-http protocol.
+  try {
+    const parsed = new URL(link.url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return NextResponse.json({ error: "Invalid link URL" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid link URL" }, { status: 400 });
+  }
+
   // Record the click — same visitor hash logic as /api/track.
   try {
     const h = await headers();

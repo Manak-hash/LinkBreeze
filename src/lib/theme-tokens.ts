@@ -177,9 +177,9 @@ function resolveSpacing(density: string | null | undefined): string {
   switch (density) {
     case "compact":
       return "8px";
-    case "spacious":
+    case "relaxed":
       return "16px";
-    case "comfortable":
+    // "normal", legacy "comfortable", and unknown values
     default:
       return FALLBACKS.spacing;
   }
@@ -191,6 +191,8 @@ function resolveShadow(strength: string | null | undefined, linkStyle: string): 
       return "none";
     case "subtle":
       return "0 4px 12px rgba(0,0,0,0.2)";
+    case "soft":
+      return "0 6px 20px rgba(0,0,0,0.25)";
     case "strong":
       return "0 12px 40px rgba(0,0,0,0.5)";
     case "medium":
@@ -202,6 +204,13 @@ function resolveShadow(strength: string | null | undefined, linkStyle: string): 
 }
 
 function resolveFontSize(scale: string | null | undefined): string {
+  if (!scale || !scale.trim()) return FALLBACKS.fontSize;
+  // Presets store fontScale as a numeric percentage (100, 110, 120, …).
+  // 100 = base 15px, 110 = 16.5px, etc.
+  const num = parseFloat(scale);
+  if (!Number.isNaN(num) && num > 0) {
+    return `${(num / 100) * 15}px`;
+  }
   switch (scale) {
     case "sm":
       return "14px";

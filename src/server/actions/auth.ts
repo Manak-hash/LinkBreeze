@@ -30,7 +30,10 @@ const setupSchema = z.object({
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
-    .max(256),
+    .max(256)
+    .refine((v) => /[a-z]/.test(v), "Password must contain at least one lowercase letter")
+    .refine((v) => /[A-Z]/.test(v), "Password must contain at least one uppercase letter")
+    .refine((v) => /[0-9]/.test(v), "Password must contain at least one number"),
 });
 
 export type ActionResult = { success: true } | { success: false; error: string };
@@ -132,7 +135,10 @@ export async function changePassword(formData: FormData): Promise<ActionResult> 
     newPassword: z
       .string()
       .min(8, "New password must be at least 8 characters")
-      .max(256),
+      .max(256)
+      .refine((v) => /[a-z]/.test(v), "Password must contain at least one lowercase letter")
+      .refine((v) => /[A-Z]/.test(v), "Password must contain at least one uppercase letter")
+      .refine((v) => /[0-9]/.test(v), "Password must contain at least one number"),
   });
 
   const parsed = schema.safeParse({

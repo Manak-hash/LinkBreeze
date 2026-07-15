@@ -14,13 +14,15 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   const h = await headers();
-  const host = (
-    h.get("x-forwarded-host") ||
-    h.get("host") ||
-    "localhost"
-  ).toString();
-  const proto = (h.get("x-forwarded-proto") || "http").toString();
-  const origin = `${proto}://${host}`;
+  // Prefer BASE_URL env var (prevents host-header injection behind proxies).
+  // Falls back to forwarded/host headers when unset.
+  const origin = process.env.BASE_URL
+    ? process.env.BASE_URL.replace(/\/$/, "")
+    : `${(h.get("x-forwarded-proto") || "http").toString()}://${(
+        h.get("x-forwarded-host") ||
+        h.get("host") ||
+        "localhost"
+      ).toString()}`;
 
   const profile = await getActiveProfile();
   const theme = await getActiveTheme();

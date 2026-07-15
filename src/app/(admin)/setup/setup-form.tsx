@@ -81,7 +81,7 @@ export function SetupForm({ defaultUsername }: { defaultUsername: string }) {
               required
               minLength={8}
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+            <p className="text-xs text-muted-foreground">At least 8 characters with one uppercase letter and one number.</p>
           </div>
           {state && !state.success ? (
             <p className="text-sm text-destructive">{state.error}</p>

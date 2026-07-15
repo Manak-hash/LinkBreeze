@@ -4,7 +4,7 @@
 -- fallback inherited this bad default, causing ALL theme saves to fail
 -- silently (Zod safeParse rejected the entire payload).
 UPDATE `themes` SET `density` = 'normal' WHERE `density` = 'comfortable';
-
+--> statement-breakpoint
 -- Fix 2: Remove orphan single-theme fallback so seedThemesIfEmpty can run.
 -- On fresh deploys, getActiveTheme() seeded a single Aurora before the admin
 -- theme page was visited, preventing the full preset set from loading.

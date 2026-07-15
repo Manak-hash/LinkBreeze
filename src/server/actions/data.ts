@@ -141,7 +141,7 @@ const exportableThemeSchema = z.object({
   // Layout
   containerWidth: z.string().max(20).optional().default("standard"),
   alignment: z.string().max(20).optional().default("center"),
-  density: z.string().max(20).optional().default("comfortable"),
+  density: z.string().max(20).optional().default("normal"),
   // Effects
   glow: z.string().max(10).optional().default("false"),
   glowColor: z.string().max(60).optional().default("#a78bfa"),
@@ -363,6 +363,11 @@ export async function importTheme(json: string): Promise<ActionResult> {
     };
   }
   const t = result.data;
+
+  const { themeNameExists } = await import("@/server/queries");
+  if (await themeNameExists(t.name)) {
+    return { success: false, error: "A theme with this name already exists" };
+  }
 
   await db.insert(themes).values({
     name: t.name,

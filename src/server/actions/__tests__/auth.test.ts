@@ -89,7 +89,7 @@ describe("login", () => {
 describe("setup", () => {
   it("rejects when users already exist", async () => {
     mocks.getUserCount.mockResolvedValue(1);
-    const res = await setup(makeFormData({ username: "newuser", password: "pass1234" }));
+    const res = await setup(makeFormData({ username: "newuser", password: "Pass1234" }));
     expect(res.success).toBe(false);
     if (!res.success) expect(res.error).toContain("already been completed");
   });
@@ -97,7 +97,7 @@ describe("setup", () => {
   it("creates the first user", async () => {
     mocks.getUserCount.mockResolvedValue(0);
     mocks.getUserByUsername.mockResolvedValue(null);
-    const res = await setup(makeFormData({ username: "newuser", password: "pass1234" }));
+    const res = await setup(makeFormData({ username: "newuser", password: "Pass1234" }));
     expect(res.success).toBe(true);
     expect(mocks.createUser).toHaveBeenCalledOnce();
     expect(mocks.createSession).toHaveBeenCalledOnce();
@@ -105,19 +105,31 @@ describe("setup", () => {
 
   it("rejects short username (<3 chars)", async () => {
     mocks.getUserCount.mockResolvedValue(0);
-    const res = await setup(makeFormData({ username: "ab", password: "pass1234" }));
+    const res = await setup(makeFormData({ username: "ab", password: "Pass1234" }));
     expect(res.success).toBe(false);
   });
 
   it("rejects short password (<8 chars)", async () => {
     mocks.getUserCount.mockResolvedValue(0);
-    const res = await setup(makeFormData({ username: "newuser", password: "short" }));
+    const res = await setup(makeFormData({ username: "newuser", password: "Short1" }));
+    expect(res.success).toBe(false);
+  });
+
+  it("rejects password missing uppercase letter", async () => {
+    mocks.getUserCount.mockResolvedValue(0);
+    const res = await setup(makeFormData({ username: "newuser", password: "pass1234" }));
+    expect(res.success).toBe(false);
+  });
+
+  it("rejects password missing a number", async () => {
+    mocks.getUserCount.mockResolvedValue(0);
+    const res = await setup(makeFormData({ username: "newuser", password: "Password" }));
     expect(res.success).toBe(false);
   });
 
   it("rejects username with special chars", async () => {
     mocks.getUserCount.mockResolvedValue(0);
-    const res = await setup(makeFormData({ username: "user@name!", password: "pass1234" }));
+    const res = await setup(makeFormData({ username: "user@name!", password: "Pass1234" }));
     expect(res.success).toBe(false);
   });
 });

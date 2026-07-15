@@ -158,6 +158,11 @@ export async function duplicateActiveTheme(name: string): Promise<ActionResult> 
   const trimmed = (name || "").trim().slice(0, 100);
   if (!trimmed) return { success: false, error: "Name is required" };
 
+  const { themeNameExists } = await import("@/server/queries");
+  if (await themeNameExists(trimmed)) {
+    return { success: false, error: "A theme with this name already exists" };
+  }
+
   await duplicateTheme(active.id, trimmed);
   revalidatePath("/theme");
   return { success: true };

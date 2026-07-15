@@ -260,6 +260,16 @@ export async function duplicateTheme(id: number, newName: string): Promise<Theme
   return inserted[0];
 }
 
+/** Check whether a theme with the given name already exists (exact match, case-sensitive). */
+export async function themeNameExists(name: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: themes.id })
+    .from(themes)
+    .where(eq(themes.name, name.trim()))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Delete a theme by id. Presets cannot be deleted. */
 export async function deleteTheme(id: number): Promise<void> {
   await db.delete(themes).where(eq(themes.id, id));
