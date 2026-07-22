@@ -5,10 +5,11 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased — v1.1.4]
+## [1.1.4] - 2026-07-22
 
 ### Fixed
 
+- **CI badge showed failing on default branch** — The CI workflow only triggered on `pull_request`, so no runs ever executed on `main`. Shields.io checks the default branch, causing the README badge to always show "failing". Added `push: branches: [main]` to the workflow triggers.
 - **Theme import card didn't state the expected file format (#44)** — The import/export card description was ambiguous about which file type to use, leaving users unsure whether to upload a zip or JSON. The system is and has always been JSON-only (export produces `.json`, import parses JSON). The card description and a new helper line under the import button now explicitly say `.json`. No behavior change — the input's `accept` attribute was already correct.
 - **Type error in manifest test** — `manifest.test.ts` called `.startsWith()` on `start_url` typed as `unknown`, causing a `tsc --noEmit` failure. Added the same `as string` cast already used for `short_name` on the line above.
 - **Image background overlay rendered as a dark gradient instead of a translucent tint** — `resolveBackground()` for `backgroundType: "image"` built the overlay layer as `linear-gradient(#00000080, #000000)` — alpha encoded on the first stop only, second stop dropped the alpha entirely. The result was a near-opaque dark layer over the image instead of the intended uniform translucent tint. Additionally, `overlayOpacity: "0"` still rendered the broken gradient instead of skipping the overlay. Fixed: the overlay is now a uniform translucent layer (`#color+alpha` at both gradient stops), and opacity 0 or missing skips the overlay entirely. No preset used the image background type, so no existing theme was visually affected — the bug only hit user-created image-background themes.
