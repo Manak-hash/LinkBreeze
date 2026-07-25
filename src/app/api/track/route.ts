@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { getVisitorHash, getDeviceType } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
 import { getCountry } from "@/lib/geo";
+import { isBot } from "@/lib/bot-detect";
+import { getSession } from "@/lib/auth";
 import { recordPageview, recordClick } from "@/server/queries";
 
 export const runtime = "nodejs";
@@ -52,6 +54,20 @@ export async function POST(request: NextRequest) {
     }
 
     const userAgent = (h.get("user-agent") || "").toString();
+
+    // Issue #41: Skip analytics for known bots/crawlers.
+    if (isBot(userAgent)) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Issue #40: Skip analytics for the owner (authenticated admin).
+    // Cookie-first check: avoids a DB query on every anonymous request.
+    const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
+    const session = hasSessionCookie ? await getSession() : null;
+    if (session) {
+      return NextResponse.json({ ok: true });
+    }
+
     const visitorHash = getVisitorHash(ip, userAgent);
     const deviceType = getDeviceType(userAgent);
     const country = getCountry(h);

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import {
   Poppins,
   Playfair_Display,
@@ -51,6 +51,13 @@ const geistMono = Geist_Mono({
 // downloads a font when an element actually renders with that font-family.
 // Net effect on the public page: 1 font downloads instead of 9. The admin
 // theme preview still works (fonts swap in on-demand, a ~100ms FOUT).
+const inter = Inter({
+  variable: "--lb-font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: false,
+});
 const poppins = Poppins({
   variable: "--lb-font-poppins",
   subsets: ["latin"],
@@ -157,7 +164,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

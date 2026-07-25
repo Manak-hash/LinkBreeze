@@ -1,4 +1,3 @@
-import * as React from "react";
 import { getProfile, type SocialLink } from "@/server/queries";
 import { ProfileForm } from "./profile-form";
 

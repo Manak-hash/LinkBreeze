@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { login } from "@/server/actions/auth";

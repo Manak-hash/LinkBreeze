@@ -9,6 +9,8 @@
  * rows (before the schema expansion) resolve correctly.
  */
 
+import { truthy } from "@/lib/utils";
+
 // ─── Font Registry ──────────────────────────────────────────────────────────
 
 /**
@@ -319,13 +321,12 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
   const font = resolveFont(theme.fontFamily);
 
   // Glow effect
-  const glowEnabled = theme.glow === true || theme.glow === "true" || theme.glow === 1 || theme.glow === "1";
+  const glowEnabled = truthy(theme.glow);
   const glowColor = str(theme.glowColor, accent);
   const glowValue = glowEnabled ? `0 0 24px ${glowColor}40` : "none";
 
   // Noise overlay
-  const noiseEnabled =
-    theme.noise === true || theme.noise === "true" || theme.noise === 1 || theme.noise === "1";
+  const noiseEnabled = truthy(theme.noise);
 
   const cssVars: Record<string, string> = {
     "--lb-accent": accent,

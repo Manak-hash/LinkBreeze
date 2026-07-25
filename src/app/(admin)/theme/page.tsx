@@ -1,4 +1,3 @@
-import * as React from "react";
 import { getAllThemes, getActiveTheme, seedThemesIfEmpty } from "@/server/queries";
 import { ThemeManager } from "./theme-manager";
 import { ThemeTools } from "./theme-tools";

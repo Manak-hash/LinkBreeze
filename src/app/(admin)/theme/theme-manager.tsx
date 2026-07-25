@@ -30,6 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ThemeManagerProps {
   themes: ThemeRow[];
@@ -255,6 +263,7 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
   const [dupName, setDupName] = React.useState("");
   const [dupPending, setDupPending] = React.useState(false);
   const [delPending, setDelPending] = React.useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<number | null>(null);
   const router = useRouter();
 
   const handleSelect = async (id: number) => {
@@ -300,8 +309,8 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this custom theme? This cannot be undone.")) return;
     setDelPending(id);
+    setDeleteTarget(null);
     try {
       await deleteCustomTheme(id);
       router.refresh();
@@ -367,7 +376,7 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
               {/* Delete button for non-preset, non-active custom themes */}
               {!theme.isPreset && !isActive ? (
                 <button
-                  onClick={() => handleDelete(theme.id)}
+                  onClick={() => setDeleteTarget(theme.id)}
                   disabled={delPending === theme.id}
                   className="absolute right-1.5 top-1.5 rounded-md bg-black/40 p-1.5 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
                   title="Delete theme"
@@ -743,6 +752,31 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
           </Card>
         </>
       ) : null}
+
+      {/* Delete confirmation dialog — replaces native confirm() */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete this custom theme?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. The theme will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              type="button"
+              disabled={delPending !== null}
+              onClick={() => { if (deleteTarget !== null) handleDelete(deleteTarget); }}
+            >
+              {delPending !== null ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

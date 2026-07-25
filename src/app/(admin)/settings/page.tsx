@@ -1,4 +1,3 @@
-import * as React from "react";
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
 import { getSettings, getSetting, getAllThemes, getActiveTheme, getSubscriberCount } from "@/server/queries";

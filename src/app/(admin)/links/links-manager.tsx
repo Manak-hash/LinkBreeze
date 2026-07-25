@@ -221,19 +221,21 @@ function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
     }
   }
 
-  const urlLabel =
-    type === "email" ? "Email address"
-    : type === "phone" ? "Phone number"
-    : type === "whatsapp" ? "WhatsApp number"
-    : type === "sms" ? "Phone number"
-    : "URL";
+  const LINK_LABELS: Record<string, string> = {
+    email: "Email address",
+    phone: "Phone number",
+    whatsapp: "WhatsApp number",
+    sms: "Phone number",
+  };
+  const LINK_PLACEHOLDERS: Record<string, string> = {
+    email: "you@example.com",
+    phone: "+1 (555) 000-0000",
+    whatsapp: "+1 (555) 000-0000",
+    sms: "+1 (555) 000-0000",
+  };
 
-  const urlPlaceholder =
-    type === "email" ? "you@example.com"
-    : type === "phone" ? "+212600000000"
-    : type === "whatsapp" ? "+212600000000"
-    : type === "sms" ? "+212600000000"
-    : "https://example.com";
+  const urlLabel = LINK_LABELS[type] ?? "URL";
+  const urlPlaceholder = LINK_PLACEHOLDERS[type] ?? "https://example.com";
 
   const handleSubmit = (formData: FormData) => {
     // Prepend the correct prefix for non-URL types

@@ -1,4 +1,3 @@
-import * as React from "react";
 
 /**
  * CSS-only animated aurora background. Server component — zero client JS.

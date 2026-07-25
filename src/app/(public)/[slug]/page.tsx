@@ -13,6 +13,8 @@ import {
 import { getVisitorHash, getDeviceType } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
 import { getCountry } from "@/lib/geo";
+import { isBot } from "@/lib/bot-detect";
+import { getSession } from "@/lib/auth";
 import { ProfileHeader } from "@/components/public/ProfileHeader";
 import { LinkCard } from "@/components/public/LinkCard";
 import { EmbedWidget } from "@/components/public/EmbedWidget";
@@ -98,13 +100,24 @@ export default async function PublicPage({ params }: PageProps) {
       "0.0.0.0";
     const userAgent = (h.get("user-agent") || "").toString();
     const referrer = (h.get("referer") || h.get("referrer") || "").toString();
-    const visitorHash = getVisitorHash(ip, userAgent);
-    const deviceType = getDeviceType(userAgent);
-    const country = getCountry(h);
-    // Light per-IP cap so refresh/crawler bursts don't inflate view counts.
-    const viewRl = rateLimit(`view:${ip}`, 1, 30_000);
-    if (viewRl.ok) {
-      await recordPageview(visitorHash, referrer || null, deviceType, country);
+
+    // Issue #41: Skip analytics for known bots/crawlers.
+    // Issue #40: Skip analytics for the owner (authenticated admin).
+    // Cookie-first check: avoids a DB query on every anonymous pageview.
+    const isCrawler = isBot(userAgent);
+    const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
+    const isOwner = hasSessionCookie ? await getSession() : null;
+    if (isCrawler || isOwner) {
+      // Still render the page, just don't count the view.
+    } else {
+      const visitorHash = getVisitorHash(ip, userAgent);
+      const deviceType = getDeviceType(userAgent);
+      const country = getCountry(h);
+      // Light per-IP cap so refresh/crawler bursts don't inflate view counts.
+      const viewRl = rateLimit(`view:${ip}`, 1, 30_000);
+      if (viewRl.ok) {
+        await recordPageview(visitorHash, referrer || null, deviceType, country);
+      }
     }
   } catch {
     // Never let analytics break the page render.

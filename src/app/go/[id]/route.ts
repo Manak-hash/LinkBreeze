@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getVisitorHash } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
+import { isBot } from "@/lib/bot-detect";
+import { getSession } from "@/lib/auth";
 import { getLink, recordClick } from "@/server/queries";
 
 export const runtime = "nodejs";
@@ -57,9 +59,18 @@ export async function GET(
     const rl = rateLimit(`go:${ip}`, 60, 60_000);
     if (rl.ok) {
       const userAgent = (h.get("user-agent") || "").toString();
-      const visitorHash = getVisitorHash(ip, userAgent);
-      const referrer = (h.get("referer") || h.get("referrer") || "").toString();
-      await recordClick(linkId, visitorHash, referrer || null);
+
+      // Issue #41: Don't record clicks for known bots/crawlers.
+      // Issue #40: Don't record clicks for the owner (authenticated admin).
+      // Cookie-first: avoids DB query on every anonymous click.
+      const isCrawler = isBot(userAgent);
+      const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
+      const isOwner = hasSessionCookie ? await getSession() : null;
+      if (!isCrawler && !isOwner) {
+        const visitorHash = getVisitorHash(ip, userAgent);
+        const referrer = (h.get("referer") || h.get("referrer") || "").toString();
+        await recordClick(linkId, visitorHash, referrer || null);
+      }
     }
     // If rate-limited, we still redirect the user to their destination —
     // we just don't count the click. Real users never hit the limit;

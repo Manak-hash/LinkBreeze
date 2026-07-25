@@ -18,33 +18,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function DataManager({ retentionDays }: { retentionDays: string }) {
   const router = useRouter();
   const [restorePending, setRestorePending] = React.useState(false);
   const [restoreMsg, setRestoreMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null);
   const [clearPending, setClearPending] = React.useState(false);
   const [clearMsg, setClearMsg] = React.useState<string | null>(null);
+  const [clearOpen, setClearOpen] = React.useState(false);
   const [retention, setRetentionValue] = React.useState(retentionDays || "");
   const [retentionPending, startRetentionTransition] = React.useTransition();
   const [retentionSaved, setRetentionSaved] = React.useState(false);
 
-  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRestoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (
-      !window.confirm(
-        "Restoring will REPLACE all current links, profile, settings and themes. Continue?",
-      )
-    ) {
-      e.target.value = "";
-      return;
-    }
+    setPendingFile(file);
+  };
+
+  const confirmRestore = async () => {
+    if (!pendingFile) return;
     setRestorePending(true);
     setRestoreMsg(null);
+    setPendingFile(null);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", pendingFile);
       const res = await restoreBackup(fd);
       setRestoreMsg(
         res.success
@@ -56,18 +64,11 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
       setRestoreMsg({ ok: false, text: "Restore failed." });
     } finally {
       setRestorePending(false);
-      e.target.value = "";
     }
   };
 
   const handleClear = async () => {
-    if (
-      !window.confirm(
-        "Permanently delete ALL analytics (views + clicks) and reset click counters?",
-      )
-    ) {
-      return;
-    }
+    setClearOpen(false);
     setClearPending(true);
     setClearMsg(null);
     try {
@@ -119,7 +120,7 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
                 type="file"
                 accept="application/json,.json"
                 className="hidden"
-                onChange={handleRestore}
+                onChange={handleRestoreChange}
                 disabled={restorePending}
               />
             </label>
@@ -135,7 +136,7 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
           <Button
             type="button"
             variant="outline"
-            onClick={handleClear}
+            onClick={() => setClearOpen(true)}
             disabled={clearPending}
             className="w-fit text-destructive hover:text-destructive"
           >
@@ -174,6 +175,46 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
           ) : null}
         </form>
       </CardContent>
+
+      {/* Restore confirmation */}
+      <Dialog open={pendingFile !== null} onOpenChange={(open) => { if (!open) setPendingFile(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Restore backup?</DialogTitle>
+            <DialogDescription>
+              This will REPLACE all current links, profile, settings and themes. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setPendingFile(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" type="button" onClick={confirmRestore}>
+              Restore
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear analytics confirmation */}
+      <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Clear all analytics?</DialogTitle>
+            <DialogDescription>
+              Permanently delete ALL analytics (views + clicks) and reset click counters. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setClearOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" type="button" onClick={handleClear}>
+              Clear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

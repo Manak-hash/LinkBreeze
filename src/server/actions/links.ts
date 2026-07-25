@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { demoBlock } from "@/lib/demo";
 import { isAllowedLinkUrl } from "@/lib/link-url";
+import { truthy } from "@/lib/utils";
 import {
   createLink as createLinkQuery,
   updateLink as updateLinkQuery,
@@ -30,11 +31,11 @@ const linkSchema = z
     type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed"]).default("url"),
     isHighlighted: z
       .union([z.string(), z.boolean()])
-      .transform((v) => v === true || v === "true" || v === "on")
+      .transform(truthy)
       .default(false),
     isActive: z
       .union([z.string(), z.boolean()])
-      .transform((v) => v === true || v === "true" || v === "on")
+      .transform(truthy)
       .default(true),
     scheduleStart: z.string().optional().nullable(),
     scheduleEnd: z.string().optional().nullable(),

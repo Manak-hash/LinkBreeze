@@ -1,4 +1,3 @@
-import * as React from "react";
 import type { ProfileRow, LinkRow } from "@/server/queries";
 import { buildLinkCardHtml, type LinkCardTheme } from "@/components/public/build-link-card";
 

@@ -5,6 +5,37 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-07-25
+
+### Fixed
+
+- **17 unused `React` imports removed** — Next.js 16 uses the automatic JSX runtime and does not require `import * as React` in component files. Removed from all 17 files where React was imported but never referenced. No behavior change.
+- **4 redundant boolean comparisons simplified** — `theme-tokens.ts` (glow/noise enabled checks) and `links.ts` (isHighlighted/isActive Zod transforms) used verbose `=== true || === "true" || === 1 || === "1"` chains. Extracted into a shared `truthy()` helper in `src/lib/utils.ts`. Same behavior, cleaner code.
+- **Nested ternaries in `links-manager.tsx` replaced with lookup maps** — The link type label and placeholder chains (6 nested ternaries each) were converted to `Record<string, string>` lookup maps with fallback defaults. Improves readability and makes adding new link types trivial.
+- **`confirm()` in theme-manager replaced with Dialog** — The native `confirm()` dialog for theme deletion was replaced with a styled shadcn/ui Dialog component, matching the rest of the admin UI. Better mobile UX, no main-thread blocking.
+- **`confirm()` in data-manager replaced with Dialog** — The restore-backup and clear-analytics confirmation dialogs also used `window.confirm()`. Both replaced with styled shadcn/ui Dialog components for consistency with the theme-manager fix.
+- **Phone placeholder genericized** — The Morocco-specific phone placeholder `+212****0000` in the link editor was replaced with the international `+1 (555) 000-0000`. LinkBreeze targets international users.
+- **Inter font now loaded (default theme font was missing)** — The DB schema defaults `fontFamily` to "inter" and the admin UI lists it as the first option, but `layout.tsx` never loaded it via `next/font/google`. Users selecting "Inter" got a system-ui fallback. Added `Inter` with `--lb-font-inter` variable and `preload: false`.
+- **getSession() performance regression on public pageviews** — The owner-exclusion analytics feature called `getSession()` (which does a DB query) on every public page render, even for anonymous visitors. Fixed: all three tracking paths now check cookie existence first and only call `getSession()` when the `lb_session` cookie is present.
+
+### Security
+
+- **Bot/crawler filtering in analytics (#41)** — Known bots and crawlers (Googlebot, Bingbot, social preview crawlers, SEO tools, etc.) are now filtered out before recording pageviews and clicks. Prevents inflated metrics from automated traffic. Conservative pattern matching avoids over-filtering legitimate visitors.
+- **Owner view/click exclusion from analytics (#40)** — Authenticated admin sessions are no longer counted in analytics. When the owner views their own page or clicks their own links, the event is skipped. Prevents self-inflated metrics.
+- **Dependabot alert #3 patched (brace-expansion DoS)** — Added npm override forcing `brace-expansion >= 5.0.7` to resolve the high-severity ReDoS vulnerability in the transitive dependency.
+- **Dependabot alert #4 patched (@hono/node-server path traversal)** — Added npm override forcing `@hono/node-server >= 2.0.5` to resolve the medium-severity path traversal vulnerability in the transitive dependency.
+
+### Added
+
+- **Lighthouse CI workflow (#39)** — Added `.github/workflows/lighthouse.yml` with `lighthouserc.json` config. Runs Lighthouse audits on PRs targeting main and nightly on main. Includes a seed script (`src/scripts/seed-lighthouse.ts`) that creates a minimal profile + slug so Lighthouse audits a real public page instead of a /setup redirect. Reports uploaded as artifacts.
+- **Bot detection tests (37 tests)** — `src/lib/__tests__/bot-detect.test.ts` covers 21 known bot UAs (all match), 10 real browser UAs (none match), and edge cases (empty UA, whitespace, word-boundary false positives). Ensures the analytics bot filter doesn't over-filter legitimate traffic.
+
+### Changed
+
+- **Dependency bumps** — `lucide-react` 1.24→1.25, `shadcn` 4.13→4.13.1 (patch-level), `next` 16.2.10→16.2.11 (patch — resolves multiple Next.js security advisories), `eslint-config-next` 16.2.10→16.2.11. Supersedes Dependabot PR #43.
+- **Lighthouse thresholds tuned** — Performance set to warn at 0.7 (not 0.8) because third-party embeds (YouTube, Spotify) on user pages can load 1.4MB of third-party JS that the app doesn't control. Accessibility remains error-gated at 0.9. SEO set to warn at 0.7 for pages like /login that legitimately lack meta tags.
+- **Code cleanup from Herald audit** — 9 unused `cn` imports, 4 commented-out code blocks, and 4 flagged unused vars (`chartData`, `avatarSrc`, `jsonLd`, `anchorHtml`) were verified as already addressed during v1.1.4. No changes needed.
+
 ## [1.1.4] - 2026-07-22
 
 ### Fixed

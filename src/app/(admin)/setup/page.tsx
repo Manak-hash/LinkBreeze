@@ -1,4 +1,3 @@
-import * as React from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getUserCount } from "@/server/queries";
