@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Root layout metadata resolves origin dynamically** — The `generateMetadata()` conversion initially hardcoded a `metadataBase` URL, which is wrong for an OSS project where every instance has its own domain. Fixed: `metadataBase` now resolves from `BASE_URL` env var first, then request headers (`x-forwarded-host` + `x-forwarded-proto`), with a localhost fallback for build time — same pattern the public page already uses for OG images and sitemap.
 - **.ico and .svg content-type support** — Added `image/x-icon` and `image/svg+xml` to the uploads content-type map so the upload route serves favicon files with correct headers.
+- **Dependency security overrides** — Bumped npm overrides to resolve all 4 dependabot high-severity advisories: `postcss` ^8.5.18 (path traversal via sourceMappingURL, GHSA), `sharp` ^0.35.0 (libvips CVEs), `fast-uri` ^3.1.4 (host confusion via backslash/IDN), `brace-expansion` ^5.0.8 + minimatch ^10.0.1 (DoS via unbounded expansion, GHSA-mh99-v99m-4gvg). `npm audit` now reports 0 vulnerabilities.
+- **Lighthouse CI workflow triggers on push to main** — Previously only ran on PRs and daily cron, so the seed-database fix went unverified until a PR was opened. Added `push: [main]` and `workflow_dispatch` triggers.
 
 ### Fixed
 
