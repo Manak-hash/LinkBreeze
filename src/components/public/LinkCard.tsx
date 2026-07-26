@@ -1,9 +1,8 @@
-import type { ProfileRow, LinkRow } from "@/server/queries";
+import type { LinkRow } from "@/server/queries";
 import { buildLinkCardHtml, type LinkCardTheme } from "@/components/public/build-link-card";
 
 interface LinkCardProps {
   link: LinkRow;
-  profile: Pick<ProfileRow, "displayName">;
   index: number;
   theme: LinkCardTheme;
 }
@@ -16,8 +15,8 @@ interface LinkCardProps {
  * static HTML untouched. This keeps the public page 100% client-JS-free while
  * still tracking outbound clicks.
  */
-export function LinkCard({ link, profile, index, theme }: LinkCardProps) {
-  const html = buildLinkCardHtml(link, profile, theme, index);
+export function LinkCard({ link, index, theme }: LinkCardProps) {
+  const html = buildLinkCardHtml({ link, theme, index });
 
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }

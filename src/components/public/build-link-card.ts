@@ -1,4 +1,4 @@
-import type { LinkRow, ProfileRow } from "@/server/queries";
+import type { LinkRow } from "@/server/queries";
 import type { ThemeInput } from "@/lib/theme-tokens";
 
 export type LinkCardTheme = ThemeInput;
@@ -13,6 +13,57 @@ function esc(s: string): string {
 }
 
 /**
+ * Resolve a link's URL attributes for the <a> tag.
+ *
+ * For http(s) links: use /go/:id redirect as the href — records the click
+ * server-side and works without JS (crawlers, in-app browsers, JS-disabled).
+ * For other link types (mailto, tel, etc.): keep the direct href and fire
+ * sendBeacon for best-effort tracking.
+ */
+function resolveLinkUrl(link: LinkRow): {
+  href: string;
+  targetAttr: string;
+  onclickAttr: string;
+} {
+  const rawUrl = link.url;
+  const isExternal =
+    rawUrl.startsWith("http://") || rawUrl.startsWith("https://");
+
+  const href = isExternal ? `/go/${link.id}` : esc(rawUrl);
+  const targetAttr = isExternal
+    ? ` target="_blank" rel="noopener noreferrer nofollow"`
+    : "";
+  const clickHandler = isExternal
+    ? ""
+    : `navigator.sendBeacon('/api/track', JSON.stringify({type:'click',linkId:${link.id}}))`;
+  const onclickAttr = clickHandler ? `\n  onclick="${clickHandler}"` : "";
+
+  return { href, targetAttr, onclickAttr };
+}
+
+/**
+ * Build the content row: title, description, highlight dot, and arrow.
+ * Shared between cards with and without a thumbnail image.
+ */
+function buildContentRow(link: LinkRow): string {
+  const highlightDot = link.isHighlighted
+    ? `<span aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:9999px;background:var(--lb-accent);margin-right:8px;flex-shrink:0"></span>`
+    : "";
+
+  const description = link.description
+    ? `<p style="font-size:var(--lb-font-size);opacity:.7;margin:2px 0 0">${esc(link.description)}</p>`
+    : "";
+
+  const title = esc(link.title);
+
+  return `<span style="display:flex;flex-direction:column;flex:1;min-width:0">
+      <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
+      ${description}
+    </span>
+    <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">&#8599;</span>`;
+}
+
+/**
  * Pure builder for a public link card's HTML (zero client JS).
  * All user-controlled fields (title, description, url) pass through esc()
  * before injection; the click beacon is fired from an inline onclick.
@@ -20,13 +71,14 @@ function esc(s: string): string {
  * Styling now consumes CSS custom properties (--lb-*) set by theme-tokens.
  * No hardcoded colors, radii, or shadows.
  */
-export function buildLinkCardHtml(
-  link: LinkRow,
-  _profile: Pick<ProfileRow, "displayName">,
-  theme: LinkCardTheme,
-  index: number,
-  staggerMs = 60,
-): string {
+export function buildLinkCardHtml(options: {
+  link: LinkRow;
+  theme: LinkCardTheme;
+  index: number;
+  staggerMs?: number;
+}): string {
+  const { link, theme, index, staggerMs = 60 } = options;
+
   const linkStyle = theme.linkStyle || "glass";
   const hoverEffect = theme.hoverEffect || theme.animationType || "lift";
 
@@ -45,28 +97,7 @@ export function buildLinkCardHtml(
       ? ""
       : `animation: aurora-rise 0.5s cubic-bezier(0.16,1,0.3,1) both; animation-delay:${index * staggerMs}ms;`;
 
-  const highlightDot = link.isHighlighted
-    ? `<span aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:9999px;background:var(--lb-accent);margin-right:8px;flex-shrink:0"></span>`
-    : "";
-
-  const description = link.description
-    ? `<p style="font-size:var(--lb-font-size);opacity:.7;margin:2px 0 0">${esc(link.description)}</p>`
-    : "";
-
-  const title = esc(link.title);
-  const rawUrl = link.url;
-  const isExternal = rawUrl.startsWith("http://") || rawUrl.startsWith("https://");
-
-  // For http(s) links: use /go/:id redirect as the href — records the click
-  // server-side and works without JS (crawlers, in-app browsers, JS-disabled).
-  // For other link types (mailto, tel, etc.): keep the direct href and fire
-  // sendBeacon for best-effort tracking.
-  const href = isExternal ? `/go/${link.id}` : esc(rawUrl);
-  const targetAttr = isExternal ? ` target="_blank" rel="noopener noreferrer nofollow"` : "";
-  const clickHandler = isExternal
-    ? ""
-    : `navigator.sendBeacon('/api/track', JSON.stringify({type:'click',linkId:${link.id}}))`;
-  const onclickAttr = clickHandler ? `\n  onclick="${clickHandler}"` : "";
+  const { href, targetAttr, onclickAttr } = resolveLinkUrl(link);
 
   // CSS-based hover effects (class + data attributes) — replaces inline
   // onmouseover/onmouseout so prefers-reduced-motion can gate them.
@@ -85,51 +116,35 @@ export function buildLinkCardHtml(
   const overflow = hasImage ? `overflow:hidden;` : "";
 
   // Backdrop blur only for glass / neon styles
-  const backdropBlur = isGlass || isNeon
-    ? `backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur));`
-    : "";
-
-  // Content row (title + description + arrow) — always a flex row.
-  const contentRow = `<div style="display:flex;align-items:center;padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x)">
-    <span style="display:flex;flex-direction:column;flex:1;min-width:0">
-      <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
-      ${description}
-    </span>
-    <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">&#8599;</span>
-  </div>`;
+  const backdropBlur =
+    isGlass || isNeon
+      ? `backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur));`
+      : "";
 
   // Layout differs: cards with thumbnail use block layout (image on top,
   // content row below). Cards without thumbnail use flex directly on the <a>.
-  if (hasImage) {
-    return `<a
+  const display = hasImage
+    ? "display:block"
+    : "display:flex;align-items:center";
+  const paddingStyle = hasImage
+    ? ""
+    : "padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x);";
+
+  const contentRow = buildContentRow(link);
+  const innerContent = hasImage
+    ? `${image}\n  <div style="display:flex;align-items:center;padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x)">\n    ${contentRow}\n  </div>`
+    : contentRow;
+
+  return `<a
   href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
   style="
-    display:block;text-decoration:none;width:100%;box-sizing:border-box;
-    margin:0 0 var(--lb-spacing);
+    ${display};text-decoration:none;width:100%;box-sizing:border-box;
+    ${paddingStyle}margin:0 0 var(--lb-spacing);
     background:var(--lb-card-bg);border:${border};border-radius:var(--lb-card-radius);
     color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
     ${backdropBlur}${overflow}${reveal}
   "
 >
-  ${image}
-  ${contentRow}
-</a>`;
-  }
-
-  return `<a
-  href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
-  style="
-    display:flex;align-items:center;text-decoration:none;width:100%;box-sizing:border-box;
-    padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x);margin:0 0 var(--lb-spacing);
-    background:var(--lb-card-bg);border:${border};border-radius:var(--lb-card-radius);
-    color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-    ${backdropBlur}${reveal}
-  "
->
-  <span style="display:flex;flex-direction:column;flex:1;min-width:0">
-    <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
-    ${description}
-  </span>
-  <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">&#8599;</span>
+  ${innerContent}
 </a>`;
 }

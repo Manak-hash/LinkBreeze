@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dashboard referrers showed raw URLs with duplicates** — Referrer entries like `https://example.com`, `http://example.com`, and `https://example.com/` appeared as separate rows instead of being grouped. Fixed: referrers are now normalized to their hostname (stripping protocol, path, `www.` prefix) and counts are merged. Applies to both dashboard and per-link analytics.
+- **Login page had no way back to the public page** — The login form was a dead end with no navigation. Added a "← Back to page" link below the sign-in button.
+
 - **Owner views counted in analytics (#40)** — The public page had `revalidate = 60` (ISR), which made Next.js statically cache the page. During static generation, `cookies()` is not available, so `getSession()` couldn't detect the owner's session cookie — the owner detection check silently failed and every owner pageview was counted as a regular visitor. Fixed: added `export const dynamic = "force-dynamic"` to the public page so cookies and headers are read at request time. ISR cache headers for CDN-edge caching are preserved via the `headers()` config in `next.config.ts`.
 - **Public page crashed with `require is not defined`** — The root layout's `generateMetadata()` used `await import("@/server/queries")` which Turbopack bundled as CJS, crashing in the ESM runtime. Fixed: converted to a static import.
 - **`/favicon.ico` returned HTML instead of an image** — Without a route handler, Next.js fell through to the catch-all route and returned the page HTML with a 200 status. Browsers cached that response aggressively and never re-requested, so the custom favicon never appeared in the browser tab. Fixed: added a `/favicon.ico` route handler that 302-redirects to the custom favicon (or default fallback), with host-aware URLs derived from request headers and `no-cache` headers so changes are picked up immediately.
@@ -28,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup page showed duplicate logo and title** — Both `page.tsx` and `setup-form.tsx` rendered their own logo + heading, and both had nested `min-h-screen` centering creating a massive gap. Fixed: removed the duplicate header from `page.tsx`; `setup-form.tsx` now owns the entire layout.
 - **allowedDevOrigins didn't strip protocol/port** — The `DEV_ORIGINS` env var contains full URLs (`http://192.168.x.x:3000`) but Next.js expects bare hostnames. Fixed: the config now strips protocol and port before passing to `allowedDevOrigins`.
 - **Lighthouse CI "Seed database" step crashed with `no such table: users`** — The seed script (`src/scripts/seed-lighthouse.ts`) ran before the Next.js server started, but the DB tables are only created when the server boots (via `instrumentation.ts` → `migrate()`). The seed hit a completely empty SQLite file and crashed on its first query. Fixed: the seed script now runs migrations itself before inserting data, mirroring the same `migrate()` call `instrumentation.ts` uses.
+
+### Refactored
+
+- **`links-manager.tsx` split from 573 → 151 lines** — Extracted `SortableLink`, `LinkDialog`, and `DeleteDialog` into separate component files under `src/app/(admin)/links/components/`. Moved `LINK_TYPES`, label/placeholder maps, and URL-prefix logic into `link-helpers.ts` (where `prefixLinkUrl()` will be reused by the migration wizard). Fixed a stale-closure bug in `handleDragEnd` where `items.map()` read the pre-drag array instead of the post-drag order. The slim orchestrator is now structured to accept a `pageId` prop for multi-page support.
+- **`theme-manager.tsx` split from 782 → 159 lines** — Extracted `ColorField`, `SelectField`, `ToggleField`, `SliderField` into `field-controls.tsx`; `PresetGallery`, `ThemeCustomizer` (with 6 section sub-components), and `DuplicateTheme` into separate component files. Moved all constant arrays and the `swatchFor` helper into `theme-constants.ts`. The orchestrator is ready for theme-per-page work.
+- **`build-link-card.ts` signature modernized** — Changed from 5 positional params to an options object `buildLinkCardHtml({ link, theme, index, staggerMs? })`. Removed unused `_profile` parameter. Extracted `resolveLinkUrl()` and `buildContentRow()` helpers, eliminating the duplicated content-row HTML between the image and no-image code paths. Updated `LinkCard.tsx` caller to drop the now-unused `profile` prop.
 
 ## [1.1.5] - 2026-07-25
 

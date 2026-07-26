@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -68,10 +69,16 @@ export function LoginForm() {
               <p className="text-sm text-destructive">{state.error}</p>
             ) : null}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Signing in…" : "Sign in"}
             </Button>
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              ← Back to page
+            </Link>
           </CardFooter>
         </form>
       </Card>

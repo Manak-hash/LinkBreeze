@@ -521,6 +521,30 @@ export async function getDashboardStats(range: AnalyticsRange = "7d"): Promise<D
   return { totalViews, uniqueVisitors, totalClicks, ctr, topLinks, viewsPerDay };
 }
 
+/** Normalize a referrer string to just its hostname for grouping. */
+function normalizeReferrer(raw: string): string {
+  try {
+    const url = new URL(raw);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return raw.trim();
+  }
+}
+
+/** Group referrer rows by normalized hostname, summing counts. */
+function cleanReferrers(rows: Array<{ label: string | null; count: number }>) {
+  const merged = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.label || r.label.trim() === "") continue;
+    const key = normalizeReferrer(r.label);
+    merged.set(key, (merged.get(key) ?? 0) + Number(r.count));
+  }
+  return [...merged.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+}
+
 /** Top referrers / devices / countries among views in the window. */
 export async function getAnalyticsBreakdown(range: AnalyticsRange = "7d"): Promise<AnalyticsBreakdown> {
   const clean = (rows: Array<{ label: string | null; count: number }>) =>
@@ -541,7 +565,7 @@ export async function getAnalyticsBreakdown(range: AnalyticsRange = "7d"): Promi
   ]);
 
   return {
-    referrers: clean(referrerRows),
+    referrers: cleanReferrers(referrerRows),
     devices: clean(deviceRows),
     countries: clean(countryRows),
   };
@@ -582,9 +606,7 @@ export async function getLinkStats(linkId: number, range: AnalyticsRange = "30d"
     .groupBy(analyticsClicks.referrer)
     .orderBy(desc(sql`count(*)`))
     .limit(8);
-  const topReferrers = refRows
-    .filter((r) => r.label && r.label.trim() !== "")
-    .map((r) => ({ label: r.label as string, count: Number(r.count) }));
+  const topReferrers = cleanReferrers(refRows);
 
   return { link, totalClicks, clicksPerDay, topReferrers };
 }

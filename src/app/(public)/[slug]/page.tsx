@@ -225,7 +225,6 @@ export default async function PublicPage({ params }: PageProps) {
                 <LinkCard
                   key={link.id}
                   link={link}
-                  profile={profile}
                   index={i}
                   theme={themeInput}
                 />
