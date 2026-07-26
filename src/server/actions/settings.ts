@@ -20,6 +20,7 @@ const settingsSchema = z.object({
   analyticsScript: z.string().max(2000).optional().default(""),
   customCss: z.string().max(10000).optional().default(""),
   emailCapture: z.string().optional().default(""),
+  faviconUrl: z.string().max(500).optional().default(""),
   activeThemeId: z.string().optional().nullable(),
 });
 
@@ -36,6 +37,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
     analyticsScript: formData.get("analyticsScript") || "",
     customCss: formData.get("customCss") || "",
     emailCapture: formData.get("emailCapture") === "on" ? "true" : "false",
+    faviconUrl: formData.get("faviconUrl") || "",
     activeThemeId: formData.get("activeThemeId") || undefined,
   });
   if (!parsed.success) {
@@ -50,6 +52,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   await updateSettingQuery("analyticsScript", d.analyticsScript);
   await updateSettingQuery("customCss", d.customCss);
   await updateSettingQuery("emailCapture", d.emailCapture);
+  await updateSettingQuery("faviconUrl", d.faviconUrl);
 
   // Persist active theme if provided.
   if (d.activeThemeId) {

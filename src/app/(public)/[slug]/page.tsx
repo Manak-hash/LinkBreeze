@@ -30,6 +30,11 @@ import {
 
 export const revalidate = 60;
 
+// Force dynamic rendering so cookies() and headers() are read at request
+// time. Without this, ISR caches the page and getSession() can't see the
+// owner's session cookie — so owner views get counted in analytics.
+export const dynamic = "force-dynamic";
+
 /** Build the public origin for absolute URLs in metadata. */
 async function getOrigin(): Promise<string> {
   // If BASE_URL is set, always use it — prevents host-header injection.

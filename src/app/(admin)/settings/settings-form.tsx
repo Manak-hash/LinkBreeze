@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Save, ExternalLink } from "lucide-react";
+import { Save, ExternalLink, Upload } from "lucide-react";
 import { updateSettings } from "@/server/actions/settings";
+import { uploadFavicon } from "@/server/actions/uploads";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface SettingsFormProps {
   analyticsScript: string;
   customCss: string;
   emailCapture: boolean;
+  faviconUrl: string;
   subscriberCount: number;
   themes: ThemeRow[];
   activeThemeId: number | null;
@@ -39,6 +41,7 @@ export function SettingsForm({
   analyticsScript,
   customCss,
   emailCapture,
+  faviconUrl: initialFaviconUrl,
   subscriberCount,
   themes,
   activeThemeId,
@@ -49,6 +52,31 @@ export function SettingsForm({
   const [selectedTheme, setSelectedTheme] = React.useState<string>(
     activeThemeId ? String(activeThemeId) : "",
   );
+  const [faviconUrl, setFaviconUrl] = React.useState(initialFaviconUrl);
+  const [uploadingFavicon, setUploadingFavicon] = React.useState(false);
+  const [faviconError, setFaviconError] = React.useState<string | null>(null);
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFavicon(true);
+    setFaviconError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadFavicon(fd);
+      if (res.success) {
+        setFaviconUrl(res.url);
+      } else {
+        setFaviconError(res.error);
+      }
+    } catch {
+      setFaviconError("Upload failed. Please try again.");
+    } finally {
+      setUploadingFavicon(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = (formData: FormData) => {
     if (selectedTheme) {
@@ -81,7 +109,7 @@ export function SettingsForm({
                 name="slug"
                 defaultValue={slug}
                 required
-                pattern="[a-zA-Z0-9_-]+"
+                pattern="^[a-zA-Z0-9_\-]+$"
                 maxLength={64}
                 className="max-w-48"
               />
@@ -188,6 +216,47 @@ export function SettingsForm({
                 </a>
               </p>
             ) : null}
+          </div>
+
+          {faviconUrl ? (
+            <div className="flex flex-col gap-2">
+              <Label>Favicon</Label>
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={faviconUrl}
+                  alt="Current favicon"
+                  className="size-8 rounded border border-border object-contain"
+                />
+                <span className="text-xs text-muted-foreground">
+                  Custom favicon active — saves with settings.
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="faviconUpload">Upload favicon (optional)</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
+                <Upload className="size-4" />
+                {uploadingFavicon ? "Uploading…" : "Upload favicon"}
+                <input
+                  type="file"
+                  accept=".ico,.png,.svg,.gif,.webp,image/x-icon,image/png,image/svg+xml,image/gif,image/webp"
+                  className="hidden"
+                  onChange={handleFaviconUpload}
+                  disabled={uploadingFavicon}
+                />
+              </label>
+              {faviconError ? (
+                <span className="text-xs text-destructive">{faviconError}</span>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Upload a .ico, .png, .svg, .gif or .webp file (max 1 MB). Overrides the default favicon across the site.
+            </p>
+            <input type="hidden" name="faviconUrl" value={faviconUrl} />
           </div>
 
           {themes.length > 0 ? (

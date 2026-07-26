@@ -22,6 +22,16 @@ const ALLOWED_EXT = new Set([
   ".avif",
 ]);
 
+// Favicon allows additional formats not in the avatar set.
+const FAVICON_ALLOWED_EXT = new Set([
+  ".png",
+  ".gif",
+  ".webp",
+  ".ico",
+  ".svg",
+]);
+const FAVICON_MAX_BYTES = 1 * 1024 * 1024; // 1 MB — favicons are tiny
+
 /** Accepts an image upload, stores it on disk, returns its public URL. */
 export async function uploadAvatar(formData: FormData): Promise<UploadResult> {
   const demo = demoBlock();
@@ -54,5 +64,43 @@ export async function uploadAvatar(formData: FormData): Promise<UploadResult> {
   await writeFile(dest, buffer);
 
   revalidatePath("/profile");
+  return { success: true, url: `/api/uploads/${filename}` };
+}
+
+/** Accepts a favicon upload (.ico/.png/.svg/.gif/.webp), stores it, returns URL. */
+export async function uploadFavicon(formData: FormData): Promise<UploadResult> {
+  const demo = demoBlock();
+  if (demo) return { success: false, error: demo };
+  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { success: false, error: "No file provided" };
+  }
+  if (file.size === 0) return { success: false, error: "File is empty" };
+  if (file.size > FAVICON_MAX_BYTES) {
+    return { success: false, error: "File too large (max 1 MB)" };
+  }
+
+  const ext = path.extname(file.name).toLowerCase();
+  if (!FAVICON_ALLOWED_EXT.has(ext)) {
+    return { success: false, error: "Unsupported file type. Use .ico, .png, .svg, .gif, or .webp" };
+  }
+
+  // SVG is text-based, so it won't start with "image/". Validate by extension.
+  if (ext !== ".svg" && file.type && !file.type.startsWith("image/")) {
+    return { success: false, error: "File must be an image" };
+  }
+
+  await ensureUploadsDir();
+  const id = crypto.randomBytes(12).toString("hex");
+  const filename = `${id}${ext}`;
+  const dest = path.join(UPLOADS_DIR, filename);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(dest, buffer);
+
+  revalidatePath("/settings");
+  revalidatePath("/");
   return { success: true, url: `/api/uploads/${filename}` };
 }

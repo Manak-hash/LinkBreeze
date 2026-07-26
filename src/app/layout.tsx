@@ -12,6 +12,7 @@ import {
   Outfit,
 } from "next/font/google";
 import localFont from "next/font/local";
+import { getSetting } from "@/server/queries";
 import "./globals.css";
 
 const clashDisplay = localFont({
@@ -132,29 +133,90 @@ const outfit = Outfit({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  title: "LinkBreeze — Self-hosted link-in-bio",
-  description: "Self-hosted link-in-bio platform with analytics, QR codes, and themes. The open-source Linktree alternative.",
-  icons: {
+export async function generateMetadata(): Promise<Metadata> {
+  // Resolve the origin from request headers (or BASE_URL env) so metadata
+  // resolves correctly on every self-hosted instance, not just the demo.
+  let origin = "http://localhost:3000";
+  try {
+    if (process.env.BASE_URL) {
+      origin = process.env.BASE_URL.replace(/\/$/, "");
+    } else {
+      const { headers } = await import("next/headers");
+      const h = await headers();
+      const host = (h.get("x-forwarded-host") || h.get("host") || "localhost:3000").toString();
+      const proto = (h.get("x-forwarded-proto") || "http").toString();
+      origin = `${proto}://${host}`;
+    }
+  } catch {
+    // headers() not available at build time — keep the localhost fallback.
+  }
+
+  // Check for a custom favicon in settings (uploaded via the admin UI).
+  let customFavicon: string | null = null;
+  try {
+    customFavicon = await getSetting("faviconUrl");
+  } catch {
+    // DB might not be ready during build — fall back to defaults.
+  }
+
+  const icons: Metadata["icons"] = {
     icon: [
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
     ],
     apple: "/apple-touch-icon.png",
-  },
-  manifest: "/site.webmanifest",
-  openGraph: {
+  };
+
+  // Prepend the custom favicon so browsers prefer it over the defaults.
+  // IMPORTANT: we must REMOVE the default icons entirely when a custom one is
+  // set. Chrome's favicon algorithm picks the icon with the best size match.
+  // If defaults (32x32, 16x16) remain alongside the custom one, Chrome may
+  // prefer them because they have explicit sizes attributes. The only reliable
+  // way to make the custom favicon win is to make it the ONLY icon.
+  if (customFavicon) {
+    const ext = customFavicon.split(".").pop()?.toLowerCase();
+    const typeMap: Record<string, string> = {
+      ico: "image/x-icon",
+      png: "image/png",
+      svg: "image/svg+xml",
+      gif: "image/gif",
+      webp: "image/webp",
+    };
+    const favType = typeMap[ext || ""] || "image/x-icon";
+
+    // SVG is scalable — use "any". For raster formats, provide common sizes
+    // so browsers find a match at every DPI.
+    const isSvg = ext === "svg";
+    const sizes = isSvg
+      ? "any"
+      : "16x16 32x32 48x48 96x96 150x150 192x192";
+
+    icons.icon = [
+      { url: customFavicon, sizes, type: favType },
+    ];
+    icons.apple = { url: customFavicon, sizes: "180x180", type: favType };
+  }
+
+  return {
     title: "LinkBreeze — Self-hosted link-in-bio",
-    description: "The open-source Linktree alternative you own.",
-    images: ["/banner.png"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "LinkBreeze — Self-hosted link-in-bio",
-    description: "The open-source Linktree alternative you own.",
-    images: ["/banner.png"],
-  },
-};
+    description:
+      "Self-hosted link-in-bio platform with analytics, QR codes, and themes. The open-source Linktree alternative.",
+    metadataBase: new URL(origin),
+    icons,
+    manifest: "/site.webmanifest",
+    openGraph: {
+      title: "LinkBreeze — Self-hosted link-in-bio",
+      description: "The open-source Linktree alternative you own.",
+      images: ["/banner.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "LinkBreeze — Self-hosted link-in-bio",
+      description: "The open-source Linktree alternative you own.",
+      images: ["/banner.png"],
+    },
+  };
+}
 
 export default function RootLayout({
   children,

@@ -5,6 +5,28 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - Unreleased
+
+### Added
+
+- **Favicon upload in settings UI (#52)** — Administrators can now upload a custom favicon directly from the Settings page. Supports .ico, .png, .svg, .gif, and .webp formats up to 1 MB. The uploaded favicon overrides the default across all pages (admin + public). The upload UI matches the existing avatar upload pattern — upload button, live preview, error handling. The root layout's `metadata` was converted from a static export to `generateMetadata()` so the browser tab icon is read from the database at runtime. Closes #52.
+
+### Changed
+
+- **Root layout metadata resolves origin dynamically** — The `generateMetadata()` conversion initially hardcoded a `metadataBase` URL, which is wrong for an OSS project where every instance has its own domain. Fixed: `metadataBase` now resolves from `BASE_URL` env var first, then request headers (`x-forwarded-host` + `x-forwarded-proto`), with a localhost fallback for build time — same pattern the public page already uses for OG images and sitemap.
+- **.ico and .svg content-type support** — Added `image/x-icon` and `image/svg+xml` to the uploads content-type map so the upload route serves favicon files with correct headers.
+
+### Fixed
+
+- **Owner views counted in analytics (#40)** — The public page had `revalidate = 60` (ISR), which made Next.js statically cache the page. During static generation, `cookies()` is not available, so `getSession()` couldn't detect the owner's session cookie — the owner detection check silently failed and every owner pageview was counted as a regular visitor. Fixed: added `export const dynamic = "force-dynamic"` to the public page so cookies and headers are read at request time. ISR cache headers for CDN-edge caching are preserved via the `headers()` config in `next.config.ts`.
+- **Public page crashed with `require is not defined`** — The root layout's `generateMetadata()` used `await import("@/server/queries")` which Turbopack bundled as CJS, crashing in the ESM runtime. Fixed: converted to a static import.
+- **`/favicon.ico` returned HTML instead of an image** — Without a route handler, Next.js fell through to the catch-all route and returned the page HTML with a 200 status. Browsers cached that response aggressively and never re-requested, so the custom favicon never appeared in the browser tab. Fixed: added a `/favicon.ico` route handler that 302-redirects to the custom favicon (or default fallback), with host-aware URLs derived from request headers and `no-cache` headers so changes are picked up immediately.
+- **Custom favicon ignored by browsers despite correct HTML** — When a custom favicon was set, the default `favicon-32.png` and `favicon-16.png` link tags remained in the HTML alongside it. Chrome's favicon selection algorithm picks the icon with the best `sizes` match, so it preferred the explicitly sized defaults over the custom icon. Fixed: when a custom favicon is set, it becomes the ONLY `<link rel="icon">` in the document, with `sizes="16x16 32x32 48x48 96x96 150x150 192x192"` and the correct `type` attribute. SVG favicons use `sizes="any"`.
+- **Slug pattern regex invalid in Chrome `/v` mode** — The `[a-zA-Z0-9_-]+` pattern on the slug input had an unescaped hyphen that Chromium's new regex engine rejected. Fixed: escaped the hyphen.
+- **Setup page showed duplicate logo and title** — Both `page.tsx` and `setup-form.tsx` rendered their own logo + heading, and both had nested `min-h-screen` centering creating a massive gap. Fixed: removed the duplicate header from `page.tsx`; `setup-form.tsx` now owns the entire layout.
+- **allowedDevOrigins didn't strip protocol/port** — The `DEV_ORIGINS` env var contains full URLs (`http://192.168.x.x:3000`) but Next.js expects bare hostnames. Fixed: the config now strips protocol and port before passing to `allowedDevOrigins`.
+- **Lighthouse CI "Seed database" step crashed with `no such table: users`** — The seed script (`src/scripts/seed-lighthouse.ts`) ran before the Next.js server started, but the DB tables are only created when the server boots (via `instrumentation.ts` → `migrate()`). The seed hit a completely empty SQLite file and crashed on its first query. Fixed: the seed script now runs migrations itself before inserting data, mirroring the same `migrate()` call `instrumentation.ts` uses.
+
 ## [1.1.5] - 2026-07-25
 
 ### Fixed

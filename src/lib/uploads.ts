@@ -16,6 +16,8 @@ const CONTENT_TYPES: Record<string, string> = {
   ".gif": "image/gif",
   ".webp": "image/webp",
   ".avif": "image/avif",
+  ".ico": "image/x-icon",
+  ".svg": "image/svg+xml",
 };
 
 export function contentTypeFor(filename: string): string {

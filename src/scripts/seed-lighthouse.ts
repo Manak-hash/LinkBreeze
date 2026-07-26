@@ -7,6 +7,15 @@
  */
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import * as path from "path";
+
+// Run migrations first — the DB file is empty at this point in CI and the
+// tables only get created when Next.js boots (instrumentation.ts). Without
+// this, the select() below crashes with "no such table: users".
+migrate(db, {
+  migrationsFolder: path.join(process.cwd(), "src", "db", "migrations"),
+});
 
 // Insert a dummy user (password won't be verified — just needs to exist so
 // getUserCount() > 0, which prevents the /setup redirect).

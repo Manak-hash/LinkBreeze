@@ -301,6 +301,11 @@ The theme engine uses a CSS custom property (`--lb-*`) token system — every co
 
 All changes apply with zero client-side JS bundles — the public page ships no React runtime and renders as pure server-side HTML. (mailto/tel/social links use a tiny inline `onclick` beacon for best-effort click tracking; http/https links use the JS-free `/go/:id` redirect.)
 
+## 💬 Community
+
+- **[Share your LinkBreeze theme](https://github.com/Manak-hash/LinkBreeze/discussions/51)** — Export your custom theme JSON and show off your page. The best ones get featured in future releases.
+- **[Who's using LinkBreeze? Drop your link](https://github.com/Manak-hash/LinkBreeze/discussions/54)** — Tell us what you built, what your page is for, and what's missing. Be brutal.
+
 ## 🤝 Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

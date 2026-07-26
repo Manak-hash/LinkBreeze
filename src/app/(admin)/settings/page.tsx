@@ -41,6 +41,7 @@ export default async function SettingsPage() {
         analyticsScript={settings.analyticsScript || ""}
         customCss={settings.customCss || ""}
         emailCapture={settings.emailCapture === "true"}
+        faviconUrl={settings.faviconUrl || ""}
         subscriberCount={subscriberCount}
         themes={themes}
         activeThemeId={active?.id ?? null}

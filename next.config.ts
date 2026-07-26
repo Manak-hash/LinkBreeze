@@ -28,7 +28,16 @@ const nextConfig: NextConfig = {
 
   // Allow Server Actions from external IPs during dev (Tailscale, LAN, etc.)
   // Set DEV_ORIGINS="http://100.x.x.x:3000,http://192.168.x.x:3000" in .env
-  allowedDevOrigins: process.env.DEV_ORIGINS?.split(",").map((s) => s.trim()) ?? [],
+  // Next.js expects bare hostnames (no protocol/port), so we strip them.
+  allowedDevOrigins:
+    process.env.DEV_ORIGINS?.split(",")
+      .map((s) =>
+        s
+          .trim()
+          .replace(/^https?:\/\//, "")
+          .replace(/:\d+$/, "")
+          .replace(/\/$/, ""),
+      ) ?? [],
 
   // better-sqlite3 is a native module — exclude it from the server bundling
   // so the standalone server loads it from node_modules at runtime.

@@ -54,7 +54,7 @@ export function LoginForm() {
                 autoFocus
               />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mb-4">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
