@@ -39,12 +39,10 @@ jobs:
 
       - name: Start server
         run: |
-          # output: standalone preserves the repo's directory structure.
-          # Find the actual server.js location and copy static assets next to it.
-          STANDALONE_DIR=$(dirname $(find .next/standalone -name server.js -path "*/linkbreeze*" | head -1))
-          if [ -z "$STANDALONE_DIR" ] || [ "$STANDALONE_DIR" = "." ]; then
-            STANDALONE_DIR=".next/standalone"
-          fi
+          # output: standalone needs static assets copied next to server.js.
+          # In CI the checkout is flat, so server.js is at .next/standalone/server.js.
+          # In nested local dirs it may be under subdirs — find handles both.
+          STANDALONE_DIR=$(dirname $(find .next/standalone -name server.js -not -path "*/node_modules/*" | head -1))
           cp -r .next/static "$STANDALONE_DIR/.next/static"
           cp -r public "$STANDALONE_DIR/public"
           cd "$STANDALONE_DIR"
