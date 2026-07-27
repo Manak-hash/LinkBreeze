@@ -8,6 +8,7 @@ import {
   duplicateActiveTheme,
   deleteCustomTheme,
 } from "@/server/actions/theme";
+import { setPageThemeAction } from "@/server/actions/pages";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +27,11 @@ interface ThemeManagerProps {
   themes: ThemeRow[];
   activeId: number | null;
   active: ThemeRow | null;
+  pageId?: number;
+  pageThemeId?: number | null;
 }
 
-export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
+export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: ThemeManagerProps) {
   const [selecting, setSelecting] = React.useState<number | null>(null);
   const [customPending, setCustomPending] = React.useState(false);
   const [customError, setCustomError] = React.useState<string | null>(null);
@@ -41,7 +44,11 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
   const handleSelect = async (id: number) => {
     setSelecting(id);
     try {
-      await activateTheme(id);
+      if (pageId) {
+        await setPageThemeAction(pageId, id);
+      } else {
+        await activateTheme(id);
+      }
       router.refresh();
     } finally {
       setSelecting(null);
@@ -93,6 +100,9 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
 
   const isCustom = active ? !active.isPreset : false;
 
+  // In page mode, highlight the page's selected theme instead of the global active.
+  const effectiveActiveId = pageId ? (pageThemeId ?? activeId) : activeId;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -104,7 +114,7 @@ export function ThemeManager({ themes, activeId, active }: ThemeManagerProps) {
 
       <PresetGallery
         themes={themes}
-        activeId={activeId}
+        activeId={effectiveActiveId}
         selecting={selecting}
         delPending={delPending}
         onSelect={handleSelect}

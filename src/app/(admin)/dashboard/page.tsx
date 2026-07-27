@@ -9,6 +9,7 @@ import {
 import {
   getDashboardStats,
   getAllLinks,
+  getAllPages,
   getAnalyticsBreakdown,
   type AnalyticsRange,
   type BreakdownEntry,
@@ -82,15 +83,27 @@ function BreakdownCard({
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; page?: string }>;
 }) {
-  const { range: rangeParam } = await searchParams;
+  const { range: rangeParam, page: pageParam } = await searchParams;
   const range = parseRange(rangeParam);
 
+  // Resolve active page for page-scoped analytics.
+  const allPages = await getAllPages();
+  let pageId: number | undefined;
+  if (pageParam) {
+    const found = allPages.find((p) => p.id === Number(pageParam));
+    if (found) pageId = found.id;
+  }
+  if (pageId === undefined) {
+    const def = allPages.find((p) => p.isDefault) ?? allPages[0];
+    pageId = def?.id;
+  }
+
   const [stats, links, breakdown] = await Promise.all([
-    getDashboardStats(range),
-    getAllLinks(),
-    getAnalyticsBreakdown(range),
+    getDashboardStats(range, pageId),
+    getAllLinks(pageId),
+    getAnalyticsBreakdown(range, pageId),
   ]);
 
   const activeCount = links.filter((l) => l.isActive).length;

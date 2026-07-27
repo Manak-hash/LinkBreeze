@@ -1,28 +1,17 @@
 import * as React from "react";
-import Link from "next/link";
 import {
-  LayoutDashboard,
-  Link as LinkIcon,
-  User,
-  Palette,
-  Settings,
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { isDemoMode } from "@/lib/demo";
 import { logout } from "@/server/actions/auth";
+import { getAllPages } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import { MobileTabBar } from "@/components/admin/MobileTabBar";
-
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/links", label: "Links", icon: LinkIcon },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/theme", label: "Theme", icon: Palette },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { PageSwitcher } from "@/components/admin/PageSwitcher";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -42,6 +31,16 @@ export default async function AdminLayout({
     );
   }
 
+  // Load pages for the page switcher (only when authed).
+  const allPages = await getAllPages();
+  const pageList = allPages.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    isDefault: p.isDefault,
+    isPublished: p.isPublished,
+  }));
+
   return (
     <div className="dark relative min-h-dvh bg-background text-foreground">
       <AuroraBackground />
@@ -57,18 +56,14 @@ export default async function AdminLayout({
             </span>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-all hover:translate-x-0.5 hover:bg-violet/15 hover:text-lavender"
-              >
-                <item.icon className="size-4" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <AdminNav />
+
+          <div className="border-t border-border pt-3 mb-3">
+            <p className="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground">
+              Pages
+            </p>
+            <PageSwitcher pages={pageList} />
+          </div>
 
           <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
             <span className="px-2.5 text-xs text-muted-foreground">
@@ -91,16 +86,19 @@ export default async function AdminLayout({
         {/* Main column */}
         <div className="flex min-h-dvh flex-1 flex-col min-w-0">
           {/* Mobile top bar */}
-          <header className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
+          <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 md:hidden">
             <div className="flex items-center gap-2">
               <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} />
               <span className="font-heading font-semibold">LinkBreeze</span>
             </div>
-            <form action={logout}>
-              <Button variant="ghost" size="icon-sm" type="submit">
-                <LogOut className="size-4" />
-              </Button>
-            </form>
+            <div className="flex items-center gap-2">
+              <PageSwitcher pages={pageList} variant="compact" />
+              <form action={logout}>
+                <Button variant="ghost" size="icon-sm" type="submit">
+                  <LogOut className="size-4" />
+                </Button>
+              </form>
+            </div>
           </header>
 
           {/* pb-24 reserves space for the fixed mobile tab bar so content is

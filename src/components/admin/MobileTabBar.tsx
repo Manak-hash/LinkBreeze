@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Link as LinkIcon,
@@ -23,6 +23,9 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
 /** Fixed opaque bottom tab bar (mobile only). Thumb-reachable, always visible. */
 export function MobileTabBar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const pageParam = searchParams.get("page");
+  const query = pageParam ? `?page=${pageParam}` : "";
 
   return (
     <nav
@@ -34,7 +37,7 @@ export function MobileTabBar() {
         return (
           <Link
             key={href}
-            href={href}
+            href={`${href}${query}`}
             aria-current={active ? "page" : undefined}
             className={cn(
               "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",

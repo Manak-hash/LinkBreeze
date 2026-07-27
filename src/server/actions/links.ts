@@ -24,6 +24,7 @@ async function requireAuth(): Promise<boolean> {
 const linkSchema = z
   .object({
     id: z.string().optional(),
+    pageId: z.coerce.number().optional(),
     title: z.string().min(1, "Title is required").max(120),
     url: z.string().min(1, "URL is required").max(2048),
     description: z.string().max(300).optional().nullable(),
@@ -53,6 +54,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
   const parsed = linkSchema.safeParse({
     title: formData.get("title"),
     url: formData.get("url"),
+    pageId: formData.get("pageId") || undefined,
     description: formData.get("description") || undefined,
     imageUrl: formData.get("imageUrl") || undefined,
     type: formData.get("type") || "url",
@@ -69,6 +71,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
   await createLinkQuery({
     title: d.title,
     url: d.url,
+    pageId: d.pageId,
     description: d.description || null,
     imageUrl: d.imageUrl || null,
     type: d.type,

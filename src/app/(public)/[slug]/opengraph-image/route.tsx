@@ -1,21 +1,15 @@
 import { ImageResponse } from "next/og";
 import { headers } from "next/headers";
-import { getActiveProfile, getActiveTheme } from "@/server/queries";
+import { getPageBySlug, getActiveTheme } from "@/server/queries";
 
 export const runtime = "nodejs";
 
-/**
- * Branded social preview image for the public page.
- *
- * Originally an `opengraph-image.tsx` metadata file convention, but Next.js
- * standalone Docker output doesn't resolve metadata routes under dynamic
- * segments ([slug]) — it returns 404. Converting to a regular route handler
- * fixes that. The page's `generateMetadata` references this route explicitly.
- */
-export async function GET() {
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
   const h = await headers();
-  // Prefer BASE_URL env var (prevents host-header injection behind proxies).
-  // Falls back to forwarded/host headers when unset.
   const origin = process.env.BASE_URL
     ? process.env.BASE_URL.replace(/\/$/, "")
     : `${(h.get("x-forwarded-proto") || "http").toString()}://${(
@@ -24,18 +18,18 @@ export async function GET() {
         "localhost"
       ).toString()}`;
 
-  const profile = await getActiveProfile();
+  const page = await getPageBySlug(slug);
   const theme = await getActiveTheme();
 
-  const name = profile?.displayName || "LinkBreeze";
-  const bio = profile?.bio || "All my links in one place";
+  const name = page?.title || "LinkBreeze";
+  const bio = page?.bio || "All my links in one place";
   const textColor = theme?.textColor || "#eceafe";
   const primary = theme?.primaryColor || "#533fd6";
   const parts = (theme?.backgroundValue || "#0f0c29,#14112e").split(",");
   const bgA = parts[0] || "#0f0c29";
   const bgB = parts[1] || "#14112e";
 
-  const rawAvatar = profile?.avatarUrl || null;
+  const rawAvatar = page?.avatarUrl || null;
   const avatarSrc = rawAvatar
     ? rawAvatar.startsWith("http")
       ? rawAvatar

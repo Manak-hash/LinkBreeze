@@ -4,6 +4,7 @@ import {
   users,
   settings,
   profile,
+  pages,
   links,
   themes,
   analyticsPageviews,
@@ -29,6 +30,7 @@ export type ProfileRow = typeof profile.$inferSelect;
 export type LinkRow = typeof links.$inferSelect;
 export type ThemeRow = typeof themes.$inferSelect;
 export type UserRow = typeof users.$inferSelect;
+export type PageRow = typeof pages.$inferSelect;
 
 export interface SocialLink {
   platform: string;
@@ -77,32 +79,174 @@ export async function updateProfile(
   }
 }
 
+// ─── Pages (multi-page support) ──────────────────────────────────────────────
+
+/**
+ * Ensure the pages table has at least one row. On first migration the SQL
+ * seeds a default page from legacy profile data, but if the table is empty
+ * (edge case: fresh install with no profile row), this creates one.
+ */
+export async function ensureDefaultPage(): Promise<PageRow> {
+  const existing = await db.select().from(pages).limit(1);
+  if (existing[0]) return existing[0];
+
+  const slug = (await getSetting("slug")) || "u";
+  const profileRow = await getProfile();
+  const activeTheme = await getActiveTheme();
+
+  const inserted = await db
+    .insert(pages)
+    .values({
+      slug,
+      title: profileRow?.displayName ?? "",
+      bio: profileRow?.bio ?? "",
+      avatarUrl: profileRow?.avatarUrl ?? null,
+      badgeText: profileRow?.badgeText ?? null,
+      socialLinks: profileRow?.socialLinks ?? "[]",
+      themeId: activeTheme?.id ?? null,
+      orderIndex: 0,
+      isDefault: true,
+      isPublished: true,
+    })
+    .returning();
+  return inserted[0];
+}
+
+export async function getAllPages(): Promise<PageRow[]> {
+  await ensureDefaultPage();
+  return db.select().from(pages).orderBy(asc(pages.orderIndex), asc(pages.id));
+}
+
+export async function getDefaultPage(): Promise<PageRow> {
+  await ensureDefaultPage();
+  const rows = await db.select().from(pages).where(eq(pages.isDefault, true)).limit(1);
+  if (rows[0]) return rows[0];
+  // No default flag — fall back to first by order.
+  const fallback = await db.select().from(pages).orderBy(asc(pages.orderIndex)).limit(1);
+  if (fallback[0]) {
+    await db.update(pages).set({ isDefault: true }).where(eq(pages.id, fallback[0].id));
+    return { ...fallback[0], isDefault: true };
+  }
+  return ensureDefaultPage();
+}
+
+export async function getPageById(id: number): Promise<PageRow | null> {
+  const rows = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getPageBySlug(slug: string): Promise<PageRow | null> {
+  const rows = await db.select().from(pages).where(eq(pages.slug, slug)).limit(1);
+  return rows[0] ?? null;
+}
+
+export interface CreatePageInput {
+  slug: string;
+  title?: string;
+  bio?: string;
+}
+
+export async function createPage(data: CreatePageInput): Promise<PageRow> {
+  await ensureDefaultPage();
+  const maxOrder = await db.select({ m: sql<number>`max(${pages.orderIndex})` }).from(pages);
+  const nextOrder = (maxOrder[0]?.m ?? -1) + 1;
+
+  const inserted = await db
+    .insert(pages)
+    .values({
+      slug: data.slug,
+      title: data.title ?? "",
+      bio: data.bio ?? "",
+      orderIndex: nextOrder,
+      isDefault: false,
+      isPublished: true,
+    })
+    .returning();
+  return inserted[0];
+}
+
+export interface UpdatePageInput {
+  slug?: string;
+  title?: string;
+  bio?: string;
+  avatarUrl?: string | null;
+  badgeText?: string | null;
+  socialLinks?: string;
+  themeId?: number | null;
+  isPublished?: boolean;
+  isDefault?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  footerText?: string;
+  analyticsScript?: string;
+  customCss?: string;
+  emailCapture?: boolean;
+  faviconUrl?: string | null;
+}
+
+export async function updatePage(id: number, data: UpdatePageInput): Promise<void> {
+  // If marking as default, un-default all others in the same transaction.
+  if (data.isDefault) {
+    db.transaction((tx) => {
+      tx.update(pages).set({ isDefault: false }).run();
+      tx.update(pages).set(data).where(eq(pages.id, id)).run();
+    });
+  } else {
+    await db.update(pages).set(data).where(eq(pages.id, id));
+  }
+}
+
+export async function deletePage(id: number): Promise<void> {
+  const target = await getPageById(id);
+  if (!target) return;
+  if (target.isDefault) throw new Error("Cannot delete the default page");
+
+  // Move links to the default page before deleting.
+  const def = await getDefaultPage();
+  await db.update(links).set({ pageId: def.id }).where(eq(links.pageId, id));
+  // Clear pageId on analytics rows (keep historical data, disassociate page).
+  await db.update(analyticsPageviews).set({ pageId: null }).where(eq(analyticsPageviews.pageId, id));
+  await db.delete(pages).where(eq(pages.id, id));
+}
+
+export async function reorderPages(orderedIds: number[]): Promise<void> {
+  if (orderedIds.length === 0) return;
+  db.transaction((tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      tx.update(pages).set({ orderIndex: i }).where(eq(pages.id, orderedIds[i])).run();
+    }
+  });
+}
+
 // ─── Links ────────────────────────────────────────────────────────────────────
 
 const nowExpr = sql`datetime('now')`;
 
-export async function getActiveLinks(): Promise<LinkRow[]> {
+export async function getActiveLinks(pageId?: number): Promise<LinkRow[]> {
+  const conditions = [
+    eq(links.isActive, true),
+    or(isNull(links.scheduleStart), lt(links.scheduleStart, nowExpr)),
+    or(isNull(links.scheduleEnd), gt(links.scheduleEnd, nowExpr)),
+  ];
+  if (pageId !== undefined) {
+    conditions.push(eq(links.pageId, pageId));
+  }
   const rows = await db
     .select()
     .from(links)
-    .where(
-      and(
-        eq(links.isActive, true),
-        or(
-          isNull(links.scheduleStart),
-          lt(links.scheduleStart, nowExpr),
-        ),
-        or(
-          isNull(links.scheduleEnd),
-          gt(links.scheduleEnd, nowExpr),
-        ),
-      ),
-    )
+    .where(and(...conditions))
     .orderBy(asc(links.orderIndex), asc(links.id));
   return rows;
 }
 
-export async function getAllLinks(): Promise<LinkRow[]> {
+export async function getAllLinks(pageId?: number): Promise<LinkRow[]> {
+  if (pageId !== undefined) {
+    return db
+      .select()
+      .from(links)
+      .where(eq(links.pageId, pageId))
+      .orderBy(asc(links.orderIndex), asc(links.id));
+  }
   return db
     .select()
     .from(links)
@@ -114,6 +258,7 @@ export async function createLink(
     Partial<
       Pick<
         LinkRow,
+        | "pageId"
         | "type"
         | "description"
         | "icon"
@@ -125,9 +270,11 @@ export async function createLink(
       >
     >,
 ): Promise<LinkRow> {
+  const targetPageId = data.pageId ?? (await getDefaultPage()).id;
   const maxOrder = await db
     .select({ m: sql<number>`max(${links.orderIndex})` })
-    .from(links);
+    .from(links)
+    .where(eq(links.pageId, targetPageId));
   const nextOrder = (maxOrder[0]?.m ?? -1) + 1;
 
   const created = await db
@@ -135,6 +282,7 @@ export async function createLink(
     .values({
       title: data.title,
       url: data.url,
+      pageId: targetPageId,
       type: data.type ?? "url",
       description: data.description ?? null,
       icon: data.icon ?? null,
@@ -216,6 +364,11 @@ export async function getActiveThemeData(): Promise<ThemeRow | null> {
 
 export async function getAllThemes(): Promise<ThemeRow[]> {
   return db.select().from(themes).orderBy(asc(themes.id));
+}
+
+export async function getThemeById(id: number): Promise<ThemeRow | null> {
+  const rows = await db.select().from(themes).where(eq(themes.id, id)).limit(1);
+  return rows[0] ?? null;
 }
 
 export async function setActiveTheme(id: number): Promise<void> {
@@ -361,12 +514,14 @@ export async function recordPageview(
   referrer: string | null,
   deviceType: string | null,
   country: string | null,
+  pageId?: number,
 ): Promise<void> {
   await db.insert(analyticsPageviews).values({
     visitorHash,
     referrer: referrer ?? null,
     deviceType: deviceType ?? null,
     country: country ?? null,
+    pageId: pageId ?? null,
   });
   await pruneAnalyticsIfDue();
 }
@@ -445,65 +600,101 @@ function buildDaySeries(days: number): string[] {
   return out;
 }
 
-export async function getDashboardStats(range: AnalyticsRange = "7d"): Promise<DashboardStats> {
+export async function getDashboardStats(
+  range: AnalyticsRange = "7d",
+  pageId?: number,
+): Promise<DashboardStats> {
   const since = sinceExpr(range);
   const seriesDates = buildDaySeries(await rangeDayCount(range));
 
-  const viewRows = await db
-    .select({ c: sql<number>`count(*)` })
-    .from(analyticsPageviews)
-    .where(gt(analyticsPageviews.createdAt, since));
+  const pageFilter = pageId !== undefined ? eq(analyticsPageviews.pageId, pageId) : undefined;
+  const clickPageFilter = pageId !== undefined
+    ? sql`${analyticsClicks.linkId} IN (SELECT ${links.id} FROM ${links} WHERE ${links.pageId} = ${pageId})`
+    : undefined;
+
+  const viewsQuery = pageFilter
+    ? db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, since), pageFilter))
+    : db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(gt(analyticsPageviews.createdAt, since));
+  const viewRows = await viewsQuery;
   const totalViews = viewRows[0]?.c ?? 0;
 
-  const uniqueRows = await db
-    .select({ c: sql<number>`count(distinct ${analyticsPageviews.visitorHash})` })
-    .from(analyticsPageviews)
-    .where(gt(analyticsPageviews.createdAt, since));
+  const uniqueQuery = pageFilter
+    ? db.select({ c: sql<number>`count(distinct ${analyticsPageviews.visitorHash})` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, since), pageFilter))
+    : db.select({ c: sql<number>`count(distinct ${analyticsPageviews.visitorHash})` }).from(analyticsPageviews).where(gt(analyticsPageviews.createdAt, since));
+  const uniqueRows = await uniqueQuery;
   const uniqueVisitors = uniqueRows[0]?.c ?? 0;
 
-  const clickRows = await db
-    .select({ c: sql<number>`count(*)` })
-    .from(analyticsClicks)
-    .where(gt(analyticsClicks.createdAt, since));
+  const clickQuery = clickPageFilter
+    ? db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, since), clickPageFilter))
+    : db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(gt(analyticsClicks.createdAt, since));
+  const clickRows = await clickQuery;
   const totalClicks = clickRows[0]?.c ?? 0;
 
-  const topLinkRows = await db
-    .select({
-      id: analyticsClicks.linkId,
-      title: links.title,
-      clicks: sql<number>`count(*)`,
-    })
-    .from(analyticsClicks)
-    .innerJoin(links, eq(links.id, analyticsClicks.linkId))
-    .where(gt(analyticsClicks.createdAt, since))
-    .groupBy(analyticsClicks.linkId)
-    .orderBy(desc(sql`count(*)`))
-    .limit(5);
+  const topLinkQuery = pageId !== undefined
+    ? db.select({
+        id: analyticsClicks.linkId,
+        title: links.title,
+        clicks: sql<number>`count(*)`,
+      })
+      .from(analyticsClicks)
+      .innerJoin(links, eq(links.id, analyticsClicks.linkId))
+      .where(and(gt(analyticsClicks.createdAt, since), eq(links.pageId, pageId)))
+      .groupBy(analyticsClicks.linkId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5)
+    : db.select({
+        id: analyticsClicks.linkId,
+        title: links.title,
+        clicks: sql<number>`count(*)`,
+      })
+      .from(analyticsClicks)
+      .innerJoin(links, eq(links.id, analyticsClicks.linkId))
+      .where(gt(analyticsClicks.createdAt, since))
+      .groupBy(analyticsClicks.linkId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5);
+  const topLinkRows = await topLinkQuery;
   const topLinks = topLinkRows.map((r) => ({
     id: r.id,
     title: r.title,
     clicks: Number(r.clicks),
   }));
 
-  const viewsPerDayRows = await db
-    .select({
-      date: sql<string>`date(${analyticsPageviews.createdAt})`,
-      views: sql<number>`count(*)`,
-    })
-    .from(analyticsPageviews)
-    .where(gt(analyticsPageviews.createdAt, since))
-    .groupBy(sql`date(${analyticsPageviews.createdAt})`)
-    .orderBy(asc(sql`date(${analyticsPageviews.createdAt})`));
+  const viewsPerDayRows = pageFilter
+    ? await db.select({
+        date: sql<string>`date(${analyticsPageviews.createdAt})`,
+        views: sql<number>`count(*)`,
+      })
+      .from(analyticsPageviews)
+      .where(and(gt(analyticsPageviews.createdAt, since), pageFilter))
+      .groupBy(sql`date(${analyticsPageviews.createdAt})`)
+      .orderBy(asc(sql`date(${analyticsPageviews.createdAt})`))
+    : await db.select({
+        date: sql<string>`date(${analyticsPageviews.createdAt})`,
+        views: sql<number>`count(*)`,
+      })
+      .from(analyticsPageviews)
+      .where(gt(analyticsPageviews.createdAt, since))
+      .groupBy(sql`date(${analyticsPageviews.createdAt})`)
+      .orderBy(asc(sql`date(${analyticsPageviews.createdAt})`));
 
-  const clicksPerDayRows = await db
-    .select({
-      date: sql<string>`date(${analyticsClicks.createdAt})`,
-      clicks: sql<number>`count(*)`,
-    })
-    .from(analyticsClicks)
-    .where(gt(analyticsClicks.createdAt, since))
-    .groupBy(sql`date(${analyticsClicks.createdAt})`)
-    .orderBy(asc(sql`date(${analyticsClicks.createdAt})`));
+  const clicksPerDayRows = clickPageFilter
+    ? await db.select({
+        date: sql<string>`date(${analyticsClicks.createdAt})`,
+        clicks: sql<number>`count(*)`,
+      })
+      .from(analyticsClicks)
+      .where(and(gt(analyticsClicks.createdAt, since), clickPageFilter))
+      .groupBy(sql`date(${analyticsClicks.createdAt})`)
+      .orderBy(asc(sql`date(${analyticsClicks.createdAt})`))
+    : await db.select({
+        date: sql<string>`date(${analyticsClicks.createdAt})`,
+        clicks: sql<number>`count(*)`,
+      })
+      .from(analyticsClicks)
+      .where(gt(analyticsClicks.createdAt, since))
+      .groupBy(sql`date(${analyticsClicks.createdAt})`)
+      .orderBy(asc(sql`date(${analyticsClicks.createdAt})`));
 
   const viewsMap = new Map<string, number>();
   for (const r of viewsPerDayRows) viewsMap.set(r.date, Number(r.views));
@@ -546,21 +737,30 @@ function cleanReferrers(rows: Array<{ label: string | null; count: number }>) {
 }
 
 /** Top referrers / devices / countries among views in the window. */
-export async function getAnalyticsBreakdown(range: AnalyticsRange = "7d"): Promise<AnalyticsBreakdown> {
+export async function getAnalyticsBreakdown(
+  range: AnalyticsRange = "7d",
+  pageId?: number,
+): Promise<AnalyticsBreakdown> {
   const clean = (rows: Array<{ label: string | null; count: number }>) =>
     rows
       .filter((r) => r.label && r.label.trim() !== "")
       .map((r) => ({ label: r.label as string, count: Number(r.count) }));
 
+  const since = sinceExpr(range);
+  const pageCondition = pageId !== undefined ? eq(analyticsPageviews.pageId, pageId) : undefined;
+  const baseWhere = pageCondition
+    ? and(gt(analyticsPageviews.createdAt, since), pageCondition)
+    : gt(analyticsPageviews.createdAt, since);
+
   const [referrerRows, deviceRows, countryRows] = await Promise.all([
     db.select({ label: analyticsPageviews.referrer, count: sql<number>`count(*)` })
-      .from(analyticsPageviews).where(gt(analyticsPageviews.createdAt, sinceExpr(range)))
+      .from(analyticsPageviews).where(baseWhere)
       .groupBy(analyticsPageviews.referrer).orderBy(desc(sql`count(*)`)).limit(8),
     db.select({ label: analyticsPageviews.deviceType, count: sql<number>`count(*)` })
-      .from(analyticsPageviews).where(gt(analyticsPageviews.createdAt, sinceExpr(range)))
+      .from(analyticsPageviews).where(baseWhere)
       .groupBy(analyticsPageviews.deviceType).orderBy(desc(sql`count(*)`)).limit(8),
     db.select({ label: analyticsPageviews.country, count: sql<number>`count(*)` })
-      .from(analyticsPageviews).where(gt(analyticsPageviews.createdAt, sinceExpr(range)))
+      .from(analyticsPageviews).where(baseWhere)
       .groupBy(analyticsPageviews.country).orderBy(desc(sql`count(*)`)).limit(8),
   ]);
 

@@ -1,0 +1,126 @@
+"use client";
+
+import * as React from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ChevronDown, Plus, FileText, Star, Globe } from "lucide-react";
+import type { PageRow } from "@/server/queries";
+
+interface PageSwitcherProps {
+  pages: Pick<PageRow, "id" | "slug" | "title" | "isDefault" | "isPublished">[];
+  variant?: "full" | "compact";
+}
+
+export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPageId = searchParams.get("page");
+  const [open, setOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Resolve the active page: explicit ?page= param → default page → first.
+  const activePage = React.useMemo(() => {
+    if (currentPageId) {
+      const found = pages.find((p) => p.id === Number(currentPageId));
+      if (found) return found;
+    }
+    return pages.find((p) => p.isDefault) ?? pages[0];
+  }, [currentPageId, pages]);
+
+  // Close dropdown on outside click.
+  React.useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function navigateToPage(pageId: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(pageId));
+    router.push(`${pathname}?${params.toString()}`);
+    setOpen(false);
+  }
+
+  if (!activePage) return null;
+
+  const isCompact = variant === "compact";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={
+          isCompact
+            ? "flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50"
+            : "flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+        }
+      >
+        <span className="flex items-center gap-2 truncate">
+          {activePage.isDefault ? (
+            <Star className="size-3.5 shrink-0 text-amber-400" />
+          ) : (
+            <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="max-w-[100px] truncate font-medium">
+            {activePage.title || activePage.slug}
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          className={
+            isCompact
+              ? "absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg"
+              : "absolute bottom-full left-0 right-0 z-50 mb-1 rounded-lg border border-border bg-popover p-1 shadow-lg"
+          }
+        >
+          {pages.map((page) => (
+            <button
+              key={page.id}
+              type="button"
+              onClick={() => navigateToPage(page.id)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+                page.id === activePage.id ? "bg-muted/30" : ""
+              }`}
+            >
+              {page.isDefault ? (
+                <Star className="size-3.5 shrink-0 text-amber-400" />
+              ) : (
+                <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="flex-1 truncate text-left">
+                {page.title || page.slug}
+              </span>
+              {!page.isPublished && (
+                <Globe className="size-3 shrink-0 text-muted-foreground opacity-50" />
+              )}
+              <span className="shrink-0 text-xs text-muted-foreground">
+                /{page.slug}
+              </span>
+            </button>
+          ))}
+          <div className="mt-1 border-t border-border pt-1">
+            <Link
+              href="/pages/new"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+              New page
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

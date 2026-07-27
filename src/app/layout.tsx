@@ -12,7 +12,6 @@ import {
   Outfit,
 } from "next/font/google";
 import localFont from "next/font/local";
-import { getSetting } from "@/server/queries";
 import "./globals.css";
 
 const clashDisplay = localFont({
@@ -151,14 +150,8 @@ export async function generateMetadata(): Promise<Metadata> {
     // headers() not available at build time — keep the localhost fallback.
   }
 
-  // Check for a custom favicon in settings (uploaded via the admin UI).
-  let customFavicon: string | null = null;
-  try {
-    customFavicon = await getSetting("faviconUrl");
-  } catch {
-    // DB might not be ready during build — fall back to defaults.
-  }
-
+  // Root layout always uses the default LinkBreeze favicon.
+  // Per-page favicons are set in the public route's generateMetadata().
   const icons: Metadata["icons"] = {
     icon: [
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
@@ -166,36 +159,6 @@ export async function generateMetadata(): Promise<Metadata> {
     ],
     apple: "/apple-touch-icon.png",
   };
-
-  // Prepend the custom favicon so browsers prefer it over the defaults.
-  // IMPORTANT: we must REMOVE the default icons entirely when a custom one is
-  // set. Chrome's favicon algorithm picks the icon with the best size match.
-  // If defaults (32x32, 16x16) remain alongside the custom one, Chrome may
-  // prefer them because they have explicit sizes attributes. The only reliable
-  // way to make the custom favicon win is to make it the ONLY icon.
-  if (customFavicon) {
-    const ext = customFavicon.split(".").pop()?.toLowerCase();
-    const typeMap: Record<string, string> = {
-      ico: "image/x-icon",
-      png: "image/png",
-      svg: "image/svg+xml",
-      gif: "image/gif",
-      webp: "image/webp",
-    };
-    const favType = typeMap[ext || ""] || "image/x-icon";
-
-    // SVG is scalable — use "any". For raster formats, provide common sizes
-    // so browsers find a match at every DPI.
-    const isSvg = ext === "svg";
-    const sizes = isSvg
-      ? "any"
-      : "16x16 32x32 48x48 96x96 150x150 192x192";
-
-    icons.icon = [
-      { url: customFavicon, sizes, type: favType },
-    ];
-    icons.apple = { url: customFavicon, sizes: "180x180", type: favType };
-  }
 
   return {
     title: "LinkBreeze — Self-hosted link-in-bio",

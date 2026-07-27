@@ -37,9 +37,10 @@ export interface LinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editing?: LinkRow | null;
+  pageId?: number;
 }
 
-export function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
+export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogProps) {
   const [pending, startTransition] = React.useTransition();
   const [type, setType] = React.useState(editing?.type ?? "url");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
@@ -101,6 +102,7 @@ export function LinkDialog({ open, onOpenChange, editing }: LinkDialogProps) {
         </DialogHeader>
         <form action={handleSubmit} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
+          {pageId && !editing ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="title">Title</Label>

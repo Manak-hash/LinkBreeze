@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Save, ExternalLink, Upload } from "lucide-react";
 import { updateSettings } from "@/server/actions/settings";
+import { updatePageAction } from "@/server/actions/pages";
 import { uploadFavicon } from "@/server/actions/uploads";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/card";
 
 interface SettingsFormProps {
+  pageId?: number;
   slug: string;
   title: string;
   description: string;
@@ -34,6 +36,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({
+  pageId,
   slug,
   title,
   description,
@@ -79,6 +82,28 @@ export function SettingsForm({
   };
 
   const handleSubmit = (formData: FormData) => {
+    // Multi-page: route through the page action.
+    if (pageId) {
+      formData.set("pageId", String(pageId));
+      // Map settings field names to page field names.
+      formData.set("seoTitle", formData.get("title") as string);
+      formData.set("seoDescription", formData.get("description") as string);
+
+      // Handle theme selection via the page theme action.
+      if (selectedTheme) {
+        formData.set("themeId", selectedTheme);
+      }
+
+      startTransition(async () => {
+        await updatePageAction(formData);
+        router.refresh();
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      });
+      return;
+    }
+
+    // Fallback: global settings (for backward compat)
     if (selectedTheme) {
       formData.set("activeThemeId", selectedTheme);
     }

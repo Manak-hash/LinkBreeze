@@ -25,7 +25,13 @@ import { SortableLink } from "./components/sortable-link";
 import { LinkDialog } from "./components/link-dialog";
 import { DeleteLinkDialog } from "./components/delete-link-dialog";
 
-export function LinksManager({ initialLinks }: { initialLinks: LinkRow[] }) {
+export function LinksManager({
+  initialLinks,
+  pageId,
+}: {
+  initialLinks: LinkRow[];
+  pageId?: number;
+}) {
   const [items, setItems] = React.useState<LinkRow[]>(initialLinks);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<LinkRow | null>(null);
@@ -140,7 +146,7 @@ export function LinksManager({ initialLinks }: { initialLinks: LinkRow[] }) {
         </DndContext>
       )}
 
-      <LinkDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} />
+      <LinkDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} pageId={pageId} />
       <DeleteLinkDialog
         link={deleting}
         open={deleteOpen}

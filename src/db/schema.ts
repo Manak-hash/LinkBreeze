@@ -15,7 +15,7 @@ export const settings = sqliteTable("settings", {
   value: text("value").notNull(),
 });
 
-// ─── Profile ──────────────────────────────────────────
+// ─── Profile (legacy singleton — kept for migration compat) ──
 export const profile = sqliteTable("profile", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   avatarUrl: text("avatar_url"),
@@ -25,9 +25,38 @@ export const profile = sqliteTable("profile", {
   socialLinks: text("social_links").notNull().default("[]"), // JSON array
 });
 
+// ─── Pages (multi-page support) ───────────────────────
+// Each page is a full mini-profile: own avatar, name, bio, social links,
+// theme, slug, SEO, favicon, analytics script, etc.
+// Replaces the singleton `profile` table for v1.2.0+.
+export const pages = sqliteTable("pages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull().default(""),        // display name
+  bio: text("bio").notNull().default(""),
+  avatarUrl: text("avatar_url"),
+  badgeText: text("badge_text"),
+  socialLinks: text("social_links").notNull().default("[]"), // JSON array
+  themeId: integer("theme_id"),
+  orderIndex: integer("order_index").notNull().default(0),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+
+  // Page-specific settings (moved from global settings table in 0008)
+  seoTitle: text("seo_title").notNull().default(""),
+  seoDescription: text("seo_description").notNull().default(""),
+  footerText: text("footer_text").notNull().default(""),
+  analyticsScript: text("analytics_script").notNull().default(""),
+  customCss: text("custom_css").notNull().default(""),
+  emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
+  faviconUrl: text("favicon_url"),
+});
+
 // ─── Links ────────────────────────────────────────────
 export const links = sqliteTable("links", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id").notNull().default(1),
   orderIndex: integer("order_index").notNull().default(0),
   type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file
   title: text("title").notNull(),
@@ -99,6 +128,7 @@ export const themes = sqliteTable("themes", {
 // ─── Analytics ────────────────────────────────────────
 export const analyticsPageviews = sqliteTable("analytics_pageviews", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id"),
   date: text("date").notNull().default(sql`(date('now'))`),
   visitorHash: text("visitor_hash").notNull(),
   referrer: text("referrer"),

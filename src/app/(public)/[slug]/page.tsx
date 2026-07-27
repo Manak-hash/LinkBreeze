@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import {
-  getActiveProfile,
+  getPageBySlug,
   getActiveLinks,
   getActiveTheme,
-  getSettings,
+  getThemeById,
   recordPageview,
   type SocialLink,
 } from "@/server/queries";
@@ -54,23 +54,49 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const profile = await getActiveProfile();
-  if (!profile) return { title: "Page not found" };
+  const page = await getPageBySlug(slug);
+  if (!page) return { title: "Page not found" };
 
-  const allSettings = await getSettings();
   const title =
-    allSettings.title || profile.displayName || "LinkBreeze";
-  const description =
-    allSettings.description || profile.bio || "My links";
+    page.seoTitle || page.title || "LinkBreeze";
+  const description = page.seoDescription || page.bio || "My links";
   const origin = await getOrigin();
   const url = `${origin}/${slug}`;
 
   const ogImage = `${origin}/${slug}/opengraph-image`;
 
+  // Build icons: use page-specific favicon if set, else default LinkBreeze icons.
+  let icons: Metadata["icons"] = {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  };
+
+  if (page.faviconUrl) {
+    const ext = page.faviconUrl.split(".").pop()?.toLowerCase();
+    const typeMap: Record<string, string> = {
+      ico: "image/x-icon",
+      png: "image/png",
+      svg: "image/svg+xml",
+      gif: "image/gif",
+      webp: "image/webp",
+    };
+    const favType = typeMap[ext || ""] || "image/x-icon";
+    const isSvg = ext === "svg";
+    const sizes = isSvg ? "any" : "16x16 32x32 48x48 96x96 150x150 192x192";
+    icons = {
+      icon: [{ url: page.faviconUrl, sizes, type: favType }],
+      apple: { url: page.faviconUrl, sizes: "180x180", type: favType },
+    };
+  }
+
   return {
     title,
     description,
     alternates: { canonical: url },
+    icons,
     openGraph: {
       title,
       description,
@@ -90,9 +116,9 @@ export async function generateMetadata({
 
 export default async function PublicPage({ params }: PageProps) {
   const { slug } = await params;
-  const profile = await getActiveProfile();
+  const page = await getPageBySlug(slug);
 
-  if (!profile) {
+  if (!page) {
     notFound();
   }
 
@@ -106,9 +132,6 @@ export default async function PublicPage({ params }: PageProps) {
     const userAgent = (h.get("user-agent") || "").toString();
     const referrer = (h.get("referer") || h.get("referrer") || "").toString();
 
-    // Issue #41: Skip analytics for known bots/crawlers.
-    // Issue #40: Skip analytics for the owner (authenticated admin).
-    // Cookie-first check: avoids a DB query on every anonymous pageview.
     const isCrawler = isBot(userAgent);
     const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
     const isOwner = hasSessionCookie ? await getSession() : null;
@@ -118,22 +141,26 @@ export default async function PublicPage({ params }: PageProps) {
       const visitorHash = getVisitorHash(ip, userAgent);
       const deviceType = getDeviceType(userAgent);
       const country = getCountry(h);
-      // Light per-IP cap so refresh/crawler bursts don't inflate view counts.
       const viewRl = rateLimit(`view:${ip}`, 1, 30_000);
       if (viewRl.ok) {
-        await recordPageview(visitorHash, referrer || null, deviceType, country);
+        await recordPageview(visitorHash, referrer || null, deviceType, country, page.id);
       }
     }
   } catch {
     // Never let analytics break the page render.
   }
 
-  const [activeLinks, theme] = await Promise.all([getActiveLinks(), getActiveTheme()]);
+  // Resolve theme: page-specific themeId → fallback to global active theme.
+  const pageTheme = page.themeId ? await getThemeById(page.themeId) : null;
+  const fallbackTheme = await getActiveTheme();
+  const theme = pageTheme ?? fallbackTheme;
 
-  // Parse social links from profile JSON.
+  const activeLinks = await getActiveLinks(page.id);
+
+  // Parse social links from page JSON.
   let socialLinks: SocialLink[] = [];
   try {
-    socialLinks = JSON.parse(profile.socialLinks || "[]");
+    socialLinks = JSON.parse(page.socialLinks || "[]");
   } catch {
     socialLinks = [];
   }
@@ -143,24 +170,31 @@ export default async function PublicPage({ params }: PageProps) {
   const useAurora = isAnimatedAurora(themeInput);
   const background = resolveBackground(themeInput);
 
-  // Build the token-based style block (CSS custom properties).
   const themeStyleBlock = buildThemeStyleBlock(themeInput);
 
+  // Map page row → ProfileRow-compatible object for ProfileHeader.
+  const profileCompat = {
+    displayName: page.title,
+    bio: page.bio,
+    avatarUrl: page.avatarUrl,
+    badgeText: page.badgeText,
+    socialLinks: page.socialLinks,
+  };
+
   // JSON-LD structured data.
-  const allSettings = await getSettings();
   const origin = await getOrigin();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
-    name: profile.displayName || undefined,
-    description: profile.bio || undefined,
+    name: page.title || undefined,
+    description: page.bio || undefined,
     url: `${origin}/${slug}`,
-    image: profile.avatarUrl || undefined,
+    image: page.avatarUrl || undefined,
     mainEntity: {
       "@type": "Person",
-      name: profile.displayName || undefined,
-      description: profile.bio || undefined,
-      image: profile.avatarUrl || undefined,
+      name: page.title || undefined,
+      description: page.bio || undefined,
+      image: page.avatarUrl || undefined,
       sameAs: socialLinks.map((s) => s.url).filter(Boolean),
     },
   };
@@ -168,13 +202,12 @@ export default async function PublicPage({ params }: PageProps) {
   return (
     <>
       {useAurora ? <AuroraBackground /> : null}
-      {allSettings.analyticsScript ? (
-        <div dangerouslySetInnerHTML={{ __html: allSettings.analyticsScript }} />
+      {page.analyticsScript ? (
+        <div dangerouslySetInnerHTML={{ __html: page.analyticsScript }} />
       ) : null}
-      {allSettings.customCss ? (
-        <style dangerouslySetInnerHTML={{ __html: allSettings.customCss }} />
+      {page.customCss ? (
+        <style dangerouslySetInnerHTML={{ __html: page.customCss }} />
       ) : null}
-      {/* Inject theme tokens as CSS custom properties on :root */}
       <style dangerouslySetInnerHTML={{ __html: themeStyleBlock }} />
       <a
         href="#lb-main"
@@ -202,7 +235,7 @@ export default async function PublicPage({ params }: PageProps) {
           textAlign: "var(--lb-alignment)" as React.CSSProperties["textAlign"],
         }}
       >
-        <ProfileHeader profile={profile} />
+        <ProfileHeader profile={profileCompat as never} />
 
         {socialLinks.length > 0 ? (
           <div className="mb-8 mt-6">
@@ -240,16 +273,16 @@ export default async function PublicPage({ params }: PageProps) {
           )}
         </div>
 
-        {allSettings.emailCapture === "true" ? (
+        {page.emailCapture ? (
           <EmailCapture />
         ) : null}
 
-        {allSettings.footerText ? (
+        {page.footerText ? (
           <footer
             className="mt-10 text-center text-xs opacity-50"
             style={{ color: "var(--lb-text-muted)" }}
           >
-            {allSettings.footerText}
+            {page.footerText}
           </footer>
         ) : null}
       </div>

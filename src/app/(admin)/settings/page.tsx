@@ -1,6 +1,13 @@
 import Image from "next/image";
 import { QrCode, Download } from "lucide-react";
-import { getSettings, getSetting, getAllThemes, getActiveTheme, getSubscriberCount } from "@/server/queries";
+import {
+  getAllPages,
+  getDefaultPage,
+  getAllThemes,
+  getActiveTheme,
+  getSubscriberCount,
+  getSetting,
+} from "@/server/queries";
 import { SettingsForm } from "./settings-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
@@ -14,37 +21,56 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
-  const [settings, themes, active, subscriberCount] = await Promise.all([
-    getSettings(),
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+
+  // Resolve active page.
+  const allPages = await getAllPages();
+  let activePage;
+  if (pageParam) {
+    activePage = allPages.find((p) => p.id === Number(pageParam));
+  }
+  if (!activePage) {
+    activePage = (await getDefaultPage()) ?? allPages[0];
+  }
+
+  const [themes, active, subscriberCount] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
     getSubscriberCount(),
   ]);
   const retentionDays = await getSetting("analyticsRetentionDays");
 
-  const slug = settings.slug || "u";
+  const slug = activePage?.slug || "u";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Settings
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Page configuration, SEO and account security.
+          Page configuration, SEO and account security for{" "}
+          <span className="font-medium text-foreground">/{slug}</span>
         </p>
       </div>
       <SettingsForm
+        pageId={activePage?.id}
         slug={slug}
-        title={settings.title || ""}
-        description={settings.description || ""}
-        footerText={settings.footerText || ""}
-        analyticsScript={settings.analyticsScript || ""}
-        customCss={settings.customCss || ""}
-        emailCapture={settings.emailCapture === "true"}
-        faviconUrl={settings.faviconUrl || ""}
+        title={activePage?.seoTitle || ""}
+        description={activePage?.seoDescription || ""}
+        footerText={activePage?.footerText || ""}
+        analyticsScript={activePage?.analyticsScript || ""}
+        customCss={activePage?.customCss || ""}
+        emailCapture={activePage?.emailCapture ?? false}
+        faviconUrl={activePage?.faviconUrl || ""}
         subscriberCount={subscriberCount}
         themes={themes}
-        activeThemeId={active?.id ?? null}
+        activeThemeId={activePage?.themeId ?? active?.id ?? null}
       />
 
       {/* QR Code section */}
@@ -55,7 +81,7 @@ export default async function SettingsPage() {
             QR Code
           </CardTitle>
           <CardDescription>
-            Scan to open your page. Download for print or digital use.
+            Scan to open /{slug}. Download for print or digital use.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">

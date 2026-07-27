@@ -50,6 +50,20 @@
       "when": 1752249600000,
       "tag": "0006_fix_theme_density_and_seeding",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1752595200000,
+      "tag": "0007_multi_page_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1752681600000,
+      "tag": "0008_page_settings",
+      "breakpoints": true
     }
   ]
 }

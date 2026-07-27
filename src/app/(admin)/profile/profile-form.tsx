@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { Plus, Trash2, Save, Upload } from "lucide-react";
 import { updateProfile } from "@/server/actions/profile";
+import { updatePageAction } from "@/server/actions/pages";
 import { uploadAvatar } from "@/server/actions/uploads";
 import { SUPPORTED_PLATFORMS, getPlatformLabel, type SocialPlatform } from "@/lib/social-icons";
 import type { SocialLink } from "@/server/queries";
@@ -35,9 +36,10 @@ interface ProfileFormProps {
     avatarUrl: string;
     socialLinks: SocialLink[];
   } | null;
+  pageId?: number;
 }
 
-export function ProfileForm({ profile }: ProfileFormProps) {
+export function ProfileForm({ profile, pageId }: ProfileFormProps) {
   const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>(
     profile?.socialLinks ?? [],
   );
@@ -86,6 +88,19 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   const handleSubmit = (formData: FormData) => {
     const cleaned = socialLinks.filter((s) => s.url.trim().length > 0);
     formData.set("socialLinks", JSON.stringify(cleaned));
+
+    // Multi-page: route through the page action.
+    if (pageId) {
+      formData.set("pageId", String(pageId));
+      // Map profile field names to page field names.
+      formData.set("title", formData.get("displayName") as string);
+      startTransition(async () => {
+        await updatePageAction(formData);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      });
+      return;
+    }
 
     startTransition(async () => {
       await updateProfile(formData);
