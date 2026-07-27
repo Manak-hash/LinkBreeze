@@ -45,15 +45,16 @@ if (!slugSetting) {
   db.insert(schema.settings).values({ key: "slug", value: "test" }).run();
 }
 
-// Insert a page row so the multi-page public route /test resolves.
-// Migration 0007 seeds pages from profile data at migration time, but
-// the profile table is empty during migration — so we seed it here.
+// Ensure a /test page exists in the pages table.
+// Migration 0007 seeds a default page from profile/settings, but at migration
+// time the profile table is empty so the slug defaults to "u". Update the
+// existing page's slug to "test" so the Lighthouse URL /test resolves.
 const pages = db.select().from(schema.pages).all();
-if (pages.length === 0) {
-  const activeTheme = db.select().from(schema.themes)
-    .where(eq(schema.themes.isActive, true))
-    .all();
+const activeTheme = db.select().from(schema.themes)
+  .where(eq(schema.themes.isActive, true))
+  .all();
 
+if (pages.length === 0) {
   db.insert(schema.pages).values({
     slug: "test",
     title: "Lighthouse Test",
@@ -63,6 +64,17 @@ if (pages.length === 0) {
     isDefault: true,
     isPublished: true,
   }).run();
+} else {
+  // Update the first (default) page to use slug "test".
+  db.update(schema.pages)
+    .set({
+      slug: "test",
+      title: "Lighthouse Test",
+      bio: "Test page for Lighthouse CI",
+      themeId: activeTheme[0]?.id ?? null,
+    })
+    .where(eq(schema.pages.id, pages[0].id))
+    .run();
 }
 
 console.log("[lighthouse-seed] Database seeded successfully");

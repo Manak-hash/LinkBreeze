@@ -39,7 +39,16 @@ jobs:
 
       - name: Start server
         run: |
-          npm run start &
+          # output: standalone preserves the repo's directory structure.
+          # Find the actual server.js location and copy static assets next to it.
+          STANDALONE_DIR=$(dirname $(find .next/standalone -name server.js -path "*/linkbreeze*" | head -1))
+          if [ -z "$STANDALONE_DIR" ] || [ "$STANDALONE_DIR" = "." ]; then
+            STANDALONE_DIR=".next/standalone"
+          fi
+          cp -r .next/static "$STANDALONE_DIR/.next/static"
+          cp -r public "$STANDALONE_DIR/public"
+          cd "$STANDALONE_DIR"
+          node server.js &
           npx wait-on http://localhost:3000/test --timeout 60000
         env:
           SECRET_KEY: "ci-lighthouse-secret-key-not-for-production"
