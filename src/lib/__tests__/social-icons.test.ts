@@ -9,8 +9,8 @@ import {
 } from "@/lib/social-icons";
 
 describe("SUPPORTED_PLATFORMS", () => {
-  it("contains all 32 platforms", () => {
-    expect(SUPPORTED_PLATFORMS).toHaveLength(32);
+  it("contains all 54 platforms", () => {
+    expect(SUPPORTED_PLATFORMS).toHaveLength(54);
   });
 });
 

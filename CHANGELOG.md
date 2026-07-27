@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`theme-manager.tsx` split from 782 → 159 lines** — Extracted `ColorField`, `SelectField`, `ToggleField`, `SliderField` into `field-controls.tsx`; `PresetGallery`, `ThemeCustomizer` (with 6 section sub-components), and `DuplicateTheme` into separate component files. Moved all constant arrays and the `swatchFor` helper into `theme-constants.ts`. The orchestrator is ready for theme-per-page work.
 - **`build-link-card.ts` signature modernized** — Changed from 5 positional params to an options object `buildLinkCardHtml({ link, theme, index, staggerMs? })`. Removed unused `_profile` parameter. Extracted `resolveLinkUrl()` and `buildContentRow()` helpers, eliminating the duplicated content-row HTML between the image and no-image code paths. Updated `LinkCard.tsx` caller to drop the now-unused `profile` prop.
 
+### Added
+
+- **Social platform support expanded from 32 → 54 platforms** — Added 22 new platforms (Apple Music, Apple Podcasts, Tumblr, Flickr, RSS, Steam, Etsy, Goodreads, Wattpad, Unsplash, DeviantArt, Cash App, Venmo, LINE, WeChat, VK, Quora, GitLab, Stack Overflow, Product Hunt, Linktree, Bento). Replaced all 10 globe placeholder icons (Threads, Bluesky, Mastodon, Snapchat, Patreon, Gumroad, Behance, SoundCloud, Bandcamp, Signal) with real brand SVGs from simple-icons (CC0). Every platform now has its proper branded icon — zero placeholders remain. Added detection rules for all new platforms.
+
 ## [1.1.5] - 2026-07-25
 
 ### Fixed
