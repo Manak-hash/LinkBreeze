@@ -7,6 +7,7 @@
  */
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import * as path from "path";
 
@@ -42,6 +43,26 @@ const slugSetting = settings.find((s) => s.key === "slug");
 
 if (!slugSetting) {
   db.insert(schema.settings).values({ key: "slug", value: "test" }).run();
+}
+
+// Insert a page row so the multi-page public route /test resolves.
+// Migration 0007 seeds pages from profile data at migration time, but
+// the profile table is empty during migration — so we seed it here.
+const pages = db.select().from(schema.pages).all();
+if (pages.length === 0) {
+  const activeTheme = db.select().from(schema.themes)
+    .where(eq(schema.themes.isActive, true))
+    .all();
+
+  db.insert(schema.pages).values({
+    slug: "test",
+    title: "Lighthouse Test",
+    bio: "Test page for Lighthouse CI",
+    themeId: activeTheme[0]?.id ?? null,
+    orderIndex: 0,
+    isDefault: true,
+    isPublished: true,
+  }).run();
 }
 
 console.log("[lighthouse-seed] Database seeded successfully");
