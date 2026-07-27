@@ -64,7 +64,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
       >
         <span className="flex items-center gap-2 truncate">
           {activePage.isDefault ? (
-            <Star className="size-3.5 shrink-0 text-amber-400" />
+            <Star className="size-3.5 shrink-0 text-warning" />
           ) : (
             <FileText className="size-3.5 shrink-0 text-muted-foreground" />
           )}
@@ -95,7 +95,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
               }`}
             >
               {page.isDefault ? (
-                <Star className="size-3.5 shrink-0 text-amber-400" />
+                <Star className="size-3.5 shrink-0 text-warning" />
               ) : (
                 <FileText className="size-3.5 shrink-0 text-muted-foreground" />
               )}

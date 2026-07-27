@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getVisitorHash, getDeviceType } from "@/lib/visitor";
+import { getVisitorHash } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
-import { getCountry } from "@/lib/geo";
 import { isBot } from "@/lib/bot-detect";
 import { getSession } from "@/lib/auth";
-import { recordPageview, recordClick } from "@/server/queries";
+import { recordClick } from "@/server/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +31,9 @@ export async function POST(request: NextRequest) {
   }
 
   const type = body.type;
-  if (type !== "view" && type !== "click") {
+  // View tracking moved server-side to [slug]/page.tsx (Issue #40).
+  // This endpoint is now click-only to prevent duplicate/orphaned pageviews.
+  if (type !== "click") {
     return NextResponse.json({ ok: false, error: "Invalid type" }, { status: 400 });
   }
 
@@ -55,6 +56,11 @@ export async function POST(request: NextRequest) {
 
     const userAgent = (h.get("user-agent") || "").toString();
 
+    // Skip analytics outside production — dev/preview traffic is the owner.
+    if (process.env.NODE_ENV !== "production") {
+      return NextResponse.json({ ok: true });
+    }
+
     // Issue #41: Skip analytics for known bots/crawlers.
     if (isBot(userAgent)) {
       return NextResponse.json({ ok: true });
@@ -69,19 +75,14 @@ export async function POST(request: NextRequest) {
     }
 
     const visitorHash = getVisitorHash(ip, userAgent);
-    const deviceType = getDeviceType(userAgent);
-    const country = getCountry(h);
     const referrer =
       body.referrer || (h.get("referer") || h.get("referrer") || "").toString();
 
-    if (type === "view") {
-      await recordPageview(visitorHash, referrer || null, deviceType, country);
-    } else {
-      if (typeof body.linkId !== "number" || Number.isNaN(body.linkId)) {
-        return NextResponse.json({ ok: false, error: "Missing linkId" }, { status: 400 });
-      }
-      await recordClick(body.linkId, visitorHash, referrer || null);
+    // Endpoint is click-only — view tracking moved to [slug]/page.tsx.
+    if (typeof body.linkId !== "number" || Number.isNaN(body.linkId)) {
+      return NextResponse.json({ ok: false, error: "Missing linkId" }, { status: 400 });
     }
+    await recordClick(body.linkId, visitorHash, referrer || null);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

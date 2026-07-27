@@ -132,12 +132,13 @@ export default async function PublicPage({ params }: PageProps) {
     const userAgent = (h.get("user-agent") || "").toString();
     const referrer = (h.get("referer") || h.get("referrer") || "").toString();
 
+    // Skip analytics outside production — dev/preview traffic is the owner.
+    // Issue #41: Skip known bots/crawlers.
+    // Issue #40: Skip the owner (authenticated admin).
     const isCrawler = isBot(userAgent);
     const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
     const isOwner = hasSessionCookie ? await getSession() : null;
-    if (isCrawler || isOwner) {
-      // Still render the page, just don't count the view.
-    } else {
+    if (process.env.NODE_ENV === "production" && !isCrawler && !isOwner) {
       const visitorHash = getVisitorHash(ip, userAgent);
       const deviceType = getDeviceType(userAgent);
       const country = getCountry(h);

@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { setup } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import {
   Card,
   CardContent,
@@ -57,8 +57,7 @@ export function SetupForm({ defaultUsername }: { defaultUsername: string }) {
       </CardHeader>
       <form action={formAction}>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="username">Username</Label>
+          <FormField label="Username" htmlFor="username" required>
             <Input
               id="username"
               name="username"
@@ -69,9 +68,14 @@ export function SetupForm({ defaultUsername }: { defaultUsername: string }) {
               minLength={3}
               autoFocus
             />
-          </div>
-          <div className="flex flex-col gap-2 mb-4">
-            <Label htmlFor="password">Password</Label>
+          </FormField>
+          <FormField
+            label="Password"
+            htmlFor="password"
+            required
+            hint="At least 8 characters with one uppercase letter and one number."
+            className="mb-4"
+          >
             <Input
               id="password"
               name="password"
@@ -80,8 +84,7 @@ export function SetupForm({ defaultUsername }: { defaultUsername: string }) {
               required
               minLength={8}
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters with one uppercase letter and one number.</p>
-          </div>
+          </FormField>
           {state && !state.success ? (
             <p className="text-sm text-destructive">{state.error}</p>
           ) : null}

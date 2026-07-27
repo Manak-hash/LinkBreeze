@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import { changePassword } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import {
   Card,
   CardContent,
@@ -40,8 +40,7 @@ export function ChangePasswordForm() {
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="currentPassword">Current password</Label>
+          <FormField label="Current password" htmlFor="currentPassword" required>
             <Input
               id="currentPassword"
               name="currentPassword"
@@ -49,9 +48,13 @@ export function ChangePasswordForm() {
               autoComplete="current-password"
               required
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="newPassword">New password</Label>
+          </FormField>
+          <FormField
+            label="New password"
+            htmlFor="newPassword"
+            required
+            hint="At least 8 characters with one uppercase letter and one number."
+          >
             <Input
               id="newPassword"
               name="newPassword"
@@ -60,11 +63,10 @@ export function ChangePasswordForm() {
               required
               minLength={8}
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters with one uppercase letter and one number.</p>
-          </div>
+          </FormField>
           {result ? (
             result.ok ? (
-              <p className="text-sm text-primary">Password updated.</p>
+              <p className="text-sm text-success">Password updated.</p>
             ) : (
               <p className="text-sm text-destructive">{result.error}</p>
             )

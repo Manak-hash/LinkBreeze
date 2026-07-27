@@ -10,7 +10,7 @@ import { SUPPORTED_PLATFORMS, getPlatformLabel, type SocialPlatform } from "@/li
 import type { SocialLink } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import {
   Card,
   CardContent,
@@ -141,15 +141,15 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 </div>
               )}
               <div className="flex-1">
-                <Label htmlFor="avatarUrl">Avatar URL</Label>
-                <Input
-                  id="avatarUrl"
-                  name="avatarUrl"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://…/avatar.png"
-                  className="mt-1.5"
-                />
+                <FormField label="Avatar URL" htmlFor="avatarUrl">
+                  <Input
+                    id="avatarUrl"
+                    name="avatarUrl"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="https://…/avatar.png"
+                  />
+                </FormField>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
                     <Upload className="size-4" />
@@ -169,8 +169,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="displayName">Display name</Label>
+            <FormField label="Display name" htmlFor="displayName" required>
               <Input
                 id="displayName"
                 name="displayName"
@@ -179,10 +178,9 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 maxLength={80}
                 placeholder="Jane Doe"
               />
-            </div>
+            </FormField>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="bio">Bio</Label>
+            <FormField label="Bio" htmlFor="bio">
               <Input
                 id="bio"
                 name="bio"
@@ -190,10 +188,9 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 maxLength={300}
                 placeholder="A short description"
               />
-            </div>
+            </FormField>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="badgeText">Badge text (optional)</Label>
+            <FormField label="Badge text (optional)" htmlFor="badgeText">
               <Input
                 id="badgeText"
                 name="badgeText"
@@ -201,7 +198,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 maxLength={40}
                 placeholder="✨ Available for work"
               />
-            </div>
+            </FormField>
           </CardContent>
         </Card>
 

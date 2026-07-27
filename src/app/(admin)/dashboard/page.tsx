@@ -14,6 +14,8 @@ import {
   type AnalyticsRange,
   type BreakdownEntry,
 } from "@/server/queries";
+import { checkForUpdates } from "@/lib/update-check";
+import { UpdateChecker } from "@/components/admin/UpdateChecker";
 import {
   Card,
   CardContent,
@@ -100,10 +102,11 @@ export default async function DashboardPage({
     pageId = def?.id;
   }
 
-  const [stats, links, breakdown] = await Promise.all([
+  const [stats, links, breakdown, updateResult] = await Promise.all([
     getDashboardStats(range, pageId),
     getAllLinks(pageId),
     getAnalyticsBreakdown(range, pageId),
+    checkForUpdates(),
   ]);
 
   const activeCount = links.filter((l) => l.isActive).length;
@@ -117,6 +120,7 @@ export default async function DashboardPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <UpdateChecker initialResult={updateResult} />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">

@@ -9,7 +9,7 @@ import {
 import type { LinkRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -104,8 +104,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId && !editing ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="title">Title</Label>
+          <FormField label="Title" htmlFor="title" required>
             <Input
               id="title"
               name="title"
@@ -114,10 +113,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               maxLength={120}
               placeholder="My website"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="url">{urlLabel}</Label>
+          <FormField label={urlLabel} htmlFor="url" required>
             <Input
               id="url"
               name="url"
@@ -126,10 +124,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               maxLength={2048}
               placeholder={urlPlaceholder}
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
+          <FormField label="Description (optional)" htmlFor="description">
             <Input
               id="description"
               name="description"
@@ -137,10 +134,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               maxLength={300}
               placeholder="A short subtitle"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="imageUrl">Thumbnail image URL (optional)</Label>
+          <FormField label="Thumbnail image URL (optional)" htmlFor="imageUrl">
             <Input
               id="imageUrl"
               name="imageUrl"
@@ -148,10 +144,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               maxLength={2048}
               placeholder="https://example.com/image.jpg"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label>Type</Label>
+          <FormField label="Type">
             <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -164,7 +159,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">

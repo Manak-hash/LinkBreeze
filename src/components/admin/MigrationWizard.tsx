@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 
 interface MigrationWizardProps {
   pageId: number;
@@ -113,7 +113,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Check className="size-5 text-green-500" />
+            <Check className="size-5 text-success" />
             Import Complete
           </CardTitle>
         </CardHeader>
@@ -305,8 +305,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
 
         {source === "url" ? (
           <form action={handlePreview} className="flex flex-col gap-3">
-            <div className="mb-2">
-              <Label htmlFor="import-url" className="mb-2 block">Page URL</Label>
+            <FormField label="Page URL" htmlFor="import-url" className="mb-2">
               <Input
                 id="import-url"
                 name="url"
@@ -316,7 +315,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
                 onChange={(e) => setUrl(e.target.value)}
                 required
               />
-            </div>
+            </FormField>
             <Button type="submit" disabled={loading} size="sm">
               {loading ? (
                 <>
@@ -333,8 +332,12 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
           </form>
         ) : (
           <form action={handlePreview} className="flex flex-col gap-3">
-            <div className="mb-2">
-              <Label htmlFor="import-file" className="mb-2 block">HTML or JSON file</Label>
+            <FormField
+              label="HTML or JSON file"
+              htmlFor="import-file"
+              className="mb-2"
+              hint="Save a competitor page as HTML, or upload a JSON export."
+            >
               <Input
                 id="import-file"
                 name="file"
@@ -342,10 +345,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
                 accept=".html,.htm,.json,.txt"
                 required
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Save a competitor page as HTML, or upload a JSON export.
-              </p>
-            </div>
+            </FormField>
             <Button type="submit" disabled={loading} size="sm">
               {loading ? (
                 <>

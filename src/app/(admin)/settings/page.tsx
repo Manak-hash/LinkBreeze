@@ -8,6 +8,7 @@ import {
   getSubscriberCount,
   getSetting,
 } from "@/server/queries";
+import { isUpdateCheckEnabled } from "@/lib/update-check";
 import { SettingsForm } from "./settings-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
@@ -39,10 +40,11 @@ export default async function SettingsPage({
     activePage = (await getDefaultPage()) ?? allPages[0];
   }
 
-  const [themes, active, subscriberCount] = await Promise.all([
+  const [themes, active, subscriberCount, updateCheckEnabled] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
     getSubscriberCount(),
+    isUpdateCheckEnabled(),
   ]);
   const retentionDays = await getSetting("analyticsRetentionDays");
 
@@ -117,7 +119,10 @@ export default async function SettingsPage({
       <MigrationWizard pageId={activePage?.id ?? 0} />
 
       <ChangePasswordForm />
-      <DataManager retentionDays={retentionDays ?? ""} />
+      <DataManager
+        retentionDays={retentionDays ?? ""}
+        updateCheckEnabled={updateCheckEnabled}
+      />
     </div>
   );
 }

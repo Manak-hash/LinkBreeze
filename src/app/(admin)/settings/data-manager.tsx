@@ -8,6 +8,7 @@ import {
   clearAnalytics,
   setRetention,
 } from "@/server/actions/data";
+import { toggleUpdateCheck } from "@/server/actions/update-check";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function DataManager({ retentionDays }: { retentionDays: string }) {
+export function DataManager({
+  retentionDays,
+  updateCheckEnabled,
+}: {
+  retentionDays: string;
+  updateCheckEnabled: boolean;
+}) {
   const router = useRouter();
   const [restorePending, setRestorePending] = React.useState(false);
   const [restoreMsg, setRestoreMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
@@ -126,7 +133,7 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
             </label>
           </div>
           {restoreMsg ? (
-            <p className={restoreMsg.ok ? "text-sm text-lavender" : "text-sm text-destructive"}>
+            <p className={restoreMsg.ok ? "text-sm text-success" : "text-sm text-destructive"}>
               {restoreMsg.text}
             </p>
           ) : null}
@@ -144,7 +151,7 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
             {clearPending ? "Clearing…" : "Clear all analytics"}
           </Button>
           {clearMsg ? (
-            <p className={clearMsg.includes("cleared") ? "text-sm text-lavender" : "text-sm text-destructive"}>
+            <p className={clearMsg.includes("cleared") ? "text-sm text-success" : "text-sm text-destructive"}>
               {clearMsg}
             </p>
           ) : null}
@@ -171,9 +178,30 @@ export function DataManager({ retentionDays }: { retentionDays: string }) {
             Older analytics are pruned automatically. 0 keeps everything.
           </p>
           {retentionSaved ? (
-            <p className="text-sm text-lavender">Saved!</p>
+            <p className="text-sm text-success">Saved!</p>
           ) : null}
         </form>
+
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+          <div>
+            <p className="text-sm font-medium">Update notifications</p>
+            <p className="text-xs text-muted-foreground">
+              Check for new releases on the dashboard.
+            </p>
+          </div>
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              defaultChecked={updateCheckEnabled}
+              onChange={async (e) => {
+                await toggleUpdateCheck(e.target.checked);
+                router.refresh();
+              }}
+            />
+            <div className="peer h-5 w-9 rounded-full bg-muted transition-colors after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-foreground after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-4" />
+          </label>
+        </div>
       </CardContent>
 
       {/* Restore confirmation */}

@@ -9,7 +9,7 @@ import { uploadFavicon } from "@/server/actions/uploads";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -125,8 +125,12 @@ export function SettingsForm({
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="slug">Page slug</Label>
+          <FormField
+            label="Page slug"
+            htmlFor="slug"
+            required
+            hint={<>Your public page lives at <code>/{slug || "u"}</code></>}
+          >
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">/</span>
               <Input
@@ -148,13 +152,9 @@ export function SettingsForm({
                 <ExternalLink className="size-4" />
               </a>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Your public page lives at <code>/{slug || "u"}</code>
-            </p>
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="title">Page title (SEO)</Label>
+          <FormField label="Page title (SEO)" htmlFor="title">
             <Input
               id="title"
               name="title"
@@ -162,10 +162,9 @@ export function SettingsForm({
               maxLength={120}
               placeholder="Jane Doe — Links"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">SEO description</Label>
+          <FormField label="SEO description" htmlFor="description">
             <Input
               id="description"
               name="description"
@@ -173,10 +172,9 @@ export function SettingsForm({
               maxLength={300}
               placeholder="All my links in one place"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="footerText">Footer text (optional)</Label>
+          <FormField label="Footer text (optional)" htmlFor="footerText">
             <Input
               id="footerText"
               name="footerText"
@@ -184,10 +182,13 @@ export function SettingsForm({
               maxLength={200}
               placeholder="© 2026 Jane Doe"
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="analyticsScript">Analytics script (optional)</Label>
+          <FormField
+            label="Analytics script (optional)"
+            htmlFor="analyticsScript"
+            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. It is injected onto your public page only.</>}
+          >
             <textarea
               id="analyticsScript"
               name="analyticsScript"
@@ -197,15 +198,13 @@ export function SettingsForm({
               className="min-h-[80px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
             />
-            <p className="text-xs text-muted-foreground">
-              Paste a <code>{'<script>'}</code> snippet for Plausible, Umami,
-              Matomo, Google Analytics, etc. It is injected onto your public
-              page only.
-            </p>
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="customCss">Custom CSS (optional)</Label>
+          <FormField
+            label="Custom CSS (optional)"
+            htmlFor="customCss"
+            hint={<>Raw CSS injected into a <code>{"<style>"}</code> tag on your public page. Use it to fine-tune fonts, spacing or colours.</>}
+          >
             <textarea
               id="customCss"
               name="customCss"
@@ -215,14 +214,9 @@ export function SettingsForm({
               className="min-h-[100px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
             />
-            <p className="text-xs text-muted-foreground">
-              Raw CSS injected into a <code>{'<style>'}</code> tag on your public
-              page. Use it to fine-tune fonts, spacing or colours.
-            </p>
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="emailCapture">Email capture</Label>
+          <FormField label="Email capture" htmlFor="emailCapture">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -241,11 +235,10 @@ export function SettingsForm({
                 </a>
               </p>
             ) : null}
-          </div>
+          </FormField>
 
           {faviconUrl ? (
-            <div className="flex flex-col gap-2">
-              <Label>Favicon</Label>
+            <FormField label="Favicon">
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -257,11 +250,14 @@ export function SettingsForm({
                   Custom favicon active — saves with settings.
                 </span>
               </div>
-            </div>
+            </FormField>
           ) : null}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="faviconUpload">Upload favicon (optional)</Label>
+          <FormField
+            label="Upload favicon (optional)"
+            htmlFor="faviconUpload"
+            hint="Upload a .ico, .png, .svg, .gif or .webp file (max 1 MB). Overrides the default favicon across the site."
+          >
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
                 <Upload className="size-4" />
@@ -278,15 +274,11 @@ export function SettingsForm({
                 <span className="text-xs text-destructive">{faviconError}</span>
               ) : null}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Upload a .ico, .png, .svg, .gif or .webp file (max 1 MB). Overrides the default favicon across the site.
-            </p>
             <input type="hidden" name="faviconUrl" value={faviconUrl} />
-          </div>
+          </FormField>
 
           {themes.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <Label>Active theme</Label>
+            <FormField label="Active theme">
               <div className="flex flex-wrap gap-2">
                 {themes.map((t) => {
                   const isActive =
@@ -309,7 +301,7 @@ export function SettingsForm({
                   );
                 })}
               </div>
-            </div>
+            </FormField>
           ) : null}
         </CardContent>
         <CardFooter className="gap-3">

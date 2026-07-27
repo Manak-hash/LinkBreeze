@@ -63,7 +63,7 @@ export function EmailCapture() {
         {pending ? "…" : "Subscribe"}
       </button>
       {status === "error" && error ? (
-        <p className="text-xs text-red-400 sm:absolute sm:mt-14">{error}</p>
+        <p className="text-xs text-destructive sm:absolute sm:mt-14">{error}</p>
       ) : null}
     </form>
   );

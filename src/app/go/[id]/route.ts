@@ -60,13 +60,14 @@ export async function GET(
     if (rl.ok) {
       const userAgent = (h.get("user-agent") || "").toString();
 
+      // Skip analytics outside production — dev/preview traffic is the owner.
       // Issue #41: Don't record clicks for known bots/crawlers.
       // Issue #40: Don't record clicks for the owner (authenticated admin).
       // Cookie-first: avoids DB query on every anonymous click.
       const isCrawler = isBot(userAgent);
       const hasSessionCookie = !!h.get("cookie")?.includes("lb_session");
       const isOwner = hasSessionCookie ? await getSession() : null;
-      if (!isCrawler && !isOwner) {
+      if (process.env.NODE_ENV === "production" && !isCrawler && !isOwner) {
         const visitorHash = getVisitorHash(ip, userAgent);
         const referrer = (h.get("referer") || h.get("referrer") || "").toString();
         await recordClick(linkId, visitorHash, referrer || null);
