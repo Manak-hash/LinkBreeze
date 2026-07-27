@@ -31,7 +31,7 @@ export function ColorField({
       <div className="flex items-center gap-2">
         <input
           type="color"
-          value={allowRgba ? undefined : (val?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000")}
+          value={allowRgba ? "#000000" : (val?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000")}
           onChange={(e) => setVal(e.target.value)}
           className="size-9 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent"
           disabled={allowRgba}

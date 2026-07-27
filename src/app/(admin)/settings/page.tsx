@@ -11,6 +11,7 @@ import {
 import { SettingsForm } from "./settings-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
+import { MigrationWizard } from "@/components/admin/MigrationWizard";
 import {
   Card,
   CardContent,
@@ -112,6 +113,8 @@ export default async function SettingsPage({
           </div>
         </CardContent>
       </Card>
+
+      <MigrationWizard pageId={activePage?.id ?? 0} />
 
       <ChangePasswordForm />
       <DataManager retentionDays={retentionDays ?? ""} />
