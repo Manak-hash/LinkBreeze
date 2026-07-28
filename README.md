@@ -48,19 +48,41 @@
 
 ## 🚀 Quick Start
 
-> Zero config. One command. Your Linktree alternative is live in 30 seconds.
+**One command — zero config — live in 30 seconds:**
 
-### 🐳 Docker (Recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/Manak-hash/LinkBreeze/main/scripts/install.sh | bash
+```
 
-The fastest path to production. No Node.js, no npm, no config files needed.
+The script detects Docker or Podman, pulls the image, starts the container, and optionally sets up a systemd service for auto-start on boot. Want auto-start on boot? Run it with `sudo bash` instead and answer **y** when prompted.
 
-**Linux / macOS / Windows CMD** — run as a single line:
+<details>
+<summary>Don't like piping to bash?</summary>
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Manak-hash/LinkBreeze/main/scripts/install.sh -o install.sh
+less install.sh
+bash install.sh
+```
+
+</details>
+
+Then open http://localhost:3000 — the setup wizard takes under 30 seconds.
+
+**Prefer a different method?** Expand one below:
+
+<details>
+<summary>🐳 &nbsp;Docker</summary>
+
+No Node.js, no npm, no config files needed.
+
+**Linux / macOS / Windows CMD:**
 
 ```bash
 docker run -d --name linkbreeze --restart unless-stopped -p 3000:3000 -v linkbreeze-data:/app/data ghcr.io/manak-hash/linkbreeze:latest
 ```
 
-**Windows PowerShell** — same command, use backticks for line breaks:
+**Windows PowerShell** — use backticks for line breaks:
 
 ```powershell
 docker run -d `
@@ -71,21 +93,19 @@ docker run -d `
   ghcr.io/manak-hash/linkbreeze:latest
 ```
 
-Then open http://localhost:3000 — the setup wizard takes under 30 seconds.
-
 > **Database migrations run automatically** on container startup — no manual
 > `drizzle-kit migrate` needed for Docker deployments.
 
-> **First time?** Make sure Docker Desktop (Windows/Mac) or the Docker daemon
-> (Linux) is running before you execute the command.
+</details>
 
-### 🧩 Docker Compose
+<details>
+<summary>🧩 &nbsp;Docker Compose</summary>
 
 Best if you want to customize ports, add a reverse proxy, or manage updates easily.
 
-**Option A — Pull the pre-built image (fastest, no build step):**
+**Option A — Pull the pre-built image:**
 
-Create a `docker-compose.yml` with:
+Create a `docker-compose.yml`:
 
 ```yaml
 services:
@@ -101,13 +121,11 @@ volumes:
   linkbreeze-data:
 ```
 
-Then:
-
 ```bash
 docker compose up -d
 ```
 
-**Option B — Build from source (for development or customization):**
+**Option B — Build from source:**
 
 ```bash
 git clone https://github.com/Manak-hash/LinkBreeze.git
@@ -115,19 +133,106 @@ cd LinkBreeze
 docker compose up -d --build
 ```
 
-Check logs anytime with:
+Upgrade anytime: `docker compose pull && docker compose up -d`
 
-```bash
-docker compose logs -f linkbreeze
+Logs: `docker compose logs -f linkbreeze`
+
+</details>
+
+<details>
+<summary>☁️ &nbsp;Coolify</summary>
+
+Running [Coolify](https://coolify.io/) on your VPS?
+
+1. **+ New Resource** → **Docker Compose Empty**
+2. Paste:
+
+```yaml
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - linkbreeze-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  linkbreeze-data:
 ```
 
-Upgrade to the latest version:
+3. Set a domain (e.g., `links.yourdomain.com`) for automatic SSL
+4. Click **Deploy** — Coolify handles Let's Encrypt automatically
+
+</details>
+
+<details>
+<summary>📦 &nbsp;Synology NAS</summary>
+
+Running [Synology DiskStation](https://www.synology.com/) with Container Manager (DSM 7.2+)?
+
+1. Open **Container Manager** → **Container** → **Create**
+2. **Image:** `ghcr.io/manak-hash/linkbreeze:latest` (pull it first via **Image** → **Add** if not found)
+3. Container settings:
+   - **Name:** `linkbreeze`
+   - **Port:** Local `3000` → Container `3000`
+   - **Volume:** Create `/docker/linkbreeze/data` and map to `/app/data`
+   - **Restart policy:** `Unless stopped`
+4. Click **Done** — live at `http://<nas-ip>:3000`
+
+> **Update later:** pull the latest image, stop and recreate the container. Data persists in the volume.
+
+</details>
+
+<details>
+<summary>🔧 &nbsp;Podman</summary>
+
+Using [Podman](https://podman.io/) instead of Docker (RHEL, Fedora, CentOS)? Replace `docker` with `podman`:
 
 ```bash
-docker compose pull && docker compose up -d
+podman run -d --name linkbreeze --restart unless-stopped -p 3000:3000 -v linkbreeze-data:/app/data ghcr.io/manak-hash/linkbreeze:latest
 ```
 
-### 🔧 Manual (without Docker)
+If you get permission errors on the volume, create it first: `podman volume create linkbreeze-data`
+
+For systemd integration with rootless Podman: `podman generate systemd` after starting the container.
+
+The one-line install script at the top of this section detects Podman automatically.
+
+</details>
+
+<details>
+<summary>🖥️ &nbsp;Portainer</summary>
+
+Using [Portainer](https://www.portainer.io/) to manage containers? Deploy as a Stack.
+
+1. Go to your environment → **Stacks** → **Add stack**
+2. Name it `linkbreeze` and paste:
+
+```yaml
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - linkbreeze-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  linkbreeze-data:
+```
+
+3. Click **Deploy the stack**
+
+> **Update:** **Stacks** → `linkbreeze` → **Editor** → click **Pull and redeploy**.
+
+</details>
+
+<details>
+<summary>🔨 &nbsp;Manual (without Docker)</summary>
+
+Requires Node.js 18+.
 
 ```bash
 git clone https://github.com/Manak-hash/LinkBreeze.git
@@ -135,18 +240,16 @@ cd LinkBreeze
 
 npm install
 
-# Configure environment
 cp .env.example .env
 # Edit .env to set your SECRET_KEY and DATABASE_PATH if needed
 
-# Run database migrations
 npm run db:migrate
-
-# Start development server
 npm run dev
 ```
 
-> For production, use npm run build && npm start instead of npm run dev.
+> For production: `npm run build && npm start`
+
+</details>
 
 ## 🌐 Making Your Page Public
 

@@ -185,7 +185,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               Schedule
             </label>
             {scheduled ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <div className="flex flex-col gap-2">
                 <div className="flex flex-1 flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Show from</span>
                   <Input

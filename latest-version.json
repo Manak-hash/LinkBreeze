@@ -1,6 +1,6 @@
 {
   "version": "1.2.0",
-  "releasedAt": "2026-07-27",
+  "releasedAt": "2026-07-28",
   "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.0",
-  "notes": "Multi-page support, migration wizard, and design system foundation."
+  "notes": "Multi-page support, migration wizard, auto-favicon links, one-line installer, 8 deployment guides, and design system foundation."
 }

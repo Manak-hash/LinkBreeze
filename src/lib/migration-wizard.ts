@@ -436,8 +436,8 @@ function extractFromDom(
     let href = $el.attr("href")?.trim();
     if (!href) return;
 
-    // Skip anchors and javascript.
-    if (href.startsWith("#") || href.startsWith("javascript:")) return;
+    // Skip anchors and dangerous schemes (case-insensitive).
+    if (href.startsWith("#") || /^\s*(?:javascript|data|vbscript):/i.test(href)) return;
 
     // Resolve relative URLs.
     try {
