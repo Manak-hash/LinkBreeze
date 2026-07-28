@@ -1,6 +1,9 @@
 # ─── Build Stage ───────────────────────────────────────
 FROM node:22-alpine AS builder
 
+# Native build tools for better-sqlite3 (compiles from source on Alpine/musl)
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 COPY package*.json ./
