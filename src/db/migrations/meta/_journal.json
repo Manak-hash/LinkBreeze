@@ -64,6 +64,13 @@
       "when": 1752681600000,
       "tag": "0008_page_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1752768000000,
+      "tag": "0009_auto_favicon",
+      "breakpoints": true
     }
   ]
 }

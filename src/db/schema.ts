@@ -63,6 +63,8 @@ export const links = sqliteTable("links", {
   description: text("description"),
   url: text("url").notNull(),
   icon: text("icon"),
+  iconUrl: text("icon_url"),
+  autoIcon: integer("auto_icon", { mode: "boolean" }).notNull().default(true),
   imageUrl: text("image_url"),
   isHighlighted: integer("is_highlighted", { mode: "boolean" }).notNull().default(false),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

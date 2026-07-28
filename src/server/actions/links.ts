@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { demoBlock } from "@/lib/demo";
 import { isAllowedLinkUrl } from "@/lib/link-url";
 import { truthy } from "@/lib/utils";
+import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
 import {
   createLink as createLinkQuery,
   updateLink as updateLinkQuery,
@@ -40,6 +41,10 @@ const linkSchema = z
       .default(true),
     scheduleStart: z.string().optional().nullable(),
     scheduleEnd: z.string().optional().nullable(),
+    autoIcon: z
+      .union([z.string(), z.boolean()])
+      .transform(truthy)
+      .default(true),
   })
   .refine((link) => isAllowedLinkUrl(link.type, link.url), {
     path: ["url"],
@@ -62,12 +67,20 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     isActive: formData.get("isActive"),
     scheduleStart: formData.get("scheduleStart") || undefined,
     scheduleEnd: formData.get("scheduleEnd") || undefined,
+    autoIcon: formData.get("autoIcon") || undefined,
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
   const d = parsed.data;
+
+  // Auto-fetch favicon for URL-type links when autoIcon is enabled.
+  let iconUrl: string | null = null;
+  if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
+    iconUrl = await fetchAndCacheFavicon(d.url);
+  }
+
   await createLinkQuery({
     title: d.title,
     url: d.url,
@@ -77,6 +90,8 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     type: d.type,
     isHighlighted: d.isHighlighted,
     isActive: d.isActive,
+    autoIcon: d.autoIcon,
+    iconUrl,
     scheduleStart: d.scheduleStart || null,
     scheduleEnd: d.scheduleEnd || null,
   });
@@ -102,6 +117,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     isActive: formData.get("isActive"),
     scheduleStart: formData.get("scheduleStart") || undefined,
     scheduleEnd: formData.get("scheduleEnd") || undefined,
+    autoIcon: formData.get("autoIcon") || undefined,
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -111,6 +127,14 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
   }
 
   const d = parsed.data;
+
+  // Auto-fetch favicon for URL-type links when autoIcon is enabled.
+  // Re-fetches when enabled (URL may have changed). Clears iconUrl when disabled.
+  let iconUrl: string | null = null;
+  if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
+    iconUrl = await fetchAndCacheFavicon(d.url);
+  }
+
   await updateLinkQuery(Number(d.id), {
     title: d.title,
     url: d.url,
@@ -119,6 +143,8 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     type: d.type,
     isHighlighted: d.isHighlighted,
     isActive: d.isActive,
+    autoIcon: d.autoIcon,
+    iconUrl,
     scheduleStart: d.scheduleStart || null,
     scheduleEnd: d.scheduleEnd || null,
   });

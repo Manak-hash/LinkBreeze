@@ -262,6 +262,8 @@ export async function createLink(
         | "type"
         | "description"
         | "icon"
+        | "iconUrl"
+        | "autoIcon"
         | "imageUrl"
         | "isHighlighted"
         | "isActive"
@@ -286,6 +288,8 @@ export async function createLink(
       type: data.type ?? "url",
       description: data.description ?? null,
       icon: data.icon ?? null,
+      iconUrl: data.iconUrl ?? null,
+      autoIcon: data.autoIcon ?? true,
       imageUrl: data.imageUrl ?? null,
       isHighlighted: data.isHighlighted ?? false,
       isActive: data.isActive ?? true,
@@ -307,6 +311,8 @@ export async function updateLink(
       | "type"
       | "description"
       | "icon"
+      | "iconUrl"
+      | "autoIcon"
       | "imageUrl"
       | "isHighlighted"
       | "isActive"

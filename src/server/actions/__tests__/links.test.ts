@@ -8,11 +8,19 @@ const mocks = vi.hoisted(() => ({
   updateLink: vi.fn(async () => undefined),
   deleteLink: vi.fn(async () => undefined),
   reorderLinks: vi.fn(async () => undefined),
+  fetchAndCacheFavicon: vi.fn(async (): Promise<string | null> => "/api/uploads/favicon-test.png"),
+  extractDomain: vi.fn((url: string): string | null => {
+    try { return new URL(url).hostname; } catch { return null; }
+  }),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/auth", () => ({ getSession: mocks.getSession }));
 vi.mock("@/lib/demo", () => ({ demoBlock: mocks.demoBlock }));
+vi.mock("@/lib/favicon", () => ({
+  fetchAndCacheFavicon: mocks.fetchAndCacheFavicon,
+  extractDomain: mocks.extractDomain,
+}));
 vi.mock("@/server/queries", () => ({
   createLink: mocks.createLink,
   updateLink: mocks.updateLink,

@@ -46,6 +46,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
   const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
+  const [autoIcon, setAutoIcon] = React.useState(editing?.autoIcon ?? true);
   const router = useRouter();
 
   // Reset local form state whenever the dialog opens (or switches target).
@@ -60,6 +61,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
       setHighlighted(editing?.isHighlighted ?? false);
       setActive(editing?.isActive ?? true);
       setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
+      setAutoIcon(editing?.autoIcon ?? true);
     }
   }
 
@@ -73,6 +75,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
     formData.set("type", type);
     formData.set("isHighlighted", highlighted ? "on" : "off");
     formData.set("isActive", active ? "on" : "off");
+    formData.set("autoIcon", autoIcon ? "on" : "off");
 
     // If scheduling is toggled off, clear any stale schedule values.
     if (!scheduled) {
@@ -169,6 +172,10 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={active} onCheckedChange={setActive} />
               Active
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={autoIcon} onCheckedChange={setAutoIcon} />
+              Auto icon
             </label>
           </div>
 

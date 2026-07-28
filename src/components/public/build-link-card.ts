@@ -42,10 +42,26 @@ function resolveLinkUrl(link: LinkRow): {
 }
 
 /**
- * Build the content row: title, description, highlight dot, and arrow.
+ * Build the icon element shown before the title.
+ * Priority: auto-fetched favicon (iconUrl) → first-letter avatar fallback.
+ * Only shown for cards WITHOUT a thumbnail (thumbnail cards use the
+ * full-bleed image at the top instead).
+ */
+function buildIcon(link: LinkRow): string {
+  if (link.iconUrl) {
+    return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
+  }
+  // First-letter fallback using the title's initial.
+  const letter = (link.title || "?").trim().charAt(0).toUpperCase();
+  return `<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-card-bg)">${esc(letter)}</span>`;
+}
+
+/**
+ * Build the content row: icon, title, description, highlight dot, and arrow.
  * Shared between cards with and without a thumbnail image.
  */
 function buildContentRow(link: LinkRow): string {
+  const icon = buildIcon(link);
   const highlightDot = link.isHighlighted
     ? `<span aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:9999px;background:var(--lb-accent);margin-right:8px;flex-shrink:0"></span>`
     : "";
@@ -60,6 +76,7 @@ function buildContentRow(link: LinkRow): string {
       <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
       ${description}
     </span>
+    ${icon}
     <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">&#8599;</span>`;
 }
 

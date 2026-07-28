@@ -29,11 +29,15 @@
 ## ✨ Features
 
 - **🔗 Link Management** — Add, reorder, and customize unlimited links with drag-and-drop
+- **🌐 Multi-Page Support** — Create unlimited pages, each with its own slug, theme, links, analytics, SEO, and QR code
+- **🎨 Auto-Favicon Links** — Links automatically show the target site's favicon — no manual icon uploads needed
+- **📥 Migration Wizard** — Import existing links and social profiles from Linktree, Bento, Hopp.bio, LittleLink, or any HTML/JSON export
 - **🖼️ Link Thumbnails** — Add images to your links for visual preview cards
 - **🎵 Embed Widgets** — Embed YouTube, Spotify, SoundCloud, Vimeo, or Bandcamp directly on your page
 - **⏰ Link Scheduling** — Schedule links to appear/disappear automatically with date/time controls
 - **📊 Privacy-First Analytics** — Page views, click tracking, referrers — no cookies, no tracking
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
+- **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
 - **🎨 Themes** — 9 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light) + full customizer with CSS token system (colors, 10 fonts, 8 background types, 6 card styles, layout controls, effects) + theme duplicate/import/export
 - **✏️ Custom CSS** — Fine-tune your page with raw CSS injection
 - **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
@@ -232,13 +236,16 @@ cloudflared tunnel --url http://localhost:3000
 |---------|----------|-----------|------------|-------|----------------|
 | **Price** | $15/mo | Free | Free | Free | **Free** |
 | **Admin Panel** | ✅ | Slow | ❌ | ❌ | **✅ Fast** |
+| **Multi-Page** | ✅ (paid) | ❌ | ❌ | ❌ | **✅** |
+| **Auto-Favicon Links** | ❌ | ❌ | ❌ | ❌ | **✅** |
+| **Migration Wizard** | ❌ | ❌ | ❌ | ❌ | **✅** |
 | **Database** | Theirs | MySQL | None | None | **SQLite** |
 | **Built-in Analytics** | Paid | Basic | ❌ | ❌ | **✅ Full** |
 | **External Analytics** | ✅ | ✅ | ❌ | ❌ | **✅** |
-| **Email Capture** | $9/mo | ❌ | ❌ | ❌ | **✅** |
+| **Email Capture** | Paid | ❌ | ❌ | ❌ | **✅** |
 | **Embed Widgets** | Paid | ❌ | ❌ | ❌ | **✅** |
-| **Link Thumbnails** | Paid | ❌ | ❌ | ❌ | **✅** |
-| **QR Codes** | ❌ | ❌ | ❌ | ❌ | **✅** |
+| **Link Thumbnails** | ✅ | ❌ | ❌ | ❌ | **✅** |
+| **QR Codes** | ✅ | ✅ | ❌ | ❌ | **✅** |
 | **Link Scheduling** | Paid | ❌ | ❌ | ❌ | **✅** |
 | **Themes** | Paid | Limited | CSS only | Config | **✅ Full Token System + Import/Export** |
 | **Custom CSS** | ❌ | ❌ | ✅ | ❌ | **✅** |
