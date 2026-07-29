@@ -1,10 +1,19 @@
 /**
- * LinkBreeze Demo Seed Script
+ * LinkBreeze Demo Seed Script (v1.2.0)
  * Run with: DEMO_MODE=true npx tsx src/scripts/seed-demo.ts
  * Populates a fresh database with demo data for the read-only demo instance.
  *
- * Showcases ALL v1.1.0 features: 9 theme presets, embed widgets,
- * link thumbnails, email capture, new social icons, full token system.
+ * Showcases ALL v1.2.0 features:
+ *   - Multi-page support (2 pages with different themes)
+ *   - Auto-favicon (real URLs → favicons load automatically)
+ *   - 54 social platforms (10 on page 1, 4 on page 2)
+ *   - Scheduled links (active + upcoming)
+ *   - Per-page themes (Aurora + Neon Cyberpunk)
+ *   - Per-page SEO settings
+ *   - Embed widgets (YouTube, Spotify)
+ *   - Link thumbnails + highlighted links
+ *   - Email capture
+ *   - Full analytics (7 days, 2 pages)
  */
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -19,7 +28,7 @@ sqlite.pragma("journal_mode = WAL");
 const db = drizzle(sqlite, { schema });
 
 async function seed() {
-  console.log("Seeding demo data (v1.1.0)...\n");
+  console.log("Seeding demo data (v1.2.0)...\n");
 
   // ─── Guard: skip if already seeded ──────────────
   const existingCount = db
@@ -39,128 +48,7 @@ async function seed() {
   }).run();
   console.log("✓ Admin user created (demo / demo1234)");
 
-  // ─── Settings ──────────────────────────────────
-  const settings: Record<string, string> = {
-    slug: "alex",
-    title: "Alex Rivera — Links",
-    description: "Content creator · Photographer · Always creating",
-    footerText: "© 2026 Alex Rivera · Powered by LinkBreeze",
-    emailCapture: "true",
-  };
-  for (const [key, value] of Object.entries(settings)) {
-    db.insert(schema.settings).values({ key, value }).run();
-  }
-  console.log("✓ Settings created (email capture enabled)");
-
-  // ─── Profile ───────────────────────────────────
-  const socialLinks = JSON.stringify([
-    { platform: "bluesky", url: "https://bsky.app/profile/alexrivera" },
-    { platform: "youtube", url: "https://youtube.com/@alexrivera" },
-    { platform: "instagram", url: "https://instagram.com/alexrivera" },
-    { platform: "tiktok", url: "https://tiktok.com/@alexrivera" },
-    { platform: "threads", url: "https://threads.net/@alexrivera" },
-    { platform: "github", url: "https://github.com/alexrivera" },
-  ]);
-
-  db.insert(schema.profile).values({
-    avatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=faces",
-    displayName: "Alex Rivera",
-    bio: "Content creator · Photographer · Always creating · 6 of the 32 supported social platforms",
-    badgeText: "Creator",
-    socialLinks,
-  }).run();
-  console.log("✓ Profile created (6 social links — Bluesky, YouTube, Instagram, TikTok, Threads, GitHub)");
-
-  // ─── Links ─────────────────────────────────────
-  const links = [
-    // Embed widget — YouTube
-    {
-      title: "Iceland Travel Vlog",
-      url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-      description: "4K travel film — embed widget demo",
-      type: "embed",
-      isHighlighted: false,
-      orderIndex: 0,
-      imageUrl: null,
-    },
-    // Highlighted link with thumbnail
-    {
-      title: "Watch my latest video",
-      url: "https://youtube.com/watch?v=demo",
-      description: "I traveled to Iceland and this happened...",
-      type: "url",
-      isHighlighted: true,
-      orderIndex: 1,
-      imageUrl: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=600&h=400&fit=crop",
-    },
-    // Link with thumbnail
-    {
-      title: "My photography portfolio",
-      url: "https://alexrivera.photos",
-      description: "Landscape & street photography",
-      type: "url",
-      isHighlighted: false,
-      orderIndex: 2,
-      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&h=400&fit=crop",
-    },
-    // Spotify embed
-    {
-      title: "My editing playlist",
-      url: "https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn",
-      description: "Lo-fi beats for editing sessions",
-      type: "embed",
-      isHighlighted: false,
-      orderIndex: 3,
-      imageUrl: null,
-    },
-    // Regular links
-    {
-      title: "Follow me on Instagram",
-      url: "https://instagram.com/alexrivera",
-      description: "@alexrivera · 125k followers",
-      type: "url",
-      isHighlighted: false,
-      orderIndex: 4,
-      imageUrl: null,
-    },
-    {
-      title: "Join my newsletter",
-      url: "https://alexrivera.com/newsletter",
-      description: "Weekly creative tips — free",
-      type: "url",
-      isHighlighted: false,
-      orderIndex: 5,
-      imageUrl: null,
-    },
-    {
-      title: "Shop my camera gear",
-      url: "https://amazon.com/shop/alexrivera",
-      description: "Everything I use to shoot",
-      type: "url",
-      isHighlighted: false,
-      orderIndex: 6,
-      imageUrl: null,
-    },
-    {
-      title: "Contact me",
-      url: "mailto:hello@alexrivera.com",
-      description: "Business inquiries welcome",
-      type: "email",
-      isHighlighted: false,
-      orderIndex: 7,
-      imageUrl: null,
-    },
-  ];
-  for (const link of links) {
-    db.insert(schema.links).values({
-      ...link,
-      isActive: true,
-      clicksCount: Math.floor(Math.random() * 500) + 50,
-    }).run();
-  }
-  console.log(`✓ ${links.length} links created (2 embeds, 2 thumbnails, 1 highlighted)`);
-
-  // ─── Themes — seed all 9 presets ────────────────
+  // ─── Themes — seed all 9 presets FIRST ──────────
   // Base shape shared by all presets — sensible token-system defaults.
   const base = {
     isPreset: true as const,
@@ -370,9 +258,259 @@ async function seed() {
   for (const preset of presets) {
     db.insert(schema.themes).values(preset).run();
   }
-  console.log(`✓ ${presets.length} theme presets created (Aurora active)`);
+  console.log(`✓ ${presets.length} theme presets created`);
 
-  // ─── Fake email subscribers ────────────────────
+  // Get theme IDs for page assignment
+  const auroraTheme = db.select().from(schema.themes).where(sql`name = 'Aurora'`).get() as { id: number };
+  const neonTheme = db.select().from(schema.themes).where(sql`name = 'Neon Cyberpunk'`).get() as { id: number };
+
+  // ─── Clean up the auto-created default page from migration 0007 ──
+  // Migration creates a page with slug "u" from old profile/settings data.
+  // We delete it so our seeded pages get IDs 1 and 2.
+  db.delete(schema.pages).where(sql`slug = 'u'`).run();
+
+  // ─── PAGE 1: Alex Rivera (Creator) ──────────────
+  const alexSocialLinks = JSON.stringify([
+    { platform: "bluesky", url: "https://bsky.app/profile/alexrivera" },
+    { platform: "youtube", url: "https://www.youtube.com/@OmniRise00?app=desktop" },
+    { platform: "instagram", url: "https://instagram.com/alexrivera" },
+    { platform: "tiktok", url: "https://tiktok.com/@alexrivera" },
+    { platform: "threads", url: "https://threads.net/@alexrivera" },
+    { platform: "github", url: "https://github.com/Manak-hash" },
+    { platform: "x", url: "https://x.com/OmniRise00" },
+    { platform: "twitch", url: "https://twitch.tv/alexrivera" },
+    { platform: "facebook", url: "https://facebook.com/alexrivera" },
+    { platform: "discord", url: "https://discord.com/users/332326479155298316" },
+  ]);
+
+  const alexPage = db.insert(schema.pages).values({
+    slug: "alex",
+    title: "Alex Rivera",
+    bio: "Content creator · Photographer · Always creating",
+    avatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=faces",
+    badgeText: "Creator",
+    socialLinks: alexSocialLinks,
+    themeId: auroraTheme?.id,
+    orderIndex: 0,
+    isDefault: true,
+    isPublished: true,
+    seoTitle: "Alex Rivera — Photographer & Content Creator",
+    seoDescription: "All my links, projects, and content in one place. Photography, videos, and more.",
+    footerText: "© 2026 Alex Rivera · Powered by LinkBreeze",
+    emailCapture: true,
+  }).returning({ id: schema.pages.id }).get();
+  const alexPageId = alexPage.id;
+  console.log(`✓ Page 1 created: Alex Rivera (id=${alexPageId}, Aurora theme, 10 social links)`);
+
+  // ─── PAGE 2: Manak (Developer/Founder) ──────────
+  const manakSocialLinks = JSON.stringify([
+    { platform: "github", url: "https://github.com/Manak-hash" },
+    { platform: "x", url: "https://x.com/OmniRise00" },
+    { platform: "youtube", url: "https://www.youtube.com/@OmniRise00?app=desktop" },
+    { platform: "discord", url: "https://discord.com/users/332326479155298316" },
+  ]);
+
+  const manakPage = db.insert(schema.pages).values({
+    slug: "manak",
+    title: "Manak",
+    bio: "Building LinkBreeze — open-source Linktree alternative. Full-stack dev. Freelance.",
+    avatarUrl: "https://avatars.githubusercontent.com/u/189721984?v=4",
+    badgeText: "Developer",
+    socialLinks: manakSocialLinks,
+    themeId: neonTheme?.id,
+    orderIndex: 1,
+    isDefault: false,
+    isPublished: true,
+    seoTitle: "Manak — Developer & LinkBreeze Founder",
+    seoDescription: "Full-stack developer building open-source tools. Founder of LinkBreeze.",
+    footerText: "© 2026 Manak · Powered by LinkBreeze",
+    emailCapture: false,
+  }).returning({ id: schema.pages.id }).get();
+  const manakPageId = manakPage.id;
+  console.log(`✓ Page 2 created: Manak (id=${manakPageId}, Neon Cyberpunk theme, 4 social links)`);
+
+  // ─── Links for PAGE 1: Alex Rivera ──────────────
+  const now = new Date();
+  const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const inTwoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const inThreeWeeks = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
+
+  const alexLinks = [
+    // Embed — YouTube (LinkBreeze showcase video)
+    {
+      title: "LinkBreeze — Open-Source Linktree Alternative",
+      url: "https://www.youtube.com/embed/_Ipf-_1B4BY",
+      description: "See what LinkBreeze can do — embed widget demo",
+      type: "embed",
+      isHighlighted: false,
+      orderIndex: 0,
+      imageUrl: null,
+    },
+    // Highlighted link with thumbnail
+    {
+      title: "Watch my latest video",
+      url: "https://www.youtube.com/watch?v=_Ipf-_1B4BY",
+      description: "I traveled to Iceland and this happened...",
+      type: "url",
+      isHighlighted: true,
+      orderIndex: 1,
+      imageUrl: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=600&h=400&fit=crop",
+    },
+    // Link with thumbnail
+    {
+      title: "My photography portfolio",
+      url: "https://alexrivera.photos",
+      description: "Landscape & street photography",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 2,
+      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&h=400&fit=crop",
+    },
+    // Spotify embed
+    {
+      title: "My editing playlist",
+      url: "https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn",
+      description: "Lo-fi beats for editing sessions",
+      type: "embed",
+      isHighlighted: false,
+      orderIndex: 3,
+      imageUrl: null,
+    },
+    // Cross-page link: Manak's page
+    {
+      title: "Meet Manak — the developer behind this",
+      url: "/manak",
+      description: "The guy who built this platform",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 4,
+      imageUrl: null,
+    },
+    // GitHub repo — real URL so favicon loads
+    {
+      title: "Star LinkBreeze on GitHub",
+      url: "https://github.com/Manak-hash/LinkBreeze",
+      description: "Open-source · MIT licensed · Self-hosted",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 5,
+      imageUrl: null,
+    },
+    // Scheduled link — ACTIVE right now (shows scheduling feature)
+    {
+      title: "Summer Sale — 20% off prints",
+      url: "https://alexrivera.photos/shop",
+      description: "Limited time! Ends soon",
+      type: "url",
+      isHighlighted: true,
+      orderIndex: 6,
+      imageUrl: null,
+      scheduleStart: now.toISOString(),
+      scheduleEnd: inOneWeek.toISOString(),
+    },
+    // Scheduled link — UPCOMING (shows future scheduling)
+    {
+      title: "New course drops next week",
+      url: "https://alexrivera.photos/course",
+      description: "Photography masterclass — early bird pricing",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 7,
+      imageUrl: null,
+      scheduleStart: inOneWeek.toISOString(),
+      scheduleEnd: inThreeWeeks.toISOString(),
+    },
+    // Regular links
+    {
+      title: "Shop my camera gear",
+      url: "https://amazon.com/shop/alexrivera",
+      description: "Everything I use to shoot",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 8,
+      imageUrl: null,
+    },
+    {
+      title: "Contact me",
+      url: "mailto:hello@alexrivera.com",
+      description: "Business inquiries welcome",
+      type: "email",
+      isHighlighted: false,
+      orderIndex: 9,
+      imageUrl: null,
+    },
+  ];
+
+  for (const link of alexLinks) {
+    db.insert(schema.links).values({
+      ...link,
+      pageId: alexPageId,
+      isActive: true,
+      clicksCount: Math.floor(Math.random() * 500) + 50,
+    }).run();
+  }
+  console.log(`✓ ${alexLinks.length} links created for Alex (2 embeds, 2 thumbnails, 2 highlighted, 2 scheduled)`);
+
+  // ─── Links for PAGE 2: Manak ────────────────────
+  const manakLinks = [
+    {
+      title: "LinkBreeze — Self-Hosted Linktree Alternative",
+      url: "https://github.com/Manak-hash/LinkBreeze",
+      description: "Open source · MIT · Docker-ready · Analytics + QR codes",
+      type: "url",
+      isHighlighted: true,
+      orderIndex: 0,
+      imageUrl: null,
+    },
+    {
+      title: "OmniRise — My Freelance Studio",
+      url: "https://omnirise.dev",
+      description: "Web development, automation, and open-source projects",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 1,
+      imageUrl: null,
+    },
+    {
+      title: "LinkBreeze Demo — See It Live",
+      url: "https://linkbreeze-demo.omnirise.dev/alex",
+      description: "Full demo with 9 themes, embeds, and analytics",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 2,
+      imageUrl: null,
+    },
+    {
+      title: "My other GitHub projects",
+      url: "https://github.com/Manak-hash?tab=repositories",
+      description: "All my public repos",
+      type: "url",
+      isHighlighted: false,
+      orderIndex: 3,
+      imageUrl: null,
+    },
+    {
+      title: "Get in touch",
+      url: "mailto:hello@omnirise.dev",
+      description: "Freelance work, collaborations, or just say hi",
+      type: "email",
+      isHighlighted: false,
+      orderIndex: 4,
+      imageUrl: null,
+    },
+  ];
+
+  for (const link of manakLinks) {
+    db.insert(schema.links).values({
+      ...link,
+      pageId: manakPageId,
+      isActive: true,
+      clicksCount: Math.floor(Math.random() * 200) + 20,
+    }).run();
+  }
+  console.log(`✓ ${manakLinks.length} links created for Manak (1 highlighted)`);
+
+  // ─── Fake email subscribers (page 1 only) ───────
   const subscriberEmails = [
     "fan1@example.com", "subscriber2@example.com", "creative@example.com",
     "photographer@example.com", "follower@example.com", "newsletter@example.com",
@@ -383,52 +521,61 @@ async function seed() {
   }
   console.log(`✓ ${subscriberEmails.length} email subscribers created`);
 
-  // ─── Fake analytics (last 7 days) ──────────────
-  const referrers = [null, "https://instagram.com", "https://tiktok.com", "https://youtube.com", null, "https://google.com", null, "https://bsky.app"];
+  // ─── Fake analytics (last 7 days, 2 pages) ──────
+  const referrers = [
+    null, "https://instagram.com", "https://tiktok.com",
+    "https://youtube.com", null, "https://google.com", null,
+    "https://bsky.app", "https://x.com", "https://reddit.com",
+  ];
   const devices = ["mobile", "mobile", "desktop", "mobile", "tablet"];
 
-  for (let day = 6; day >= 0; day--) {
-    const viewsCount = Math.floor(Math.random() * 80) + 30;
-    for (let v = 0; v < viewsCount; v++) {
-      const hash = Math.random().toString(36).substring(2, 18);
-      db.insert(schema.analyticsPageviews).values({
-        visitorHash: hash,
-        referrer: referrers[Math.floor(Math.random() * referrers.length)],
-        deviceType: devices[Math.floor(Math.random() * devices.length)],
-        country: null,
-      }).run();
-    }
-  }
-  console.log("✓ Analytics data generated (7 days)");
-
-  // Clicks on links
-  const allLinks = db.select().from(schema.links).all();
-  for (let day = 6; day >= 0; day--) {
-    for (const link of allLinks) {
-      const clickCount = Math.floor(Math.random() * 20) + 2;
-      for (let c = 0; c < clickCount; c++) {
+  // Pageviews for both pages
+  for (const [pageId, baseViews] of [[alexPageId, 80], [manakPageId, 30]] as [number, number][]) {
+    for (let day = 6; day >= 0; day--) {
+      const viewsCount = Math.floor(Math.random() * baseViews) + 20;
+      for (let v = 0; v < viewsCount; v++) {
         const hash = Math.random().toString(36).substring(2, 18);
-        db.insert(schema.analyticsClicks).values({
-          linkId: link.id,
+        db.insert(schema.analyticsPageviews).values({
           visitorHash: hash,
           referrer: referrers[Math.floor(Math.random() * referrers.length)],
+          deviceType: devices[Math.floor(Math.random() * devices.length)],
+          country: null,
+          pageId,
         }).run();
       }
     }
   }
+  console.log("✓ Analytics data generated (7 days, 2 pages)");
+
+  // Clicks on links
+  const allLinks = db.select().from(schema.links).all();
+  for (const link of allLinks) {
+    const clickCount = Math.floor(Math.random() * 20) + 2;
+    for (let c = 0; c < clickCount; c++) {
+      const hash = Math.random().toString(36).substring(2, 18);
+      db.insert(schema.analyticsClicks).values({
+        linkId: link.id,
+        visitorHash: hash,
+        referrer: referrers[Math.floor(Math.random() * referrers.length)],
+      }).run();
+    }
+  }
   console.log("✓ Click analytics generated");
 
-  console.log("\n✅ Demo seed complete (v1.1.0)!");
+  console.log("\n✅ Demo seed complete (v1.2.0)!");
   console.log("   Admin: demo / demo1234");
-  console.log("   Public page: /alex");
+  console.log("   Page 1: /alex (Alex Rivera — Aurora theme)");
+  console.log("   Page 2: /manak (Manak — Neon Cyberpunk theme)");
   console.log("   Features showcased:");
-  console.log("     - 9 theme presets (Aurora, Glassmorphism, Neon, Editorial,");
-  console.log("       Terminal, Pastel, Brutalist, Retro, Minimal)");
+  console.log("     - Multi-page support (2 pages, different themes)");
+  console.log("     - Auto-favicon (real URLs → favicons load)");
+  console.log("     - 10 social platforms on Alex, 4 on Manak");
+  console.log("     - Scheduled links (1 active, 1 upcoming)");
+  console.log("     - Per-page SEO + email capture settings");
   console.log("     - 2 embed widgets (YouTube, Spotify)");
-  console.log("     - 2 link thumbnails (Unsplash images)");
-  console.log("     - Email capture enabled (8 subscribers)");
-  console.log("     - 6 social links (Bluesky, YouTube, Instagram, TikTok, Threads, GitHub)");
-  console.log("     - 8 links (highlighted, regular, email type)");
+  console.log("     - Cross-page linking (/manak from Alex page)");
+  console.log("     - 9 theme presets available");
+  console.log("     - Full 7-day analytics for both pages");
 }
 
 seed().catch(console.error);
