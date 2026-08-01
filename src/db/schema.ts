@@ -50,6 +50,7 @@ export const pages = sqliteTable("pages", {
   analyticsScript: text("analytics_script").notNull().default(""),
   customCss: text("custom_css").notNull().default(""),
   emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
+  linkSearch: integer("link_search", { mode: "boolean" }).notNull().default(false),
   faviconUrl: text("favicon_url"),
 });
 

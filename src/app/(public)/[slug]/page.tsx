@@ -20,6 +20,7 @@ import { LinkCard } from "@/components/public/LinkCard";
 import { EmbedWidget } from "@/components/public/EmbedWidget";
 import { EmailCapture } from "@/components/public/EmailCapture";
 import { SocialIcons } from "@/components/public/SocialIcons";
+import { LinkSearch } from "@/components/public/LinkSearch";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import {
   resolveBackground,
@@ -245,6 +246,9 @@ export default async function PublicPage({ params }: PageProps) {
         ) : null}
 
         <div style={{ marginTop: "var(--lb-spacing)" }}>
+          {page.linkSearch ? (
+            <LinkSearch />
+          ) : null}
           {activeLinks.length > 0 ? (
             activeLinks.map((link, i) =>
               link.type === "embed" ? (
@@ -256,12 +260,19 @@ export default async function PublicPage({ params }: PageProps) {
                   animationType={theme?.animationType || "lift"}
                 />
               ) : (
-                <LinkCard
+                <div
                   key={link.id}
-                  link={link}
-                  index={i}
-                  theme={themeInput}
-                />
+                  className="lb-link-item"
+                  data-title={link.title}
+                  data-description={link.description ?? ""}
+                  style={{ transition: "opacity 0.15s ease" }}
+                >
+                  <LinkCard
+                    link={link}
+                    index={i}
+                    theme={themeInput}
+                  />
+                </div>
               ),
             )
           ) : (

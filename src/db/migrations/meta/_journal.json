@@ -71,6 +71,13 @@
       "when": 1752768000000,
       "tag": "0009_auto_favicon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1754000000000,
+      "tag": "0010_link_search",
+      "breakpoints": true
     }
   ]
 }

@@ -65,7 +65,7 @@ const updatePageSchema = z.object({
   bio: z.string().max(300).optional(),
   badgeText: z.string().max(40).optional().nullable(),
   avatarUrl: z.string().max(2048).optional().nullable(),
-  socialLinks: z.string().optional().default("[]"),
+  socialLinks: z.string().optional(),
   themeId: z.coerce.number().optional().nullable(),
   isPublished: z.boolean().optional(),
   isDefault: z.boolean().optional(),
@@ -76,6 +76,7 @@ const updatePageSchema = z.object({
   analyticsScript: z.string().max(2000).optional(),
   customCss: z.string().max(10000).optional(),
   emailCapture: z.boolean().optional(),
+  linkSearch: z.boolean().optional(),
   faviconUrl: z.string().max(500).optional().nullable(),
 });
 
@@ -91,7 +92,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     bio: formData.get("bio") || undefined,
     badgeText: formData.get("badgeText") || undefined,
     avatarUrl: formData.get("avatarUrl") || undefined,
-    socialLinks: formData.get("socialLinks") || "[]",
+    socialLinks: formData.get("socialLinks") || undefined,
     themeId: formData.get("themeId") || undefined,
     isPublished: formData.get("isPublished") === "true" ? true : undefined,
     isDefault: formData.get("isDefault") === "true" ? true : undefined,
@@ -104,9 +105,14 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     faviconUrl: formData.get("faviconUrl") || undefined,
   };
 
-  // Handle checkbox: present = on, absent = off
-  const emailCapture = formData.get("emailCapture");
-  data.emailCapture = emailCapture === "on" ? true : false;
+  // Only handle checkboxes if they were submitted by the settings form.
+  // Otherwise, an omitted checkbox (or a different form) would erroneously set them to false.
+  if (formData.has("settingsForm")) {
+    const emailCapture = formData.get("emailCapture");
+    data.emailCapture = emailCapture === "on" ? true : false;
+    const linkSearch = formData.get("linkSearch");
+    data.linkSearch = linkSearch === "on" ? true : false;
+  }
 
   // Remove undefined keys.
   for (const key of Object.keys(data)) {

@@ -181,6 +181,7 @@ export interface UpdatePageInput {
   analyticsScript?: string;
   customCss?: string;
   emailCapture?: boolean;
+  linkSearch?: boolean;
   faviconUrl?: string | null;
 }
 
