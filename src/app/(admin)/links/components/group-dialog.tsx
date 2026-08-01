@@ -16,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GroupDialogProps {
   open: boolean;
@@ -92,6 +99,19 @@ export function GroupDialog({ open, onOpenChange, editing, pageId }: GroupDialog
               <Label htmlFor="linkSearch" className="font-normal cursor-pointer">
                 Enable search box for links in this group
               </Label>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="columns">Layout Columns</Label>
+              <Select name="columns" defaultValue={editing?.columns ? String(editing.columns) : "1"}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select columns" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Column</SelectItem>
+                  <SelectItem value="2">2 Columns</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

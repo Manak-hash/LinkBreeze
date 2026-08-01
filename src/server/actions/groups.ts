@@ -24,6 +24,7 @@ export async function createLinkGroupAction(formData: FormData) {
   await createLinkGroup({
     title: title.trim(),
     linkSearch: formData.get("linkSearch") === "true",
+    columns: Number(formData.get("columns")) || 1,
   });
 
   revalidatePath("/", "layout");
@@ -39,6 +40,7 @@ export async function updateLinkGroupAction(id: number, formData: FormData) {
   await updateLinkGroup(id, {
     title: title.trim(),
     linkSearch: formData.get("linkSearch") === "true",
+    columns: Number(formData.get("columns")) || 1,
   });
 
   revalidatePath("/", "layout");

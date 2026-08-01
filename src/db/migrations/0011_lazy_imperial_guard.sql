@@ -1,0 +1,1 @@
+ALTER TABLE `link_groups` ADD `columns` integer DEFAULT 1 NOT NULL;

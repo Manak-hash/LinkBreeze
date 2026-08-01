@@ -293,39 +293,44 @@ export default async function PublicPage({ params }: PageProps) {
                 <div key={group.id} className="flex flex-col gap-[var(--lb-spacing)]">
                   <h3
                     className="font-heading text-xl font-semibold tracking-tight"
-                    style={{ color: "var(--lb-text)", textAlign: "var(--lb-alignment)" as any }}
+                    style={{ color: "var(--lb-text)", textAlign: "var(--lb-alignment)" as any, margin: "0 0 var(--lb-spacing)" }}
                   >
                     {group.title}
                   </h3>
                   {group.linkSearch ? <LinkSearch groupId={group.id} /> : null}
 
                   {groupLinks.length > 0 ? (
-                    groupLinks.map((link, i) =>
-                      link.type === "embed" ? (
-                        <EmbedWidget
-                          key={link.id}
-                          url={link.url}
-                          title={link.title}
-                          index={i}
-                          animationType={theme?.animationType || "lift"}
-                        />
-                      ) : (
-                        <div
-                          key={link.id}
-                          className="lb-link-item"
-                          data-group-id={group.id}
-                          data-title={link.title}
-                          data-description={link.description ?? ""}
-                          style={{ transition: "opacity 0.15s ease" }}
-                        >
-                          <LinkCard
-                            link={link}
+                    <div
+                      className={group.columns === 2 ? "grid grid-cols-2" : ""}
+                      style={group.columns === 2 ? { columnGap: "var(--lb-spacing)" } : undefined}
+                    >
+                      {groupLinks.map((link, i) =>
+                        link.type === "embed" ? (
+                          <EmbedWidget
+                            key={link.id}
+                            url={link.url}
+                            title={link.title}
                             index={i}
-                            theme={themeInput}
+                            animationType={theme?.animationType || "lift"}
                           />
-                        </div>
-                      )
-                    )
+                        ) : (
+                          <div
+                            key={link.id}
+                            className="lb-link-item flex flex-col h-full"
+                            data-group-id={group.id}
+                            data-title={link.title}
+                            data-description={link.description ?? ""}
+                            style={{ transition: "opacity 0.15s ease" }}
+                          >
+                            <LinkCard
+                              link={link}
+                              index={i}
+                              theme={themeInput}
+                            />
+                          </div>
+                        )
+                      )}
+                    </div>
                   ) : (
                     <p className="text-center text-sm opacity-60" style={{ color: "var(--lb-text-muted)" }}>
                       No links in this group.

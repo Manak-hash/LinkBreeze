@@ -866,7 +866,7 @@ export async function getAllLinkGroups(pageId?: number): Promise<LinkGroupRow[]>
 }
 
 export async function createLinkGroup(
-  data: Pick<LinkGroupRow, "title"> & Partial<Pick<LinkGroupRow, "pageId" | "linkSearch">>,
+  data: Pick<LinkGroupRow, "title"> & Partial<Pick<LinkGroupRow, "pageId" | "linkSearch" | "columns">>,
 ): Promise<LinkGroupRow> {
   const targetPageId = data.pageId ?? (await getDefaultPage()).id;
   const maxOrder = await db
@@ -881,6 +881,7 @@ export async function createLinkGroup(
       title: data.title,
       pageId: targetPageId,
       linkSearch: data.linkSearch ?? false,
+      columns: data.columns ?? 1,
       orderIndex: nextOrder,
     })
     .returning();
@@ -889,7 +890,7 @@ export async function createLinkGroup(
 
 export async function updateLinkGroup(
   id: number,
-  data: Partial<Pick<LinkGroupRow, "title" | "linkSearch">>,
+  data: Partial<Pick<LinkGroupRow, "title" | "linkSearch" | "columns">>,
 ): Promise<void> {
   await db.update(linkGroups).set(data).where(eq(linkGroups.id, id));
 }

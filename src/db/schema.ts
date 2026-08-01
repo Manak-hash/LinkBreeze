@@ -81,6 +81,7 @@ export const linkGroups = sqliteTable("link_groups", {
   pageId: integer("page_id").notNull().default(1),
   title: text("title").notNull(),
   linkSearch: integer("link_search", { mode: "boolean" }).notNull().default(false),
+  columns: integer("columns").notNull().default(1),
   orderIndex: integer("order_index").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });

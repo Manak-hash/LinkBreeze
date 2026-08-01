@@ -165,23 +165,25 @@ export function LinksManager({
       ) : (
         <div className="flex flex-col gap-8">
           {/* Ungrouped Links */}
-          <div className="flex flex-col gap-2">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={ungroupedLinks.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2">
-                  {ungroupedLinks.map((link) => (
-                    <SortableLink key={link.id} link={link} onEdit={openEdit} onDelete={openDelete} />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
+          {ungroupedLinks.length > 0 && (
+            <div className="flex flex-col gap-2 mb-2">
+              <DndContext id="dnd-ungrouped" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={ungroupedLinks.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-2">
+                    {ungroupedLinks.map((link) => (
+                      <SortableLink key={link.id} link={link} onEdit={openEdit} onDelete={openDelete} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
 
           {/* Grouped Links */}
           {groups.map((group) => {
             const groupLinks = items.filter((l) => l.groupId === group.id);
             return (
-              <div key={group.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+              <div key={group.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 mb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{group.title}</h3>
@@ -201,9 +203,9 @@ export function LinksManager({
                   </div>
                 </div>
 
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <DndContext id={`dnd-group-${group.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={groupLinks.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 mt-4">
                       {groupLinks.length === 0 ? (
                         <p className="py-4 text-center text-sm text-muted-foreground">No links in this group.</p>
                       ) : (

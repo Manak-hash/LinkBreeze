@@ -18,5 +18,5 @@ interface LinkCardProps {
 export function LinkCard({ link, index, theme }: LinkCardProps) {
   const html = buildLinkCardHtml({ link, theme, index });
 
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="flex flex-col h-full" dangerouslySetInnerHTML={{ __html: html }} />;
 }
