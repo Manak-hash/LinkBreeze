@@ -174,7 +174,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, groups = [] }:
 
           {groups.length > 0 && (
             <FormField label="Group (optional)">
-              <Select value={groupId} onValueChange={setGroupId}>
+              <Select value={groupId} onValueChange={(val) => setGroupId(val || "none")}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="No group">
                     {groupId === "none" ? "No group" : groups.find((g) => String(g.id) === groupId)?.title ?? "No group"}
