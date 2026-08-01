@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import {
   getPageBySlug,
   getActiveLinks,
+  getAllLinkGroups,
   getActiveTheme,
   getThemeById,
   recordPageview,
@@ -157,7 +158,12 @@ export default async function PublicPage({ params }: PageProps) {
   const fallbackTheme = await getActiveTheme();
   const theme = pageTheme ?? fallbackTheme;
 
-  const activeLinks = await getActiveLinks(page.id);
+  const [activeLinks, groups] = await Promise.all([
+    getActiveLinks(page.id),
+    getAllLinkGroups(page.id),
+  ]);
+
+  const ungroupedLinks = activeLinks.filter((l) => l.groupId === null);
 
   // Parse social links from page JSON.
   let socialLinks: SocialLink[] = [];
@@ -229,83 +235,128 @@ export default async function PublicPage({ params }: PageProps) {
         className="relative flex w-full flex-col"
         data-alignment={themeInput.alignment || "center"}
       >
-      <div
-        className="lb-container w-full px-5 py-12 sm:py-16"
-        style={{
-          maxWidth: "var(--lb-container-width)",
-          margin: "0 auto",
-          textAlign: "var(--lb-alignment)" as React.CSSProperties["textAlign"],
-        }}
-      >
-        <ProfileHeader profile={profileCompat as never} />
+        <div
+          className="lb-container w-full px-5 py-12 sm:py-16"
+          style={{
+            maxWidth: "var(--lb-container-width)",
+            margin: "0 auto",
+            textAlign: "var(--lb-alignment)" as React.CSSProperties["textAlign"],
+          }}
+        >
+          <ProfileHeader profile={profileCompat as never} />
 
-        {socialLinks.length > 0 ? (
-          <div className="mb-8 mt-6">
-            <SocialIcons socialLinks={socialLinks} />
-          </div>
-        ) : null}
-
-        <div style={{ marginTop: "var(--lb-spacing)" }}>
-          {page.linkSearch ? (
-            <LinkSearch />
+          {socialLinks.length > 0 ? (
+            <div className="mb-8 mt-6">
+              <SocialIcons socialLinks={socialLinks} />
+            </div>
           ) : null}
-          {activeLinks.length > 0 ? (
-            activeLinks.map((link, i) =>
-              link.type === "embed" ? (
-                <EmbedWidget
-                  key={link.id}
-                  url={link.url}
-                  title={link.title}
-                  index={i}
-                  animationType={theme?.animationType || "lift"}
-                />
-              ) : (
-                <div
-                  key={link.id}
-                  className="lb-link-item"
-                  data-title={link.title}
-                  data-description={link.description ?? ""}
-                  style={{ transition: "opacity 0.15s ease" }}
-                >
-                  <LinkCard
-                    link={link}
+
+          <div style={{ marginTop: "var(--lb-spacing)" }} className="flex flex-col gap-8">
+            {/* Ungrouped Links */}
+            <div className="flex flex-col gap-[var(--lb-spacing)]">
+              {ungroupedLinks.length > 0 && ungroupedLinks.map((link, i) =>
+                link.type === "embed" ? (
+                  <EmbedWidget
+                    key={link.id}
+                    url={link.url}
+                    title={link.title}
                     index={i}
-                    theme={themeInput}
+                    animationType={theme?.animationType || "lift"}
                   />
+                ) : (
+                  <div
+                    key={link.id}
+                    className="lb-link-item"
+                    data-title={link.title}
+                    data-description={link.description ?? ""}
+                    style={{ transition: "opacity 0.15s ease" }}
+                  >
+                    <LinkCard
+                      link={link}
+                      index={i}
+                      theme={themeInput}
+                    />
+                  </div>
+                ),
+              )}
+              {ungroupedLinks.length === 0 && groups.length === 0 && (
+                <p className="text-center text-sm opacity-60" style={{ color: "var(--lb-text-muted)" }}>
+                  No links yet.
+                </p>
+              )}
+            </div>
+
+            {/* Grouped Links */}
+            {groups.map((group) => {
+              const groupLinks = activeLinks.filter((l) => l.groupId === group.id);
+              return (
+                <div key={group.id} className="flex flex-col gap-[var(--lb-spacing)]">
+                  <h3
+                    className="font-heading text-xl font-semibold tracking-tight"
+                    style={{ color: "var(--lb-text)", textAlign: "var(--lb-alignment)" as any }}
+                  >
+                    {group.title}
+                  </h3>
+                  {group.linkSearch ? <LinkSearch groupId={group.id} /> : null}
+
+                  {groupLinks.length > 0 ? (
+                    groupLinks.map((link, i) =>
+                      link.type === "embed" ? (
+                        <EmbedWidget
+                          key={link.id}
+                          url={link.url}
+                          title={link.title}
+                          index={i}
+                          animationType={theme?.animationType || "lift"}
+                        />
+                      ) : (
+                        <div
+                          key={link.id}
+                          className="lb-link-item"
+                          data-group-id={group.id}
+                          data-title={link.title}
+                          data-description={link.description ?? ""}
+                          style={{ transition: "opacity 0.15s ease" }}
+                        >
+                          <LinkCard
+                            link={link}
+                            index={i}
+                            theme={themeInput}
+                          />
+                        </div>
+                      )
+                    )
+                  ) : (
+                    <p className="text-center text-sm opacity-60" style={{ color: "var(--lb-text-muted)" }}>
+                      No links in this group.
+                    </p>
+                  )}
                 </div>
-              ),
-            )
-          ) : (
-            <p
-              className="text-center text-sm opacity-60"
+              );
+            })}
+          </div>
+
+          {page.emailCapture ? (
+            <EmailCapture />
+          ) : null}
+
+          {page.footerText ? (
+            <footer
+              className="mt-10 text-center text-xs opacity-50"
               style={{ color: "var(--lb-text-muted)" }}
             >
-              No links yet.
-            </p>
-          )}
+              {page.footerText}
+            </footer>
+          ) : null}
         </div>
 
-        {page.emailCapture ? (
-          <EmailCapture />
-        ) : null}
-
-        {page.footerText ? (
-          <footer
-            className="mt-10 text-center text-xs opacity-50"
-            style={{ color: "var(--lb-text-muted)" }}
-          >
-            {page.footerText}
-          </footer>
-        ) : null}
-      </div>
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
-    </main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      </main>
     </>
   );
 }

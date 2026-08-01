@@ -50,7 +50,6 @@ export const pages = sqliteTable("pages", {
   analyticsScript: text("analytics_script").notNull().default(""),
   customCss: text("custom_css").notNull().default(""),
   emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
-  linkSearch: integer("link_search", { mode: "boolean" }).notNull().default(false),
   faviconUrl: text("favicon_url"),
 });
 
@@ -58,6 +57,7 @@ export const pages = sqliteTable("pages", {
 export const links = sqliteTable("links", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   pageId: integer("page_id").notNull().default(1),
+  groupId: integer("group_id").references(() => linkGroups.id, { onDelete: "set null" }),
   orderIndex: integer("order_index").notNull().default(0),
   type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file
   title: text("title").notNull(),
@@ -72,6 +72,16 @@ export const links = sqliteTable("links", {
   scheduleStart: text("schedule_start"),
   scheduleEnd: text("schedule_end"),
   clicksCount: integer("clicks_count").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ─── Link Groups ──────────────────────────────────────
+export const linkGroups = sqliteTable("link_groups", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id").notNull().default(1),
+  title: text("title").notNull(),
+  linkSearch: integer("link_search", { mode: "boolean" }).notNull().default(false),
+  orderIndex: integer("order_index").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

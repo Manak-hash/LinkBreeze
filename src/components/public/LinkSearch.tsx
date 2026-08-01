@@ -11,12 +11,13 @@ import * as React from "react";
  * Filters visible `.lb-link-item` elements by their data-title and
  * data-description attributes without any server round-trips.
  */
-export function LinkSearch() {
+export function LinkSearch({ groupId }: { groupId?: number }) {
   const [query, setQuery] = React.useState("");
 
   const filterLinks = (q: string) => {
     const normalized = q.trim().toLowerCase();
-    const items = document.querySelectorAll<HTMLElement>(".lb-link-item");
+    const selector = groupId !== undefined ? `.lb-link-item[data-group-id="${groupId}"]` : ".lb-link-item";
+    const items = document.querySelectorAll<HTMLElement>(selector);
     items.forEach((item) => {
       const title = (item.dataset.title ?? "").toLowerCase();
       const desc = (item.dataset.description ?? "").toLowerCase();

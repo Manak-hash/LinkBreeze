@@ -72,7 +72,7 @@ function buildContentRow(link: LinkRow): string {
 
   const title = esc(link.title);
 
-  return `<span style="display:flex;flex-direction:column;flex:1;min-width:0">
+  return `<span style="display:flex;flex-direction:column;flex:1;min-width:0;text-align:left">
       <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
       ${description}
     </span>

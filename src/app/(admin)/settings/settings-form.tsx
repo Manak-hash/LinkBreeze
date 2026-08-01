@@ -29,7 +29,6 @@ interface SettingsFormProps {
   analyticsScript: string;
   customCss: string;
   emailCapture: boolean;
-  linkSearch: boolean;
   faviconUrl: string;
   subscriberCount: number;
   themes: ThemeRow[];
@@ -45,7 +44,6 @@ export function SettingsForm({
   analyticsScript,
   customCss,
   emailCapture,
-  linkSearch,
   faviconUrl: initialFaviconUrl,
   subscriberCount,
   themes,
@@ -237,19 +235,6 @@ export function SettingsForm({
                 </a>
               </p>
             ) : null}
-          </FormField>
-
-          <FormField label="Link search" htmlFor="linkSearch">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                id="linkSearch"
-                name="linkSearch"
-                defaultChecked={linkSearch}
-                className="size-4 rounded border-input"
-              />
-              Show a search box on the public page to filter links by title and description
-            </label>
           </FormField>
 
           {faviconUrl ? (

@@ -76,7 +76,6 @@ const updatePageSchema = z.object({
   analyticsScript: z.string().max(2000).optional(),
   customCss: z.string().max(10000).optional(),
   emailCapture: z.boolean().optional(),
-  linkSearch: z.boolean().optional(),
   faviconUrl: z.string().max(500).optional().nullable(),
 });
 
@@ -110,8 +109,6 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   if (formData.has("settingsForm")) {
     const emailCapture = formData.get("emailCapture");
     data.emailCapture = emailCapture === "on" ? true : false;
-    const linkSearch = formData.get("linkSearch");
-    data.linkSearch = linkSearch === "on" ? true : false;
   }
 
   // Remove undefined keys.

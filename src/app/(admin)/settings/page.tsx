@@ -70,7 +70,6 @@ export default async function SettingsPage({
         analyticsScript={activePage?.analyticsScript || ""}
         customCss={activePage?.customCss || ""}
         emailCapture={activePage?.emailCapture ?? false}
-        linkSearch={activePage?.linkSearch ?? false}
         faviconUrl={activePage?.faviconUrl || ""}
         subscriberCount={subscriberCount}
         themes={themes}

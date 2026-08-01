@@ -10,6 +10,7 @@ import {
   analyticsPageviews,
   analyticsClicks,
   subscribers,
+  linkGroups,
 } from "@/db/schema";
 import { PRESETS } from "@/lib/theme-presets";
 import {
@@ -31,6 +32,7 @@ export type LinkRow = typeof links.$inferSelect;
 export type ThemeRow = typeof themes.$inferSelect;
 export type UserRow = typeof users.$inferSelect;
 export type PageRow = typeof pages.$inferSelect;
+export type LinkGroupRow = typeof linkGroups.$inferSelect;
 
 export interface SocialLink {
   platform: string;
@@ -260,6 +262,7 @@ export async function createLink(
       Pick<
         LinkRow,
         | "pageId"
+        | "groupId"
         | "type"
         | "description"
         | "icon"
@@ -286,6 +289,7 @@ export async function createLink(
       title: data.title,
       url: data.url,
       pageId: targetPageId,
+      groupId: data.groupId ?? null,
       type: data.type ?? "url",
       description: data.description ?? null,
       icon: data.icon ?? null,
@@ -309,6 +313,7 @@ export async function updateLink(
       LinkRow,
       | "title"
       | "url"
+      | "groupId"
       | "type"
       | "description"
       | "icon"
@@ -843,3 +848,62 @@ export async function getAllSubscribers(): Promise<SubscriberRow[]> {
 export async function clearSubscribers(): Promise<void> {
   db.delete(subscribers).run();
 }
+
+// ─── Link Groups ──────────────────────────────────────────────────────────────
+
+export async function getAllLinkGroups(pageId?: number): Promise<LinkGroupRow[]> {
+  if (pageId !== undefined) {
+    return db
+      .select()
+      .from(linkGroups)
+      .where(eq(linkGroups.pageId, pageId))
+      .orderBy(asc(linkGroups.orderIndex), asc(linkGroups.id));
+  }
+  return db
+    .select()
+    .from(linkGroups)
+    .orderBy(asc(linkGroups.orderIndex), asc(linkGroups.id));
+}
+
+export async function createLinkGroup(
+  data: Pick<LinkGroupRow, "title"> & Partial<Pick<LinkGroupRow, "pageId" | "linkSearch">>,
+): Promise<LinkGroupRow> {
+  const targetPageId = data.pageId ?? (await getDefaultPage()).id;
+  const maxOrder = await db
+    .select({ m: sql<number>`max(${linkGroups.orderIndex})` })
+    .from(linkGroups)
+    .where(eq(linkGroups.pageId, targetPageId));
+  const nextOrder = (maxOrder[0]?.m ?? -1) + 1;
+
+  const created = await db
+    .insert(linkGroups)
+    .values({
+      title: data.title,
+      pageId: targetPageId,
+      linkSearch: data.linkSearch ?? false,
+      orderIndex: nextOrder,
+    })
+    .returning();
+  return created[0];
+}
+
+export async function updateLinkGroup(
+  id: number,
+  data: Partial<Pick<LinkGroupRow, "title" | "linkSearch">>,
+): Promise<void> {
+  await db.update(linkGroups).set(data).where(eq(linkGroups.id, id));
+}
+
+export async function deleteLinkGroup(id: number): Promise<void> {
+  await db.delete(linkGroups).where(eq(linkGroups.id, id));
+}
+
+export async function reorderLinkGroups(orderedIds: number[]): Promise<void> {
+  if (orderedIds.length === 0) return;
+  db.transaction((tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      tx.update(linkGroups).set({ orderIndex: i }).where(eq(linkGroups.id, orderedIds[i])).run();
+    }
+  });
+}
+

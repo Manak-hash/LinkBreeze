@@ -64,6 +64,13 @@ describe("createLink", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/links");
   });
 
+  it("creates a link with a groupId", async () => {
+    const res = await createLink(makeFormData({ title: "My Link", url: "https://example.com", type: "url", isActive: "true", isHighlighted: "false", groupId: "123" }));
+    expect(res.success).toBe(true);
+    const [payload] = mocks.createLink.mock.calls[0];
+    expect(payload.groupId).toBe(123);
+  });
+
   it("rejects a missing title", async () => {
     const res = await createLink(makeFormData({ title: "", url: "https://example.com", isActive: "true", isHighlighted: "false" }));
     expect(res.success).toBe(false);
@@ -101,6 +108,13 @@ describe("updateLink", () => {
     const res = await updateLink(makeFormData({ id: "1", title: "Updated", url: "https://new.com", type: "url", isActive: "true", isHighlighted: "false" }));
     expect(res.success).toBe(true);
     expect(mocks.updateLink).toHaveBeenCalledOnce();
+  });
+
+  it("updates a link with a groupId", async () => {
+    const res = await updateLink(makeFormData({ id: "1", title: "Updated", url: "https://new.com", type: "url", isActive: "true", isHighlighted: "false", groupId: "456" }));
+    expect(res.success).toBe(true);
+    const [, payload] = mocks.updateLink.mock.calls[0];
+    expect(payload.groupId).toBe(456);
   });
 
   it("rejects when unauthenticated", async () => {

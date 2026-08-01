@@ -6,7 +6,7 @@ import {
   createLink,
   updateLink,
 } from "@/server/actions/links";
-import type { LinkRow } from "@/server/queries";
+import type { LinkRow, LinkGroupRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
@@ -38,11 +38,13 @@ export interface LinkDialogProps {
   onOpenChange: (open: boolean) => void;
   editing?: LinkRow | null;
   pageId?: number;
+  groups?: LinkGroupRow[];
 }
 
-export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogProps) {
+export function LinkDialog({ open, onOpenChange, editing, pageId, groups = [] }: LinkDialogProps) {
   const [pending, startTransition] = React.useTransition();
   const [type, setType] = React.useState(editing?.type ?? "url");
+  const [groupId, setGroupId] = React.useState(editing?.groupId ? String(editing.groupId) : "none");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
   const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
@@ -58,6 +60,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
     setLastSession(sessionKey);
     if (open) {
       setType(editing?.type ?? "url");
+      setGroupId(editing?.groupId ? String(editing.groupId) : "none");
       setHighlighted(editing?.isHighlighted ?? false);
       setActive(editing?.isActive ?? true);
       setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
@@ -73,6 +76,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
     const rawUrl = (formData.get("url") as string) || "";
     formData.set("url", prefixLinkUrl(type, rawUrl));
     formData.set("type", type);
+    if (groupId && groupId !== "none") {
+      formData.set("groupId", groupId);
+    }
     formData.set("isHighlighted", highlighted ? "on" : "off");
     formData.set("isActive", active ? "on" : "off");
     formData.set("autoIcon", autoIcon ? "on" : "off");
@@ -152,7 +158,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
           <FormField label="Type">
             <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>
+                  {LINK_TYPES.find((t) => t.value === type)?.label ?? "Link URL"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {LINK_TYPES.map((t) => (
@@ -163,6 +171,26 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               </SelectContent>
             </Select>
           </FormField>
+
+          {groups.length > 0 && (
+            <FormField label="Group (optional)">
+              <Select value={groupId} onValueChange={setGroupId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="No group">
+                    {groupId === "none" ? "No group" : groups.find((g) => String(g.id) === groupId)?.title ?? "No group"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No group</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          )}
 
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">
