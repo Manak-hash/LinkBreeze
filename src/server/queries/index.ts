@@ -718,6 +718,39 @@ export async function getDashboardStats(
   return { totalViews, uniqueVisitors, totalClicks, ctr, topLinks, viewsPerDay };
 }
 
+/**
+ * Previous-period stats for computing deltas on the dashboard.
+ * Uses the same range but shifted back one window (e.g. 7d ago → 14d ago).
+ */
+export async function getPreviousStats(
+  range: AnalyticsRange = "7d",
+  pageId?: number,
+): Promise<{ totalViews: number; totalClicks: number }> {
+  if (range === "all") return { totalViews: 0, totalClicks: 0 };
+
+  const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+  const startShift = sql`datetime('now', ${`-${days * 2} days`})`;
+  const endShift = sql`datetime('now', ${`-${days} days`})`;
+
+  const pageFilter = pageId !== undefined ? eq(analyticsPageviews.pageId, pageId) : undefined;
+  const clickPageFilter = pageId !== undefined
+    ? sql`${analyticsClicks.linkId} IN (SELECT ${links.id} FROM ${links} WHERE ${links.pageId} = ${pageId})`
+    : undefined;
+
+  const viewRows = pageFilter
+    ? await db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, startShift), lt(analyticsPageviews.createdAt, endShift), pageFilter))
+    : await db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, startShift), lt(analyticsPageviews.createdAt, endShift)));
+
+  const clickRows = clickPageFilter
+    ? await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift), clickPageFilter))
+    : await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift)));
+
+  return {
+    totalViews: viewRows[0]?.c ?? 0,
+    totalClicks: clickRows[0]?.c ?? 0,
+  };
+}
+
 /** Normalize a referrer string to just its hostname for grouping. */
 function normalizeReferrer(raw: string): string {
   try {

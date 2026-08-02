@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Plus, FileText, Star, Globe } from "lucide-react";
+import { ChevronDown, Plus, FileText, Star, Globe, ExternalLink } from "lucide-react";
 import type { PageRow } from "@/server/queries";
 
 interface PageSwitcherProps {
@@ -86,29 +86,42 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
           }
         >
           {pages.map((page) => (
-            <button
+            <div
               key={page.id}
-              type="button"
-              onClick={() => navigateToPage(page.id)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+              className={`group flex w-full items-center rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
                 page.id === activePage.id ? "bg-muted/30" : ""
               }`}
             >
-              {page.isDefault ? (
-                <Star className="size-3.5 shrink-0 text-warning" />
-              ) : (
-                <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-              )}
-              <span className="flex-1 truncate text-left">
-                {page.title || page.slug}
-              </span>
-              {!page.isPublished && (
-                <Globe className="size-3 shrink-0 text-muted-foreground opacity-50" />
-              )}
-              <span className="shrink-0 text-xs text-muted-foreground">
-                /{page.slug}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => navigateToPage(page.id)}
+                className="flex flex-1 items-center gap-2 truncate text-left"
+              >
+                {page.isDefault ? (
+                  <Star className="size-3.5 shrink-0 text-warning" />
+                ) : (
+                  <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                )}
+                <span className="flex-1 truncate">
+                  {page.title || page.slug}
+                </span>
+                {!page.isPublished && (
+                  <Globe className="size-3 shrink-0 text-muted-foreground opacity-50" />
+                )}
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  /{page.slug}
+                </span>
+              </button>
+              <a
+                href={`/${page.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 shrink-0 text-muted-foreground transition-colors hover:text-lavender"
+                aria-label="View public page"
+              >
+                <ExternalLink className="size-3.5" />
+              </a>
+            </div>
           ))}
           <div className="mt-1 border-t border-border pt-1">
             <Link

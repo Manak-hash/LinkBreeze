@@ -22,6 +22,7 @@ import {
 import { PresetGallery } from "./components/preset-gallery";
 import { ThemeCustomizer } from "./components/theme-customizer";
 import { DuplicateTheme } from "./components/duplicate-theme";
+import { usePreview } from "@/components/admin/PreviewPane";
 
 interface ThemeManagerProps {
   themes: ThemeRow[];
@@ -32,6 +33,7 @@ interface ThemeManagerProps {
 }
 
 export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: ThemeManagerProps) {
+  const { reload: reloadPreview } = usePreview();
   const [selecting, setSelecting] = React.useState<number | null>(null);
   const [customPending, setCustomPending] = React.useState(false);
   const [customError, setCustomError] = React.useState<string | null>(null);
@@ -50,6 +52,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
         await activateTheme(id);
       }
       router.refresh();
+      reloadPreview();
     } finally {
       setSelecting(null);
     }
@@ -64,6 +67,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
         setCustomError(res.error);
       } else {
         router.refresh();
+        reloadPreview();
       }
     } catch {
       setCustomError("Failed to save theme. Please try again.");
@@ -81,6 +85,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
       if (res.success) {
         setDupName("");
         router.refresh();
+        reloadPreview();
       }
     } finally {
       setDupPending(false);
@@ -93,6 +98,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
     try {
       await deleteCustomTheme(id);
       router.refresh();
+      reloadPreview();
     } finally {
       setDelPending(null);
     }

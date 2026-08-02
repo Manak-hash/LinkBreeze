@@ -5,7 +5,47 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - Unreleased
+## [1.2.2] - Unreleased
+
+### Added
+
+- **Live preview pane** — A floating phone-frame overlay accessible from a "Preview" button in the admin sidebar (desktop) and mobile tab bar. The `PreviewProvider` wraps the entire admin shell so any edit — link reorder, toggle, theme change, profile update, settings save — instantly reflects in the preview iframe. The preview auto-reloads on active page changes and supports manual refresh + open-in-new-tab. The phone frame uses a 9:19.5 aspect ratio with a max height of 720px. The public page detects when it's inside the preview iframe (`window.self !== window.top`) and hides its scrollbar so the phone mockup stays clean.
+- **Dashboard metric cards with deltas and sparklines** — The four KPI cards (Views, Clicks, CTR, Active Links) now show period-over-period change indicators (up/down arrows with percentage) comparing the selected range to the previous equivalent range via a new `getPreviousStats()` query. Views and Clicks cards include inline sparkline charts rendered from daily data. Each card has a watermark-style icon in the bottom-right corner.
+- **Expandable dashboard breakdown cards** — Top Links, Top Referrers, Devices, and Countries cards are now clickable. Each shows a compact view (max 4 items) on the dashboard and opens a Dialog with the full dataset when clicked. A maximize icon appears on hover.
+- **Magic Bento SpotlightCard component** — New reusable card component (`src/components/ui/spotlight-card.tsx`) with a mouse-following radial glow effect. Used for dashboard metric cards. Glow color matches the aurora violet (`#533fd6`).
+- **Tabbed settings page** — Settings split from a single long form into 4 tabs: General (page title, slug, SEO, footer, CSS), Appearance (theme picker, favicon upload, custom CSS), Security (password change), Data (email capture toggle, subscribers, backup/restore, clear analytics). Each tab is an independent form with its own save button. New `SettingsTabs` shell + `settings-tab-forms.tsx` with `GeneralTab`, `AppearanceTab`, `SecurityTab`, `DataTab`.
+- **Reusable tab UI component** — New lightweight `src/components/ui/tabs.tsx` for accessible keyboard-navigable tabs, used by settings and theme customizer.
+- **11 missing brand icons** — Added proper brand SVG icons for 11 platforms that previously fell through to the generic circle placeholder: reddit, facebook, pinterest, substack, dribbble, vimeo, paypal, buymeacoffee, kofi, medium, and X (the `"x"` key, which now resolves to the X logo SVG alongside the existing `"twitter"` key).
+- **Social platform icon-chip selector** — Profile page social links: the dropdown platform selector was replaced with a visual chip grid showing all 54 platforms as icon chips. Dimmed chips indicate already-added platforms. Clicking a chip adds that platform to the social links list.
+- **PageSwitcher external links** — Each page entry in the PageSwitcher dropdown now has an always-visible external-link icon that opens the public page in a new tab. Previously this was hover-only and got swallowed by nested group CSS.
+
+### Changed
+
+- **Dashboard layout fills the viewport** — The dashboard now uses `lg:h-[calc(100dvh-3rem)]` with `lg:overflow-hidden` so all content fits within the viewport with no scrollbar and no empty space. The "Views over time" chart takes the full middle row (grows with `flex-1` to fill remaining vertical space), with the four breakdown cards (Top Links, Referrers, Devices, Countries) in a single `lg:grid-cols-4` row at the bottom. The chart's Y-axis margin was fixed from `-16` to `0` to stop axis labels from clipping off the left edge as faint ghost artifacts.
+- **Theme customizer consolidated to 4 tabs** — Merged from 6 tabs to 4: Background (background type/value/angle/image/overlay/mode + colors), Typography (font family/scale/weight/spacing), Links (link style/hover/button size/radius/border/shadow/container width/alignment/density — former Card Style + Layout merged), Effects (glow/noise/color/blur/reveal animation).
+- **Profile avatar aurora ring** — The profile avatar in the admin form now has a violet aurora gradient ring around it.
+- **Admin link favicon system** — Admin link cards (`sortable-link.tsx`) now use the cached favicon from `src/lib/favicon.ts` (stored in the `iconUrl` field) as the primary icon, falling back to Google S2 (`sz=64`). Special protocol icons are used for non-HTTP link types: `mailto:` → Mail icon, `tel:` → Phone icon, embed/vcard → Code2 icon. Broken favicon images auto-hide via `onError` handler.
+- **Admin shell full-width content** — The admin main content area no longer has a `max-width` cap; content uses full available width.
+
+## [1.2.1] - 2026-07-29
+
+### Fixed
+
+- **Settings save no longer overwrites Display Name or wipes social links (#57, reported by @jmbillard)** — The Settings form and Profile form both route through the same server action. The Settings form sent a title field that collided with the Display Name column, silently overwriting it. Social links were also wiped because the shared action defaulted the missing field to an empty array.
+- **Settings tab now updates immediately when switching pages (#58, reported by @jmbillard)** — The Settings form used uncontrolled inputs that didn't react to page changes.
+- **Auto Icon toggle now correctly hides the icon when disabled (#59, reported by @jmbillard)** — The public page renderer ignored the autoIcon field entirely.
+
+### Security & Performance
+
+- **Update-check server actions now require authentication** — Prevents unauthenticated users from triggering version-check API calls.
+- **Embed iframes (YouTube, Spotify, SoundCloud, Vimeo, Bandcamp) now sandboxed** — All third-party embeds are wrapped in `sandbox` attributes to restrict their capabilities.
+- **Migration wizard imports links in parallel instead of sequentially** — Significantly speeds up large imports.
+
+### Removed
+
+- **5 unused UI scaffolding files** — Dead code cleanup from earlier prototyping.
+
+## [1.2.0] - 2026-07-28
 
 ### Added
 

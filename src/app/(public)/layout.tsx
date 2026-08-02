@@ -1,4 +1,5 @@
 import * as React from "react";
+import { EmbeddedDetector } from "./embedded-detector";
 
 /**
  * Minimal layout for public link pages. The root layout already provides
@@ -10,5 +11,10 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="min-h-screen w-full">{children}</div>;
+  return (
+    <div className="min-h-screen w-full">
+      <EmbeddedDetector />
+      {children}
+    </div>
+  );
 }

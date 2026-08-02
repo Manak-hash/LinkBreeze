@@ -21,6 +21,7 @@ import { reorderLinks } from "@/server/actions/links";
 import type { LinkRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { usePreview } from "@/components/admin/PreviewPane";
 import { SortableLink } from "./components/sortable-link";
 import { LinkDialog } from "./components/link-dialog";
 import { DeleteLinkDialog } from "./components/delete-link-dialog";
@@ -32,6 +33,7 @@ export function LinksManager({
   initialLinks: LinkRow[];
   pageId?: number;
 }) {
+  const { reload: reloadPreview } = usePreview();
   const [items, setItems] = React.useState<LinkRow[]>(initialLinks);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<LinkRow | null>(null);
@@ -75,6 +77,7 @@ export function LinksManager({
 
     if (result.value) {
       await reorderLinks(result.value.map((l) => l.id));
+      reloadPreview();
     }
   };
 
@@ -146,11 +149,22 @@ export function LinksManager({
         </DndContext>
       )}
 
-      <LinkDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} pageId={pageId} />
+      <LinkDialog
+        open={dialogOpen}
+        onOpenChange={(v) => {
+          setDialogOpen(v);
+          if (!v) reloadPreview();
+        }}
+        editing={editing}
+        pageId={pageId}
+      />
       <DeleteLinkDialog
         link={deleting}
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        onOpenChange={(v) => {
+          setDeleteOpen(v);
+          if (!v) reloadPreview();
+        }}
       />
     </div>
   );

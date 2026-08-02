@@ -1,9 +1,9 @@
 /**
- * LinkBreeze Demo Seed Script (v1.2.0)
+ * LinkBreeze Demo Seed Script (v1.2.2)
  * Run with: DEMO_MODE=true npx tsx src/scripts/seed-demo.ts
  * Populates a fresh database with demo data for the read-only demo instance.
  *
- * Showcases ALL v1.2.0 features:
+ * Showcases ALL v1.2.2 features:
  *   - Multi-page support (2 pages with different themes)
  *   - Auto-favicon (real URLs → favicons load automatically)
  *   - 54 social platforms (10 on page 1, 4 on page 2)
@@ -28,7 +28,7 @@ sqlite.pragma("journal_mode = WAL");
 const db = drizzle(sqlite, { schema });
 
 async function seed() {
-  console.log("Seeding demo data (v1.2.0)...\n");
+  console.log("Seeding demo data (v1.2.2)...\n");
 
   // ─── Guard: skip if already seeded ──────────────
   const existingCount = db
@@ -332,7 +332,6 @@ async function seed() {
   // ─── Links for PAGE 1: Alex Rivera ──────────────
   const now = new Date();
   const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const inTwoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   const inThreeWeeks = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
 
   const alexLinks = [
@@ -562,7 +561,7 @@ async function seed() {
   }
   console.log("✓ Click analytics generated");
 
-  console.log("\n✅ Demo seed complete (v1.2.0)!");
+  console.log("\n✅ Demo seed complete (v1.2.2)!");
   console.log("   Admin: demo / demo1234");
   console.log("   Page 1: /alex (Alex Rivera — Aurora theme)");
   console.log("   Page 2: /manak (Manak — Neon Cyberpunk theme)");

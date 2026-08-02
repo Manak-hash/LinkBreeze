@@ -77,7 +77,7 @@ export function PresetGallery({
               </button>
             ) : null}
             {!theme.isPreset ? (
-              <span className="absolute left-1.5 top-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white">
+              <span className="absolute left-1.5 top-1.5 rounded bg-black/40 px-1.5 py-0.5 text-xs font-medium text-white">
                 Custom
               </span>
             ) : null}

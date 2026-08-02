@@ -1,6 +1,6 @@
 "use client";
 
-import { Save, Eye } from "lucide-react";
+import { Save } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ColorField, SelectField, ToggleField, SliderField } from "./field-controls";
 import {
   FONT_OPTIONS,
@@ -315,37 +316,39 @@ export function ThemeCustomizer({
       <Separator />
       <Card className="mx-auto w-full max-w-2xl">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Customise &ldquo;{active.name}&rdquo;</CardTitle>
-              <CardDescription>
-                Full control over every visual aspect. Changes apply instantly.
-              </CardDescription>
-            </div>
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium transition-colors hover:bg-accent"
-            >
-              <Eye className="size-4" />
-              Preview
-            </a>
-          </div>
+          <CardTitle>Customise &ldquo;{active.name}&rdquo;</CardTitle>
+          <CardDescription>
+            Full control over every visual aspect. Changes apply on save.
+          </CardDescription>
         </CardHeader>
         <form action={onCustomize}>
-          <CardContent className="flex flex-col gap-6">
-            <BackgroundSection active={active} />
-            <Separator />
-            <ColorsSection active={active} />
-            <Separator />
-            <TypographySection active={active} />
-            <Separator />
-            <CardStyleSection active={active} />
-            <Separator />
-            <LayoutSection active={active} />
-            <Separator />
-            <EffectsSection active={active} />
+          <CardContent>
+            <Tabs defaultValue="background" className="gap-4">
+              <TabsList>
+                <TabsTrigger value="background">Background</TabsTrigger>
+                <TabsTrigger value="typography">Typography</TabsTrigger>
+                <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="effects">Effects</TabsTrigger>
+              </TabsList>
+              <TabsContent value="background">
+                <BackgroundSection active={active} />
+                <div className="mt-4">
+                  <ColorsSection active={active} />
+                </div>
+              </TabsContent>
+              <TabsContent value="typography">
+                <TypographySection active={active} />
+              </TabsContent>
+              <TabsContent value="links">
+                <CardStyleSection active={active} />
+                <div className="mt-4">
+                  <LayoutSection active={active} />
+                </div>
+              </TabsContent>
+              <TabsContent value="effects">
+                <EffectsSection active={active} />
+              </TabsContent>
+            </Tabs>
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
             {customError ? (

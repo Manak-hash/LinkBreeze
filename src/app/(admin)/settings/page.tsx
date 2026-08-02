@@ -5,14 +5,14 @@ import {
   getDefaultPage,
   getAllThemes,
   getActiveTheme,
-  getSubscriberCount,
   getSetting,
 } from "@/server/queries";
 import { isUpdateCheckEnabled } from "@/lib/update-check";
-import { SettingsForm } from "./settings-form";
+import { GeneralTab, AppearanceTab } from "./settings-tab-forms";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
 import { MigrationWizard } from "@/components/admin/MigrationWizard";
+import { SettingsTabs } from "./settings-tabs";
 import {
   Card,
   CardContent,
@@ -30,7 +30,6 @@ export default async function SettingsPage({
 }) {
   const { page: pageParam } = await searchParams;
 
-  // Resolve active page.
   const allPages = await getAllPages();
   let activePage;
   if (pageParam) {
@@ -40,10 +39,9 @@ export default async function SettingsPage({
     activePage = (await getDefaultPage()) ?? allPages[0];
   }
 
-  const [themes, active, subscriberCount, updateCheckEnabled] = await Promise.all([
+  const [themes, active, updateCheckEnabled] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
-    getSubscriberCount(),
     isUpdateCheckEnabled(),
   ]);
   const retentionDays = await getSetting("analyticsRetentionDays");
@@ -57,71 +55,84 @@ export default async function SettingsPage({
           Settings
         </h1>
         <p className="text-sm text-muted-foreground">
-          Page configuration, SEO and account security for{" "}
+          Page configuration, appearance and account security for{" "}
           <span className="font-medium text-foreground">/{slug}</span>
         </p>
       </div>
-      <SettingsForm
-        pageId={activePage?.id}
-        slug={slug}
-        title={activePage?.seoTitle || ""}
-        description={activePage?.seoDescription || ""}
-        footerText={activePage?.footerText || ""}
-        analyticsScript={activePage?.analyticsScript || ""}
-        customCss={activePage?.customCss || ""}
-        emailCapture={activePage?.emailCapture ?? false}
-        faviconUrl={activePage?.faviconUrl || ""}
-        subscriberCount={subscriberCount}
-        themes={themes}
-        activeThemeId={activePage?.themeId ?? active?.id ?? null}
-      />
 
-      {/* QR Code section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <QrCode className="size-5" />
-            QR Code
-          </CardTitle>
-          <CardDescription>
-            Scan to open /{slug}. Download for print or digital use.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-4">
-          <div className="rounded-xl border border-border bg-white p-4">
-            <Image
-              src={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg`}
-              alt="QR code"
-              width={200}
-              height={200}
-              unoptimized
+      <SettingsTabs
+        tabs={{
+          general: (
+            <GeneralTab
+              pageId={activePage?.id}
+              slug={slug}
+              title={activePage?.seoTitle || ""}
+              description={activePage?.seoDescription || ""}
+              footerText={activePage?.footerText || ""}
+              analyticsScript={activePage?.analyticsScript || ""}
             />
-          </div>
-          <div className="flex gap-3">
-            <a
-              href={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg&download=1`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <Download className="size-4" />
-              SVG
-            </a>
-            <a
-              href={`/api/qr?slug=${encodeURIComponent(slug)}&format=png&download=1`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <Download className="size-4" />
-              PNG
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-
-      <MigrationWizard pageId={activePage?.id ?? 0} />
-
-      <ChangePasswordForm />
-      <DataManager
-        retentionDays={retentionDays ?? ""}
-        updateCheckEnabled={updateCheckEnabled}
+          ),
+          appearance: (
+            <div className="flex flex-col gap-4">
+              <AppearanceTab
+                pageId={activePage?.id}
+                customCss={activePage?.customCss || ""}
+                faviconUrl={activePage?.faviconUrl || ""}
+                themes={themes}
+                activeThemeId={activePage?.themeId ?? active?.id ?? null}
+              />
+              {/* QR Code in appearance tab */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="size-5" />
+                    QR Code
+                  </CardTitle>
+                  <CardDescription>
+                    Scan to open /{slug}. Download for print or digital use.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center gap-4">
+                  <div className="rounded-xl border border-border bg-white p-4">
+                    <Image
+                      src={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg`}
+                      alt="QR code"
+                      width={200}
+                      height={200}
+                      unoptimized
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <a
+                      href={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg&download=1`}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      <Download className="size-4" />
+                      SVG
+                    </a>
+                    <a
+                      href={`/api/qr?slug=${encodeURIComponent(slug)}&format=png&download=1`}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      <Download className="size-4" />
+                      PNG
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ),
+          security: <ChangePasswordForm />,
+          data: (
+            <div className="flex flex-col gap-4">
+              <MigrationWizard pageId={activePage?.id ?? 0} />
+              <DataManager
+                retentionDays={retentionDays ?? ""}
+                updateCheckEnabled={updateCheckEnabled}
+              />
+            </div>
+          ),
+        }}
       />
     </div>
   );

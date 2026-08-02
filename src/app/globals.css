@@ -172,3 +172,7 @@
   .lb-link-card { transition: none !important; }
   .lb-link-card:hover { transform: none !important; }
 }
+
+/* ── Embedded preview: hide scrollbar (phone frame handles scroll) ────── */
+body.lb-embedded { scrollbar-width: none; }
+body.lb-embedded::-webkit-scrollbar { display: none; }

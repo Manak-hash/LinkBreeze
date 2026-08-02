@@ -2,11 +2,17 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Plus, Trash2, Save, Upload } from "lucide-react";
+import { Trash2, Save, Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { updateProfile } from "@/server/actions/profile";
 import { updatePageAction } from "@/server/actions/pages";
 import { uploadAvatar } from "@/server/actions/uploads";
-import { SUPPORTED_PLATFORMS, getPlatformLabel, type SocialPlatform } from "@/lib/social-icons";
+import {
+  SUPPORTED_PLATFORMS,
+  getPlatformLabel,
+  getSocialIconSvg,
+  type SocialPlatform,
+} from "@/lib/social-icons";
 import type { SocialLink } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +25,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { usePreview } from "@/components/admin/PreviewPane";
+
+// ── Platform icon chip ───────────────────────────────────────────────────
+
+function PlatformIcon({ platform, className }: { platform: SocialPlatform; className?: string }) {
+  return (
+    <span
+      className={className}
+      aria-label={getPlatformLabel(platform)}
+      dangerouslySetInnerHTML={{ __html: getSocialIconSvg(platform).replace('width="24" height="24"', 'width="16" height="16"') }}
+    />
+  );
+}
 
 interface ProfileFormProps {
   profile: {
@@ -40,6 +52,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ profile, pageId }: ProfileFormProps) {
+  const { reload: reloadPreview } = usePreview();
   const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>(
     profile?.socialLinks ?? [],
   );
@@ -60,6 +73,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
       const res = await uploadAvatar(fd);
       if (res.success) {
         setAvatarUrl(res.url);
+        reloadPreview();
       } else {
         setUploadError(res.error);
       }
@@ -71,8 +85,8 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
     }
   };
 
-  const addSocial = () => {
-    setSocialLinks((prev) => [...prev, { platform: "instagram", url: "" }]);
+  const addSocialPlatform = (platform: SocialPlatform) => {
+    setSocialLinks((prev) => [...prev, { platform, url: "" }]);
   };
 
   const updateSocial = (index: number, field: keyof SocialLink, value: string) => {
@@ -97,6 +111,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
       startTransition(async () => {
         await updatePageAction(formData);
         setSaved(true);
+        reloadPreview();
         setTimeout(() => setSaved(false), 2000);
       });
       return;
@@ -105,6 +120,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
     startTransition(async () => {
       await updateProfile(formData);
       setSaved(true);
+      reloadPreview();
       setTimeout(() => setSaved(false), 2000);
     });
   };
@@ -126,20 +142,24 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt=""
-                  width={64}
-                  height={64}
-                  unoptimized
-                  className="size-16 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex size-16 items-center justify-center rounded-full bg-muted text-xl font-semibold">
-                  {(profile?.displayName || "?").charAt(0)}
-                </div>
-              )}
+              {/* Avatar with aurora ring */}
+              <div className="relative size-16 shrink-0">
+                <div className="absolute -inset-0.5 rounded-full bg-[var(--aurora-grad)] opacity-40 blur-sm" />
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt=""
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="relative size-16 rounded-full object-cover ring-2 ring-lavender/30"
+                  />
+                ) : (
+                  <div className="relative flex size-16 items-center justify-center rounded-full bg-muted text-xl font-semibold ring-2 ring-lavender/30">
+                    {(profile?.displayName || "?").charAt(0)}
+                  </div>
+                )}
+              </div>
               <div className="flex-1">
                 <FormField label="Avatar URL" htmlFor="avatarUrl">
                   <Input
@@ -206,35 +226,22 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
           <CardHeader>
             <CardTitle>Social links</CardTitle>
             <CardDescription>
-              Icons appear above your link cards. Add the platforms you use.
+              Icons appear above your link cards. Tap a platform to add it.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {socialLinks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No social links added yet.</p>
-            ) : (
-              socialLinks.map((item, i) => (
-                <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Select
-                    value={item.platform}
-                    onValueChange={(v) => updateSocial(i, "platform", v ?? "instagram")}
-                  >
-                    <SelectTrigger className="w-full sm:w-40 sm:shrink-0">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUPPORTED_PLATFORMS.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {getPlatformLabel(p as SocialPlatform)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2 sm:flex-1">
+          <CardContent className="flex flex-col gap-4">
+            {/* Existing social links with inline icon */}
+            {socialLinks.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {socialLinks.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet/15 text-lavender">
+                      <PlatformIcon platform={item.platform as SocialPlatform} />
+                    </div>
                     <Input
                       value={item.url}
                       onChange={(e) => updateSocial(i, "url", e.target.value)}
-                      placeholder="https://…"
+                      placeholder={`${getPlatformLabel(item.platform as SocialPlatform)} URL…`}
                       className="min-w-0 flex-1"
                     />
                     <Button
@@ -248,14 +255,35 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
+
+            {/* Platform picker — icon chips grid */}
             <Separator className="my-1" />
-            <Button variant="outline" type="button" onClick={addSocial} className="w-fit">
-              <Plus className="size-4" />
-              Add social link
-            </Button>
+            <p className="text-xs font-medium text-muted-foreground">
+              Add a platform
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUPPORTED_PLATFORMS.map((p) => {
+                const alreadyAdded = socialLinks.some((s) => s.platform === p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    disabled={alreadyAdded}
+                    title={getPlatformLabel(p)}
+                    onClick={() => addSocialPlatform(p)}
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-all hover:scale-110 hover:border-violet/30 hover:bg-violet/15 hover:text-lavender",
+                      alreadyAdded && "pointer-events-none opacity-30",
+                    )}
+                  >
+                    <PlatformIcon platform={p} />
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
           <CardFooter className="gap-3">
             <Button type="submit" disabled={pending}>

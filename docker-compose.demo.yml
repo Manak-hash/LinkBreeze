@@ -1,6 +1,6 @@
 services:
   linkbreeze-demo:
-    build: .
+    image: ghcr.io/manak-hash/linkbreeze:1.2.2
     ports:
       - "3010:3000"
     volumes:
@@ -9,4 +9,7 @@ services:
       - DATABASE_PATH=/app/data/linkbreeze.db
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - DEMO_MODE=true
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: unless-stopped

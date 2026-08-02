@@ -1,13 +1,17 @@
-import Link from "next/link";
 import {
   Eye,
   MousePointerClick,
   TrendingUp,
+  TrendingDown,
   Link as LinkIcon,
   Download,
+  ExternalLink,
+  Minus,
+  type LucideIcon,
 } from "lucide-react";
 import {
   getDashboardStats,
+  getPreviousStats,
   getAllLinks,
   getAllPages,
   getAnalyticsBreakdown,
@@ -16,16 +20,11 @@ import {
 } from "@/server/queries";
 import { checkForUpdates } from "@/lib/update-check";
 import { UpdateChecker } from "@/components/admin/UpdateChecker";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ViewsChart } from "./views-chart";
 import { RangePicker } from "./range-picker";
+import { ExpandableSection } from "./expandable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -37,50 +36,232 @@ function parseRange(value?: string): AnalyticsRange {
     : "7d";
 }
 
-function BreakdownCard({
-  title,
-  description,
-  entries,
-}: {
-  title: string;
-  description: string;
-  entries: BreakdownEntry[];
-}) {
+// ── Delta badge ──────────────────────────────────────────────────────────
+
+function Delta({ current, previous }: { current: number; previous: number }) {
+  if (previous === 0 && current === 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+        <Minus className="size-3" /> 0%
+      </span>
+    );
+  }
+  if (previous === 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-emerald-400">
+        <TrendingUp className="size-3" /> New
+      </span>
+    );
+  }
+  const delta = Math.round(((current - previous) / previous) * 100);
+  if (delta === 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+        <Minus className="size-3" /> 0%
+      </span>
+    );
+  }
+  const positive = delta > 0;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No data yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {entries.map((e) => {
-              const max = entries[0].count || 1;
-              const pct = Math.round((e.count / max) * 100);
-              return (
-                <li key={e.label} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate">{e.label}</span>
-                    <span className="shrink-0 font-medium tabular-nums">{e.count}</span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-[var(--aurora-grad)]"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <span
+      className={
+        positive
+          ? "flex items-center gap-0.5 text-xs text-emerald-400"
+          : "flex items-center gap-0.5 text-xs text-red-400"
+      }
+    >
+      {positive ? (
+        <TrendingUp className="size-3" />
+      ) : (
+        <TrendingDown className="size-3" />
+      )}
+      {positive ? "+" : ""}
+      {delta}%
+    </span>
   );
 }
+
+// ── Mini sparkline (pure SVG, no deps) ───────────────────────────────────
+
+function Sparkline({ data, className }: { data: number[]; className?: string }) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const w = 100;
+  const h = 40;
+  const step = w / (data.length - 1);
+  const points = data
+    .map((v, i) => `${i * step},${h - ((v - min) / range) * h}`)
+    .join(" ");
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      className={`h-10 w-full ${className ?? ""}`}
+    >
+      <defs>
+        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(167,139,250,0.3)" />
+          <stop offset="100%" stopColor="rgba(167,139,250,0)" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`0,${h} ${points} ${w},${h}`}
+        fill="url(#spark-fill)"
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke="rgb(167,139,250)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+// ── Metric Card ──────────────────────────────────────────────────────────
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  hint,
+  delta,
+  spark,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  hint: string;
+  delta?: { current: number; previous: number };
+  spark?: number[];
+}) {
+  return (
+    <SpotlightCard className="bg-card backdrop-blur-xl">
+      <div className="relative flex h-full min-h-[100px] flex-col gap-2 overflow-hidden p-4">
+        {/* Watermark icon — bottom right, flush to edges */}
+        <Icon
+          className="pointer-events-none absolute -bottom-2 -right-2 size-16 text-violet/8"
+          strokeWidth={1}
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          {delta && <Delta current={delta.current} previous={delta.previous} />}
+        </div>
+        <span className="font-heading text-3xl font-semibold tracking-tight">
+          {value}
+        </span>
+        {spark && spark.length > 1 && (
+          <div className="flex-1">
+            <Sparkline data={spark} />
+          </div>
+        )}
+        <span className="mt-auto text-xs text-muted-foreground">{hint}</span>
+      </div>
+    </SpotlightCard>
+  );
+}
+
+// ── Breakdown helpers ────────────────────────────────────────────────────
+
+function FaviconForLabel({ label }: { label: string }) {
+  const domain = label.includes(".") ? label : null;
+  if (!domain) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
+      alt=""
+      className="size-4 shrink-0 rounded-sm"
+      loading="lazy"
+    />
+  );
+}
+
+function BreakdownList({
+  entries,
+  total,
+  showFavicons,
+  max,
+}: {
+  entries: BreakdownEntry[];
+  total: number;
+  showFavicons?: boolean;
+  max?: number;
+}) {
+  if (entries.length === 0) {
+    return <p className="text-sm text-muted-foreground">No data yet.</p>;
+  }
+  return (
+    <ul className="flex flex-col gap-2">
+      {entries.slice(0, max).map((e) => {
+        const pct = Math.round((e.count / total) * 100);
+        return (
+          <li key={e.label} className="flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2 truncate">
+                {showFavicons && <FaviconForLabel label={e.label} />}
+                <span className="truncate capitalize">{e.label}</span>
+              </span>
+              <span className="shrink-0 font-medium tabular-nums">
+                {e.count}
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-[var(--aurora-grad)] transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function TopLinksList({
+  links,
+  max,
+}: {
+  links: { id: number; title: string; clicks: number }[];
+  max?: number;
+}) {
+  if (links.length === 0) {
+    return <p className="text-sm text-muted-foreground">No clicks yet.</p>;
+  }
+  const topMax = links[0]?.clicks || 1;
+  return (
+    <ul className="flex flex-col gap-2">
+      {links.slice(0, max).map((link, i) => {
+        const pct = Math.round((link.clicks / topMax) * 100);
+        return (
+          <li key={link.id} className="flex items-center gap-2 text-sm">
+            <span className="w-4 shrink-0 text-xs text-muted-foreground">
+              {i + 1}
+            </span>
+            <span className="truncate">{link.title}</span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-[var(--aurora-grad)]"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
+              {link.clicks}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({
   searchParams,
@@ -90,38 +271,35 @@ export default async function DashboardPage({
   const { range: rangeParam, page: pageParam } = await searchParams;
   const range = parseRange(rangeParam);
 
-  // Resolve active page for page-scoped analytics.
   const allPages = await getAllPages();
-  let pageId: number | undefined;
-  if (pageParam) {
-    const found = allPages.find((p) => p.id === Number(pageParam));
-    if (found) pageId = found.id;
-  }
-  if (pageId === undefined) {
-    const def = allPages.find((p) => p.isDefault) ?? allPages[0];
-    pageId = def?.id;
-  }
+  const activePage =
+    allPages.find((p) => p.id === Number(pageParam)) ??
+    allPages.find((p) => p.isDefault) ??
+    allPages[0];
+  const pageId = activePage?.id;
 
-  const [stats, links, breakdown, updateResult] = await Promise.all([
+  const [stats, prevStats, links, breakdown, updateResult] = await Promise.all([
     getDashboardStats(range, pageId),
+    getPreviousStats(range, pageId),
     getAllLinks(pageId),
     getAnalyticsBreakdown(range, pageId),
     checkForUpdates(),
   ]);
 
   const activeCount = links.filter((l) => l.isActive).length;
+  const viewSpark = stats.viewsPerDay.map((d) => d.views);
+  const clickSpark = stats.viewsPerDay.map((d) => d.clicks);
 
-  const cards = [
-    { label: "Views", value: stats.totalViews.toLocaleString(), icon: Eye, hint: `${stats.uniqueVisitors.toLocaleString()} unique visitors` },
-    { label: "Clicks", value: stats.totalClicks.toLocaleString(), icon: MousePointerClick, hint: `Link clicks in range` },
-    { label: "Click-through rate", value: `${stats.ctr}%`, icon: TrendingUp, hint: "Clicks ÷ views" },
-    { label: "Active links", value: activeCount.toString(), icon: LinkIcon, hint: `${links.length} total` },
-  ];
+  const refTotal = breakdown.referrers.reduce((s, e) => s + e.count, 0) || 1;
+  const devTotal = breakdown.devices.reduce((s, e) => s + e.count, 0) || 1;
+  const ctryTotal = breakdown.countries.reduce((s, e) => s + e.count, 0) || 1;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)] lg:overflow-hidden">
       <UpdateChecker initialResult={updateResult} />
-      <div className="flex flex-wrap items-start justify-between gap-3">
+
+      {/* Header: title + range picker */}
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             Dashboard
@@ -142,95 +320,150 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {cards.map((c) => (
-          <Card key={c.label}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardDescription>{c.label}</CardDescription>
-                <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
-                  <c.icon className="size-4" />
-                </span>
-              </div>
-              <CardTitle className="text-3xl">{c.value}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{c.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Metric cards — fixed height, shrink-0 */}
+      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+        <MetricCard
+          label="Views"
+          value={stats.totalViews.toLocaleString()}
+          icon={Eye}
+          hint={`${stats.uniqueVisitors.toLocaleString()} unique visitors`}
+          delta={{ current: stats.totalViews, previous: prevStats.totalViews }}
+          spark={viewSpark}
+        />
+        <MetricCard
+          label="Clicks"
+          value={stats.totalClicks.toLocaleString()}
+          icon={MousePointerClick}
+          hint="Link clicks in range"
+          delta={{ current: stats.totalClicks, previous: prevStats.totalClicks }}
+          spark={clickSpark}
+        />
+        <MetricCard
+          label="Click-through rate"
+          value={`${stats.ctr}%`}
+          icon={TrendingUp}
+          hint="Clicks / views"
+        />
+        <MetricCard
+          label="Active links"
+          value={activeCount.toString()}
+          icon={LinkIcon}
+          hint={`${links.length} total`}
+        />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Views over time</CardTitle>
-            <CardDescription>Daily views and clicks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ViewsChart data={stats.viewsPerDay} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Top links</CardTitle>
-            <CardDescription>Most clicked in range</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats.topLinks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No clicks yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {stats.topLinks.map((link, i) => {
-                  const max = stats.topLinks[0]?.clicks || 1;
-                  const pct = Math.round((link.clicks / max) * 100);
-                  return (
-                    <li key={link.id} className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between gap-2 text-sm">
-                        <Link
-                          href={`/links/${link.id}`}
-                          className="flex items-center gap-2 truncate text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Badge variant="secondary" className="font-mono">
-                            {i + 1}
-                          </Badge>
-                          <span className="truncate text-foreground">{link.title}</span>
-                        </Link>
-                        <span className="shrink-0 font-medium tabular-nums">
-                          {link.clicks}
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-[var(--aurora-grad)] transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+      {/* Middle section: chart fills full width */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 lg:overflow-hidden">
+        <div className="flex shrink-0 items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-heading text-base font-medium">
+              Views over time
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Daily views and clicks
+            </span>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1">
+          <ViewsChart data={stats.viewsPerDay} />
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <BreakdownCard
+      {/* Bottom row: top links + referrers + devices + countries */}
+      <div className="grid shrink-0 gap-3 lg:grid-cols-4">
+        <ExpandableSection
+          title="Top links"
+          description={`${stats.topLinks.length} links with clicks`}
+          compact={
+            <Card className="h-full">
+              <CardContent className="flex h-full flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-heading text-sm font-medium">
+                    Top links
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {stats.topLinks.length}
+                  </span>
+                </div>
+                <TopLinksList links={stats.topLinks} max={4} />
+              </CardContent>
+            </Card>
+          }
+          expanded={<TopLinksList links={stats.topLinks} />}
+        />
+
+        <ExpandableSection
           title="Top referrers"
           description="Where views came from"
-          entries={breakdown.referrers}
+          compact={
+            <Card className="h-full">
+              <CardContent className="flex h-full flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
+                    <ExternalLink className="size-4" />
+                  </span>
+                  <span className="font-heading text-sm font-medium">
+                    Referrers
+                  </span>
+                </div>
+                <BreakdownList
+                  entries={breakdown.referrers}
+                  total={refTotal}
+                  showFavicons
+                  max={4}
+                />
+              </CardContent>
+            </Card>
+          }
+          expanded={
+            <BreakdownList
+              entries={breakdown.referrers}
+              total={refTotal}
+              showFavicons
+            />
+          }
         />
-        <BreakdownCard
+
+        <ExpandableSection
           title="Devices"
-          description="Views by device type"
-          entries={breakdown.devices}
+          description="Browser types"
+          compact={
+            <Card className="h-full">
+              <CardContent className="flex h-full flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
+                    <MousePointerClick className="size-4" />
+                  </span>
+                  <span className="font-heading text-sm font-medium">
+                    Devices
+                  </span>
+                </div>
+                <BreakdownList entries={breakdown.devices} total={devTotal} max={4} />
+              </CardContent>
+            </Card>
+          }
+          expanded={<BreakdownList entries={breakdown.devices} total={devTotal} />}
         />
-        <BreakdownCard
+
+        <ExpandableSection
           title="Countries"
-          description="Views by country"
-          entries={breakdown.countries}
+          description="Visitor locations"
+          compact={
+            <Card className="h-full">
+              <CardContent className="flex h-full flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
+                    <Eye className="size-4" />
+                  </span>
+                  <span className="font-heading text-sm font-medium">
+                    Countries
+                  </span>
+                </div>
+                <BreakdownList entries={breakdown.countries} total={ctryTotal} max={4} />
+              </CardContent>
+            </Card>
+          }
+          expanded={<BreakdownList entries={breakdown.countries} total={ctryTotal} />}
         />
       </div>
     </div>

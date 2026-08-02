@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PreviewButton } from "@/components/admin/PreviewPane";
 
 const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -40,7 +41,7 @@ export function MobileTabBar() {
             href={`${href}${query}`}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+              "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors",
               active ? "text-lavender" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -52,6 +53,7 @@ export function MobileTabBar() {
           </Link>
         );
       })}
+      <PreviewButton className="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs" />
     </nav>
   );
 }

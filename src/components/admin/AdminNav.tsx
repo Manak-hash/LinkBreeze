@@ -11,6 +11,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
+import { PreviewButton } from "@/components/admin/PreviewPane";
 
 const NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -38,6 +39,9 @@ export function AdminNav() {
           {item.label}
         </Link>
       ))}
+      <div className="mt-1 border-t border-border pt-1">
+        <PreviewButton />
+      </div>
     </nav>
   );
 }
