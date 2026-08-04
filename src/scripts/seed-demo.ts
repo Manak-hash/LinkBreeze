@@ -529,17 +529,23 @@ async function seed() {
   const devices = ["mobile", "mobile", "desktop", "mobile", "tablet"];
 
   // Pageviews for both pages
+  const nowMs = Date.now();
   for (const [pageId, baseViews] of [[alexPageId, 80], [manakPageId, 30]] as [number, number][]) {
     for (let day = 6; day >= 0; day--) {
       const viewsCount = Math.floor(Math.random() * baseViews) + 20;
+      const dayOffset = day * 86_400_000;
       for (let v = 0; v < viewsCount; v++) {
         const hash = Math.random().toString(36).substring(2, 18);
+        // Spread timestamps across the day so they don't all share the same minute
+        const jitter = Math.random() * 86_400_000;
+        const ts = new Date(nowMs - dayOffset + jitter).toISOString();
         db.insert(schema.analyticsPageviews).values({
           visitorHash: hash,
           referrer: referrers[Math.floor(Math.random() * referrers.length)],
           deviceType: devices[Math.floor(Math.random() * devices.length)],
           country: null,
           pageId,
+          createdAt: ts,
         }).run();
       }
     }
@@ -552,10 +558,15 @@ async function seed() {
     const clickCount = Math.floor(Math.random() * 20) + 2;
     for (let c = 0; c < clickCount; c++) {
       const hash = Math.random().toString(36).substring(2, 18);
+      // Spread clicks across the last 7 days
+      const dayOffset = Math.floor(Math.random() * 7) * 86_400_000;
+      const jitter = Math.random() * 86_400_000;
+      const ts = new Date(nowMs - dayOffset + jitter).toISOString();
       db.insert(schema.analyticsClicks).values({
         linkId: link.id,
         visitorHash: hash,
         referrer: referrers[Math.floor(Math.random() * referrers.length)],
+        createdAt: ts,
       }).run();
     }
   }

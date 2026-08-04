@@ -5,7 +5,10 @@ import {
   TrendingDown,
   Link as LinkIcon,
   Download,
-  ExternalLink,
+  Trophy,
+  Globe,
+  MonitorSmartphone,
+  Share2,
   Minus,
   type LucideIcon,
 } from "lucide-react";
@@ -295,7 +298,7 @@ export default async function DashboardPage({
   const ctryTotal = breakdown.countries.reduce((s, e) => s + e.count, 0) || 1;
 
   return (
-    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)] lg:overflow-hidden">
+    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
       <UpdateChecker initialResult={updateResult} />
 
       {/* Header: title + range picker */}
@@ -376,7 +379,11 @@ export default async function DashboardPage({
           description={`${stats.topLinks.length} links with clicks`}
           compact={
             <Card className="h-full">
-              <CardContent className="flex h-full flex-col gap-3">
+              <CardContent className="relative flex h-full flex-col gap-3">
+                <Trophy
+                  className="pointer-events-none absolute -bottom-6 -right-6 size-16 text-violet/8"
+                  strokeWidth={1}
+                />
                 <div className="flex items-center justify-between">
                   <span className="font-heading text-sm font-medium">
                     Top links
@@ -397,11 +404,12 @@ export default async function DashboardPage({
           description="Where views came from"
           compact={
             <Card className="h-full">
-              <CardContent className="flex h-full flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
-                    <ExternalLink className="size-4" />
-                  </span>
+              <CardContent className="relative flex h-full flex-col gap-3">
+                <Share2
+                  className="pointer-events-none absolute -bottom-6 -right-6 size-16 text-violet/8"
+                  strokeWidth={1}
+                />
+                <div className="flex items-center justify-between">
                   <span className="font-heading text-sm font-medium">
                     Referrers
                   </span>
@@ -429,11 +437,12 @@ export default async function DashboardPage({
           description="Browser types"
           compact={
             <Card className="h-full">
-              <CardContent className="flex h-full flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
-                    <MousePointerClick className="size-4" />
-                  </span>
+              <CardContent className="relative flex h-full flex-col gap-3">
+                <MonitorSmartphone
+                  className="pointer-events-none absolute -bottom-6 -right-6 size-16 text-violet/8"
+                  strokeWidth={1}
+                />
+                <div className="flex items-center justify-between">
                   <span className="font-heading text-sm font-medium">
                     Devices
                   </span>
@@ -450,11 +459,12 @@ export default async function DashboardPage({
           description="Visitor locations"
           compact={
             <Card className="h-full">
-              <CardContent className="flex h-full flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-violet/15 text-lavender">
-                    <Eye className="size-4" />
-                  </span>
+              <CardContent className="relative flex h-full flex-col gap-3">
+                <Globe
+                  className="pointer-events-none absolute -bottom-6 -right-6 size-16 text-violet/8"
+                  strokeWidth={1}
+                />
+                <div className="flex items-center justify-between">
                   <span className="font-heading text-sm font-medium">
                     Countries
                   </span>

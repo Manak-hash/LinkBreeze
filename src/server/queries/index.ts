@@ -589,7 +589,9 @@ async function rangeDayCount(range: AnalyticsRange): Promise<number> {
     .from(analyticsClicks);
   const earliest = [pv?.m, cl?.m].filter(Boolean).sort()[0];
   if (!earliest) return 30;
-  const start = new Date(earliest.replace(" ", "T") + "Z").getTime();
+  // Handle both ISO (2026-07-29T...) and SQLite datetime (2026-07-29 ...) formats
+  const start = new Date(earliest.includes("T") ? earliest : earliest.replace(" ", "T") + "Z").getTime();
+  if (isNaN(start)) return 30;
   const days = Math.ceil((Date.now() - start) / 86_400_000);
   return Math.min(365, Math.max(1, days));
 }

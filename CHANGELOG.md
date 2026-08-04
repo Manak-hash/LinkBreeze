@@ -5,7 +5,20 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.2] - Unreleased
+## [1.2.3] - Unreleased
+
+### Fixed
+
+- **Dashboard edge-card hover clipping** — Hover effects (spotlight glow, ring shadow, scale) on dashboard cards along the grid's outer borders and corners were visually clipped. The dashboard root container had `lg:overflow-hidden` which cut off outward-extending box-shadows and transforms at the boundary. Removed the redundant overflow constraint (the chart section retains its own `overflow-hidden` for internal containment), allowing hover effects to render fully on all 8 cards.
+- **Dashboard bottom-row card watermark icons** — Top Links, Referrers, Devices, and Countries cards had missing or mismatched watermark icons (no icon, wrong icon, or small circle style). All four now have semantically correct watermark icons (Trophy, Share2, MonitorSmartphone, Globe) matching the top-row cards' size, position, and styling exactly.
+- **"All" range chart showing only 1-2 days** — The `rangeDayCount("all")` function assumed analytics timestamps were always in SQLite `datetime('now')` format (`YYYY-MM-DD HH:MM:SS`). When timestamps were stored in ISO format (e.g. from `.toISOString()`), the date parser produced `NaN`, causing the chart to show only 1 data point. Fixed the parser to handle both ISO and SQLite datetime formats, with an `isNaN` guard falling back to 30 days.
+- **Demo seed timestamps not backdated** — The demo seed script's 7-day analytics loop intended to spread data across the past week, but `createdAt` was never explicitly set on inserts, causing all records to default to `now()`. This compressed all analytics into a single day, making the "All" range chart show only 1 data point. Each pageview and click now gets a backdated `createdAt` timestamp spread across the appropriate day.
+
+### Security
+
+- **npm dependency overrides** — Bumped `fast-uri` to `^3.1.5` (ReDoS via backslash authority), `brace-expansion` to `^5.0.9` (DoS via unbounded arrays), and added `hono` override to `^4.12.34` (ReDoS in CORS middleware). `npm audit` now reports 0 vulnerabilities.
+
+## [1.2.2] - 2026-08-02
 
 ### Added
 
