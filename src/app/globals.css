@@ -168,9 +168,14 @@
 .lb-link-card[data-hover="glow"]:hover { box-shadow: 0 0 24px var(--lb-glow); }
 .lb-link-card[data-neon="true"]:hover { box-shadow: 0 0 24px var(--lb-accent); }
 
+/* ── Social icon hover (CSS-based, same reduced-motion gate) ────────────── */
+.lb-social-icon:hover { transform: translateY(-2px); border-color: var(--lb-accent); }
+
 @media (prefers-reduced-motion: reduce) {
   .lb-link-card { transition: none !important; }
   .lb-link-card:hover { transform: none !important; }
+  .lb-social-icon { transition: none !important; }
+  .lb-social-icon:hover { transform: none !important; }
 }
 
 /* ── Embedded preview: hide scrollbar (phone frame handles scroll) ────── */

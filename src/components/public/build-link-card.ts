@@ -67,7 +67,7 @@ function buildContentRow(link: LinkRow): string {
     : "";
 
   const description = link.description
-    ? `<p style="font-size:var(--lb-font-size);opacity:.7;margin:2px 0 0">${esc(link.description)}</p>`
+    ? `<p style="font-size:var(--lb-font-size);color:var(--lb-text-muted);margin:2px 0 0">${esc(link.description)}</p>`
     : "";
 
   const title = esc(link.title);

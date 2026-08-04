@@ -1,9 +1,9 @@
 /**
- * LinkBreeze Demo Seed Script (v1.2.2)
+ * LinkBreeze Demo Seed Script (v1.2.3)
  * Run with: DEMO_MODE=true npx tsx src/scripts/seed-demo.ts
  * Populates a fresh database with demo data for the read-only demo instance.
  *
- * Showcases ALL v1.2.2 features:
+ * Showcases ALL v1.2.3 features:
  *   - Multi-page support (2 pages with different themes)
  *   - Auto-favicon (real URLs → favicons load automatically)
  *   - 54 social platforms (10 on page 1, 4 on page 2)
@@ -28,7 +28,7 @@ sqlite.pragma("journal_mode = WAL");
 const db = drizzle(sqlite, { schema });
 
 async function seed() {
-  console.log("Seeding demo data (v1.2.2)...\n");
+  console.log("Seeding demo data (v1.2.3)...\n");
 
   // ─── Guard: skip if already seeded ──────────────
   const existingCount = db
@@ -48,217 +48,16 @@ async function seed() {
   }).run();
   console.log("✓ Admin user created (demo / demo1234)");
 
-  // ─── Themes — seed all 9 presets FIRST ──────────
-  // Base shape shared by all presets — sensible token-system defaults.
-  const base = {
-    isPreset: true as const,
-    isActive: false as const,
-    mode: "dark" as const,
-    backgroundAngle: "160deg",
-    overlayColor: "#000000",
-    overlayOpacity: "40",
-    fontScale: "100",
-    fontWeight: "400",
-    letterSpacing: "0",
-    radius: "12px",
-    buttonSize: "md",
-    borderWidth: "1px",
-    shadowStrength: "soft",
-    hoverEffect: "lift",
-    animationType: "lift" as const,
-    containerWidth: "480px",
-    alignment: "center",
-    density: "normal",
-    glow: "false",
-    glowColor: "#533fd6",
-    blur: "12px",
-    noise: "false",
-  };
+  // ─── Themes — seed all 9 presets from the canonical source ─────
+  // Import from theme-presets.ts so the seed never diverges from the
+  // preset definitions that tests validate against.
+  const { PRESETS } = await import("../lib/theme-presets");
 
-  const presets = [
-    // 1. Aurora — the animated flagship, ACTIVE for demo
-    {
-      ...base,
-      name: "Aurora",
-      backgroundType: "aurora",
-      backgroundValue: "#0a0820",
-      fontFamily: "inter",
-      primaryColor: "#533fd6",
-      secondaryColor: "#a78bfa",
-      textColor: "#eceafe",
-      mutedTextColor: "#a39ec9",
-      cardBackground: "rgba(20,17,46,0.55)",
-      cardBorderColor: "rgba(167,139,250,0.18)",
-      linkStyle: "glass",
-      animationType: "lift",
-      glow: "false",
-      blur: "16px",
-      isActive: true,
-    },
-    // 2. Glassmorphism
-    {
-      ...base,
-      name: "Glassmorphism",
-      backgroundType: "gradient",
-      backgroundValue: "#1e3a8a,#6d28d9,#db2777",
-      backgroundAngle: "135deg",
-      fontFamily: "sora",
-      primaryColor: "#60a5fa",
-      secondaryColor: "#c084fc",
-      textColor: "#f0f4ff",
-      mutedTextColor: "#94a3b8",
-      cardBackground: "rgba(255,255,255,0.08)",
-      cardBorderColor: "rgba(255,255,255,0.12)",
-      linkStyle: "glass",
-      blur: "20px",
-      shadowStrength: "medium",
-    },
-    // 3. Neon Cyberpunk
-    {
-      ...base,
-      name: "Neon Cyberpunk",
-      backgroundType: "solid",
-      backgroundValue: "#0a0a0f",
-      fontFamily: "jetbrains",
-      primaryColor: "#00f0ff",
-      secondaryColor: "#ff0080",
-      textColor: "#e0e0ff",
-      mutedTextColor: "#6a6a8a",
-      cardBackground: "rgba(10,10,20,0.8)",
-      cardBorderColor: "rgba(0,240,255,0.3)",
-      linkStyle: "neon",
-      radius: "4px",
-      glow: "true",
-      glowColor: "#00f0ff",
-      hoverEffect: "glow",
-      shadowStrength: "none",
-    },
-    // 4. Editorial Paper
-    {
-      ...base,
-      name: "Editorial Paper",
-      backgroundType: "solid",
-      backgroundValue: "#faf8f3",
-      mode: "light",
-      fontFamily: "playfair",
-      primaryColor: "#c2410c",
-      secondaryColor: "#92400e",
-      textColor: "#1c1917",
-      mutedTextColor: "#78716c",
-      cardBackground: "#ffffff",
-      cardBorderColor: "#e7e5e4",
-      linkStyle: "outline",
-      radius: "0px",
-      borderWidth: "2px",
-      shadowStrength: "subtle",
-      hoverEffect: "none",
-    },
-    // 5. Terminal Mono
-    {
-      ...base,
-      name: "Terminal Mono",
-      backgroundType: "solid",
-      backgroundValue: "#0c0c0c",
-      fontFamily: "jetbrains",
-      primaryColor: "#00ff41",
-      secondaryColor: "#008f11",
-      textColor: "#00ff41",
-      mutedTextColor: "#008f11",
-      cardBackground: "#111111",
-      cardBorderColor: "#00ff4133",
-      linkStyle: "sharp",
-      radius: "0px",
-      borderWidth: "1px",
-      shadowStrength: "none",
-      hoverEffect: "none",
-    },
-    // 6. Pastel Soft
-    {
-      ...base,
-      name: "Pastel Soft",
-      backgroundType: "gradient",
-      backgroundValue: "#fce7f3,#ddd6fe,#bfdbfe",
-      backgroundAngle: "180deg",
-      mode: "light",
-      fontFamily: "dm-sans",
-      primaryColor: "#c026d3",
-      secondaryColor: "#7c3aed",
-      textColor: "#3b0764",
-      mutedTextColor: "#9333ea",
-      cardBackground: "rgba(255,255,255,0.7)",
-      cardBorderColor: "rgba(192,38,211,0.15)",
-      linkStyle: "pill",
-      radius: "9999px",
-      shadowStrength: "soft",
-    },
-    // 7. Brutalist
-    {
-      ...base,
-      name: "Brutalist",
-      backgroundType: "solid",
-      backgroundValue: "#ffff00",
-      mode: "light",
-      fontFamily: "space-grotesk",
-      primaryColor: "#000000",
-      secondaryColor: "#ff0000",
-      textColor: "#000000",
-      mutedTextColor: "#333333",
-      cardBackground: "#ffffff",
-      cardBorderColor: "#000000",
-      linkStyle: "sharp",
-      radius: "0px",
-      borderWidth: "3px",
-      shadowStrength: "none",
-      hoverEffect: "lift",
-      letterSpacing: "1",
-      fontWeight: "700",
-    },
-    // 8. Retro Sunset
-    {
-      ...base,
-      name: "Retro Sunset",
-      backgroundType: "gradient",
-      backgroundValue: "#2d1b69,#ff006e,#ffbe0b",
-      backgroundAngle: "160deg",
-      fontFamily: "bebas",
-      primaryColor: "#ffbe0b",
-      secondaryColor: "#fb5607",
-      textColor: "#fff8e1",
-      mutedTextColor: "#ffd54f",
-      cardBackground: "rgba(0,0,0,0.4)",
-      cardBorderColor: "rgba(255,190,11,0.3)",
-      linkStyle: "rounded",
-      radius: "8px",
-      glow: "true",
-      glowColor: "#ffbe0b",
-      letterSpacing: "2",
-    },
-    // 9. Minimal Light
-    {
-      ...base,
-      name: "Minimal Light",
-      backgroundType: "solid",
-      backgroundValue: "#ffffff",
-      mode: "light",
-      fontFamily: "outfit",
-      primaryColor: "#6366f1",
-      secondaryColor: "#818cf8",
-      textColor: "#1e293b",
-      mutedTextColor: "#64748b",
-      cardBackground: "#ffffff",
-      cardBorderColor: "#e2e8f0",
-      linkStyle: "rounded",
-      radius: "12px",
-      borderWidth: "1px",
-      shadowStrength: "subtle",
-      hoverEffect: "lift",
-    },
-  ];
-
-  for (const preset of presets) {
-    db.insert(schema.themes).values(preset).run();
+  for (const preset of PRESETS) {
+    const { name, ...rest } = preset;
+    db.insert(schema.themes).values({ name, ...rest }).run();
   }
-  console.log(`✓ ${presets.length} theme presets created`);
+  console.log(`✓ ${PRESETS.length} theme presets created`);
 
   // Get theme IDs for page assignment
   const auroraTheme = db.select().from(schema.themes).where(sql`name = 'Aurora'`).get() as { id: number };
@@ -572,7 +371,7 @@ async function seed() {
   }
   console.log("✓ Click analytics generated");
 
-  console.log("\n✅ Demo seed complete (v1.2.2)!");
+  console.log("\n✅ Demo seed complete (v1.2.3)!");
   console.log("   Admin: demo / demo1234");
   console.log("   Page 1: /alex (Alex Rivera — Aurora theme)");
   console.log("   Page 2: /manak (Manak — Neon Cyberpunk theme)");

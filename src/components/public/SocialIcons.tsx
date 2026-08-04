@@ -14,6 +14,9 @@ interface SocialIconsProps {
  * Pure Server Component — zero client JavaScript.
  * Renders a horizontal row of social platform icon links.
  * All styling via theme tokens (CSS custom properties).
+ *
+ * Hover effect is CSS-based via the .lb-social-icon class so that
+ * prefers-reduced-motion can gate it (same pattern as link cards).
  */
 export function SocialIcons({ socialLinks }: SocialIconsProps) {
   if (!socialLinks || socialLinks.length === 0) return null;
@@ -35,9 +38,8 @@ export function SocialIcons({ socialLinks }: SocialIconsProps) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="${label}"
-          style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9999px;background:var(--lb-card-bg);color:var(--lb-text);border:var(--lb-border-width) solid var(--lb-card-border);transition:transform .15s ease,background .15s ease,border-color .15s ease;backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur))"
-          onmouseover="this.style.transform='translateY(-2px)';this.style.background='var(--lb-card-border)';this.style.borderColor='var(--lb-accent)'"
-          onmouseout="this.style.transform='none';this.style.background='var(--lb-card-bg)';this.style.borderColor='var(--lb-card-border)'"
+          class="lb-social-icon"
+          style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9999px;background:var(--lb-card-bg);color:var(--lb-text);border:var(--lb-border-width) solid var(--lb-card-border);transition:transform .15s ease,border-color .15s ease;backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur))"
         >${svg}</a>`;
 
         return (

@@ -266,7 +266,7 @@ export default async function PublicPage({ params }: PageProps) {
             )
           ) : (
             <p
-              className="text-center text-sm opacity-60"
+              className="text-center text-sm"
               style={{ color: "var(--lb-text-muted)" }}
             >
               No links yet.
@@ -280,7 +280,7 @@ export default async function PublicPage({ params }: PageProps) {
 
         {page.footerText ? (
           <footer
-            className="mt-10 text-center text-xs opacity-50"
+            className="mt-10 text-center text-xs"
             style={{ color: "var(--lb-text-muted)" }}
           >
             {page.footerText}

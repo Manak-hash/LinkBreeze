@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard bottom-row card watermark icons** — Top Links, Referrers, Devices, and Countries cards had missing or mismatched watermark icons (no icon, wrong icon, or small circle style). All four now have semantically correct watermark icons (Trophy, Share2, MonitorSmartphone, Globe) matching the top-row cards' size, position, and styling exactly.
 - **"All" range chart showing only 1-2 days** — The `rangeDayCount("all")` function assumed analytics timestamps were always in SQLite `datetime('now')` format (`YYYY-MM-DD HH:MM:SS`). When timestamps were stored in ISO format (e.g. from `.toISOString()`), the date parser produced `NaN`, causing the chart to show only 1 data point. Fixed the parser to handle both ISO and SQLite datetime formats, with an `isNaN` guard falling back to 30 days.
 - **Demo seed timestamps not backdated** — The demo seed script's 7-day analytics loop intended to spread data across the past week, but `createdAt` was never explicitly set on inserts, causing all records to default to `now()`. This compressed all analytics into a single day, making the "All" range chart show only 1 data point. Each pageview and click now gets a backdated `createdAt` timestamp spread across the appropriate day.
+- **Theme preset DB drift** — The demo seed script maintained its own hardcoded copy of all 9 theme definitions that had diverged significantly from the canonical `theme-presets.ts` (wrong colors, wrong fonts, wrong styles on every theme). Seed now imports directly from `PRESETS` so the DB always matches the source of truth.
+- **Avatar border hardcoded to Aurora gradient** — The avatar ring used `var(--aurora-grad)` (purple gradient) on all 9 themes. Now uses a new `--lb-avatar-border` CSS var computed from each theme's accent and secondary colors (`linear-gradient(135deg, accent, secondary)`).
+- **Badge used hardcoded `.glass` class** — The profile badge used the Aurora-specific `.glass` CSS class (dark purple) on all themes including light ones. Now uses `--lb-card-bg` and `--lb-card-border` for theme-aware styling.
+- **Display name overflow on phones** — The `<h1>` used Tailwind `text-3xl sm:text-4xl` (30-36px) which overflowed on narrow screens for display fonts (Bebas Neue at 120%, Brutalist). Now uses `calc(var(--lb-font-size) * 1.6)` so the heading scales with the theme's font size, plus `word-break: break-word` and `max-width: 100%` to prevent clipping.
+- **Double-dimmed text** — Bio, footer, and "no links" text used `opacity` classes on top of `--lb-text-muted`, causing double-dimming. Removed all `opacity` overrides; muted text now uses only the `--lb-text-muted` color.
+- **Link description double-dimmed** — Card descriptions used `opacity:.7` on top of `--lb-text` color. Now uses `--lb-text-muted` directly for consistent dimming.
+- **Social icons inline JS hover** — Social icon hover effects used `onmouseover`/`onmouseout` inline handlers, ignoring `prefers-reduced-motion`. Migrated to CSS-based `.lb-social-icon` class with the same reduced-motion gate as link cards.
+- **WCAG contrast failures on 6 themes** — Fixed color values to meet WCAG AA (4.5:1) contrast requirements:
+  - Aurora: primary `#533fd6` → `#7c5ff0` (2.75:1 → 4.5:1 on card)
+  - Pastel Soft: muted `#94a3b8` → `#64748b` (2.42:1 → 4.5:1), primary `#ec4899` → `#db2777` (3.32:1 → 4.5:1)
+  - Neon Cyberpunk: muted `#6b6b8d` → `#8585a3` (3.93:1 → 4.8:1)
+  - Terminal Mono: muted `#4a8a55` → `#5da669` (4.45:1 → 4.8:1)
+  - Minimal Light: primary `#3b82f6` → `#2563eb` (3.68:1 → 4.5:1)
+
+### Changed
+
+- **Glassmorphism card opacity** — Bumped from `rgba(255,255,255,0.08)` to `0.12` for better card visibility over mesh gradients. Border opacity `0.15` → `0.18`.
+- **Brutalist hover effect** — Changed from `lift` to `glow` with `glowColor: #000000` for a hard shadow punch matching the brutalist aesthetic. Added entrance animation (`animationType: lift`).
+- **Glow alpha** — Theme glow shadow opacity increased from `40` (25%) to `66` (40%) hex for more visible glow effects on Neon Cyberpunk and Retro Sunset.
 
 ### Security
 

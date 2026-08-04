@@ -323,7 +323,7 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
   // Glow effect
   const glowEnabled = truthy(theme.glow);
   const glowColor = str(theme.glowColor, accent);
-  const glowValue = glowEnabled ? `0 0 24px ${glowColor}40` : "none";
+  const glowValue = glowEnabled ? `0 0 24px ${glowColor}66` : "none";
 
   // Noise overlay
   const noiseEnabled = truthy(theme.noise);
@@ -350,6 +350,10 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-container-width": containerWidth,
     "--lb-alignment": alignment,
     "--lb-noise": noiseEnabled ? "1" : "0",
+    // Avatar border: gradient from accent to secondary
+    "--lb-avatar-border": `linear-gradient(135deg, ${accent}, ${secondary})`,
+    // Avatar glow (same as card glow but may differ)
+    "--lb-avatar-glow": glowValue,
   };
 
   // Keyframes for animated gradient backgrounds
