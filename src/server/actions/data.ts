@@ -344,9 +344,9 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
 
 /** Import a previously-exported theme, creating a new (inactive) copy. */
 export async function importTheme(json: string): Promise<ActionResult> {
+  if (!(await getSession())) return { success: false, error: "Unauthorized" };
   const demo = demoBlock();
   if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
 
   let parsed: unknown;
   try {

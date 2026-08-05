@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Save, ExternalLink } from "lucide-react";
 import { updateSettings } from "@/server/actions/settings";
 import { updatePageAction } from "@/server/actions/pages";
@@ -62,10 +63,12 @@ function FaviconUpload({
     >
       <div className="flex flex-wrap items-center gap-3">
         {faviconUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={faviconUrl}
             alt="Current favicon"
+            width={32}
+            height={32}
+            unoptimized
             className="size-8 rounded border border-border object-contain"
           />
         ) : null}

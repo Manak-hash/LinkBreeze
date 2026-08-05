@@ -16,7 +16,3 @@ export function sinceExpr(range: AnalyticsRange) {
   return sql`datetime('now', ${`-${days} days`})`;
 }
 
-/** Number of day-buckets to render for a range. */
-export function rangeDays(range: AnalyticsRange): number {
-  return range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
-}

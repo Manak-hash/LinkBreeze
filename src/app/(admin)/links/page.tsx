@@ -11,13 +11,16 @@ export default async function LinksPage({
   const { page: pageParam } = await searchParams;
 
   // Resolve active page from ?page= query param, default page, or first page.
-  const allPages = await getAllPages();
+  const [allPages, defaultPage] = await Promise.all([
+    getAllPages(),
+    getDefaultPage(),
+  ]);
   let activePageId: number;
   if (pageParam) {
     const found = allPages.find((p) => p.id === Number(pageParam));
-    activePageId = found ? found.id : (await getDefaultPage()).id;
+    activePageId = found ? found.id : defaultPage.id;
   } else {
-    activePageId = (await getDefaultPage()).id;
+    activePageId = defaultPage.id;
   }
 
   const links = await getAllLinks(activePageId);

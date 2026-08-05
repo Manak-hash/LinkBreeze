@@ -33,9 +33,9 @@ export function ExpandableSection({
 
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -44,7 +44,7 @@ export function ExpandableSection({
           }
         }}
         className={cn(
-          "group relative h-full cursor-pointer rounded-xl outline-none transition-transform hover:scale-[1.005] focus-visible:ring-2 focus-visible:ring-ring/50",
+          "group relative h-full w-full cursor-pointer rounded-xl text-left outline-none transition-transform hover:scale-[1.005] focus-visible:ring-2 focus-visible:ring-ring/50",
           className,
         )}
       >
@@ -52,7 +52,7 @@ export function ExpandableSection({
         <span className="pointer-events-none absolute right-2.5 top-2.5 flex size-6 items-center justify-center rounded-md bg-muted/50 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
           <Maximize2 className="size-3.5" />
         </span>
-      </div>
+      </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[80dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>

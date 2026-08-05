@@ -135,7 +135,7 @@ function TypographySection({ active }: { active: ThemeRow }) {
               className="peer sr-only"
             />
             <span
-              className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-all peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
+              className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-[border-color,background-color] peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
             >
               <span className="text-base font-bold">{font.sample}</span>
               {font.label}

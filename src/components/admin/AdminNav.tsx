@@ -33,7 +33,7 @@ export function AdminNav() {
         <Link
           key={item.href}
           href={`${item.href}${query}`}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-all hover:translate-x-0.5 hover:bg-violet/15 hover:text-lavender"
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[color,background-color,transform] hover:translate-x-0.5 hover:bg-violet/15 hover:text-lavender"
         >
           <item.icon className="size-4" />
           {item.label}

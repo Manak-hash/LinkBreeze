@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
+import Image from "next/image";
 import {
   GripVertical,
   Pencil,
@@ -104,10 +105,12 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
           {/* Favicon / Type icon */}
           <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted/50">
             {displaySrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={displaySrc}
                 alt=""
+                width={16}
+                height={16}
+                unoptimized
                 className="size-4 rounded-sm"
                 loading="lazy"
                 onError={(e) => {

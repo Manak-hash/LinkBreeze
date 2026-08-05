@@ -28,23 +28,8 @@ export const FONT_REGISTRY: Record<string, string> = {
   bebas: "var(--lb-font-bebas), Impact, sans-serif",
   sora: "var(--lb-font-sora), sans-serif",
   outfit: "var(--lb-font-outfit), sans-serif",
+  "press-start": "'Press Start 2P', var(--lb-font-press-start), monospace",
 };
-
-/** Display names for the UI font picker. */
-export const FONT_LABELS: Record<string, string> = {
-  inter: "Inter (Sans)",
-  poppins: "Poppins (Sans)",
-  playfair: "Playfair Display (Serif)",
-  jetbrains: "JetBrains Mono (Mono)",
-  "space-grotesk": "Space Grotesk (Sans)",
-  "dm-sans": "DM Sans (Sans)",
-  lora: "Lora (Serif)",
-  bebas: "Bebas Neue (Display)",
-  sora: "Sora (Sans)",
-  outfit: "Outfit (Sans)",
-};
-
-export const FONT_OPTIONS = Object.keys(FONT_REGISTRY);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -157,6 +142,8 @@ function resolveCardRadius(linkStyle: string, radius: string | null | undefined)
       return "12px";
     case "neon":
       return "12px";
+    case "pixel":
+      return "0px";
     case "rounded":
     default:
       return "12px";
@@ -350,10 +337,12 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-container-width": containerWidth,
     "--lb-alignment": alignment,
     "--lb-noise": noiseEnabled ? "1" : "0",
-    // Avatar border: gradient from accent to secondary
-    "--lb-avatar-border": `linear-gradient(135deg, ${accent}, ${secondary})`,
+    // Avatar border: solid accent ring (matches each theme's identity color)
+    "--lb-avatar-border": accent,
     // Avatar glow (same as card glow but may differ)
     "--lb-avatar-glow": glowValue,
+    // Pixel mode flag: "1" when linkStyle is pixel, used for global clip-paths
+    "--lb-pixel": linkStyle === "pixel" ? "1" : "0",
   };
 
   // Keyframes for animated gradient backgrounds
@@ -484,10 +473,4 @@ export function resolveBackground(theme: ThemeBackgroundInput): string {
     default:
       return NIGHT_BASE;
   }
-}
-
-/** Whether this theme's background is animated (needs extra CSS). */
-export function isAnimatedBackground(theme: ThemeBackgroundInput): boolean {
-  const t = theme.backgroundType;
-  return t === "aurora" || t === "animatedGradient";
 }

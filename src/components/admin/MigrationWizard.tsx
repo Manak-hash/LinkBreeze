@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { DownloadCloud, Link2, FileUp, Check, Loader2, AlertCircle } from "lucide-react";
 import {
   importPreviewUrl,
@@ -48,20 +49,22 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
     setLoading(true);
     setError(null);
 
-    const action = source === "url" ? importPreviewUrl : importPreviewFile;
-    const res = await action(null, formData);
+    try {
+      const action = source === "url" ? importPreviewUrl : importPreviewFile;
+      const res = await action(null, formData);
 
-    if (!res.success || !res.links) {
-      setError(res.error || "Failed to extract links");
+      if (!res.success || !res.links) {
+        setError(res.error || "Failed to extract links");
+        return;
+      }
+
+      setResult(res);
+      setLinks(res.links);
+      setSocialLinks(res.socialLinks || []);
+      setStep("preview");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setResult(res);
-    setLinks(res.links);
-    setSocialLinks(res.socialLinks || []);
-    setStep("preview");
-    setLoading(false);
   };
 
   const toggleLink = (idx: number, isSocial: boolean) => {
@@ -75,26 +78,28 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
     setLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.set("pageId", String(pageId));
-    formData.set("links", JSON.stringify(links));
-    formData.set("socialLinks", JSON.stringify(socialLinks));
+    try {
+      const formData = new FormData();
+      formData.set("pageId", String(pageId));
+      formData.set("links", JSON.stringify(links));
+      formData.set("socialLinks", JSON.stringify(socialLinks));
 
-    const res = await confirmImport(null, formData);
+      const res = await confirmImport(null, formData);
 
-    if (!res.success) {
-      setError(res.error || "Import failed");
+      if (!res.success) {
+        setError(res.error || "Import failed");
+        return;
+      }
+
+      setImportResult({
+        imported: res.importedCount || 0,
+        social: res.socialCount || 0,
+      });
+      setStep("done");
+      router.refresh();
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setImportResult({
-      imported: res.importedCount || 0,
-      social: res.socialCount || 0,
-    });
-    setStep("done");
-    setLoading(false);
-    router.refresh();
   };
 
   const reset = () => {
@@ -178,8 +183,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
               <div className="max-h-[300px] space-y-1 overflow-y-auto">
                 {links.map((link, i) => (
                   <label
-                    key={i}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-2 hover:bg-muted/50"
+                    key={link.url}
                   >
                     <input
                       type="checkbox"
@@ -188,10 +192,12 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
                       className="size-4 accent-primary"
                     />
                     {link.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={link.imageUrl}
                         alt=""
+                        width={32}
+                        height={32}
+                        unoptimized
                         className="size-8 shrink-0 rounded object-cover"
                         onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                       />
@@ -219,7 +225,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
               <div className="flex flex-wrap gap-2">
                 {socialLinks.map((link, i) => (
                   <label
-                    key={i}
+                    key={link.platform || link.url}
                     className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                       link.selected
                         ? "border-primary bg-primary/10"

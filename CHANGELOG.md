@@ -5,7 +5,40 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.3] - Unreleased
+## [1.2.3] - 2026-08-05
+
+### Added
+
+- **8-Bit Retro theme (preset #10)** — New retro gaming theme matching the ReactBits 8-bit template. Press Start 2P pixel font at 75% scale, white background (#ffffff), near-black text (#0a0a0a), orange accent (#ea580c). All UI elements use clip-path-based stepped L-corner notches instead of border-radius. Large elements (link cards, embeds, avatar) use 8px outer / 6px inner clip-path steps at 3px gap. Small elements (social icons, email input, badge, subscribe button) use 6px outer / 4px inner. Link cards and subscribe button feature hard 0-blur shadow hover effects.
+- **Pixel link style** — New `pixel` option added to the link style enum, theme constants, and theme customizer.
+- **Theme preview mockups in preset gallery** — Replaced the flat color-swatch gallery cards with a `ThemePreview` component that renders a mini phone mockup per theme showing actual background, avatar circle, name bar, and two fake link cards with the theme's real colors, border style (including pixel clip-path), and font family.
+- **Global scrollbar hiding** — All scrollbars hidden across browsers via `scrollbar-width: none` (Firefox), `-ms-overflow-style: none` (IE/Edge), and `::-webkit-scrollbar { display: none }` (Chrome/Safari/Opera). Pages still scroll normally.
+- **`--lb-pixel` CSS var flag** — Theme tokens now emit `--lb-pixel: "1"` when linkStyle is pixel, used by global CSS to activate clip-path rules.
+- **Demo data enrichment** — Seeded 11 countries with realistic US-heavy distribution across 560 pageviews (previously all null). Diversified referrers to 14 sources and adjusted device type weighting to mobile-heavy split.
+
+### Changed
+
+- **Avatar border simplified** — Changed from `linear-gradient(135deg, accent, secondary)` to a solid accent color ring for all themes.
+- **Social icon border radius** — Non-pixel social icons now use `var(--lb-card-radius)` instead of hardcoded `9999px`, respecting each theme's radius setting.
+- **Preset gallery cleanup** — Removed `backdrop-blur-xl` from gallery cards and dropped the unused `Palette` icon import and `swatchFor` helper.
+- **Brutalist letter spacing** — Corrected from `-0.5` to `0.5`.
+- **Dashboard and admin chart components** — Split Recharts into lazy-loaded inner components via `next/dynamic` so the heavy chart library only loads on the client when needed, not on initial page render.
+- **Sequential server queries parallelized** — 10 locations across admin pages and server actions where independent `await` calls were sequential now use `Promise.all()`, cutting server response time.
+- **Context provider values memoized** — `PreviewProvider` and `TabsContext` now wrap their context values in `useMemo()` to prevent unnecessary re-renders.
+- **`transition-all` replaced** — 4 admin components switched from `transition-all` to specific transition properties (colors, opacity, transform) to avoid browser layout thrashing.
+- **`map().filter(Boolean)` eliminated** — Public page JSON-LD now uses `flatMap()` for cleaner single-pass array processing.
+
+### Removed
+
+- **5 dead UI scaffolding files** — `avatar.tsx`, `dropdown-menu.tsx`, `skeleton.tsx`, `sonner.tsx`, `theme-background.ts` — all unused, zero imports across the codebase.
+- **`sonner` and `next-themes` npm dependencies** — Uninstalled after their component files were removed as dead code.
+- **10 unused exports** — Cleaned up non-component exports (`badgeVariants`, `buttonVariants`) that broke Fast Refresh, plus 8 other unused function/const exports.
+
+### Security
+
+- **iframe sandbox attributes** — All embed iframes (YouTube, Spotify, SoundCloud, Vimeo, Bandcamp) and the admin preview pane iframe now have `sandbox` attributes restricting their capabilities.
+- **CI pipeline hardened** — Lighthouse CI workflow now uses `--ignore-scripts` on npm install to prevent package lifecycle scripts from running near CI secrets.
+- **npm dependency overrides** — Bumped `fast-uri` to `^3.1.5` (ReDoS via backslash authority), `brace-expansion` to `^5.0.9` (DoS via unbounded arrays), and added `hono` override to `^4.12.34` (ReDoS in CORS middleware). `npm audit` now reports 0 vulnerabilities.
 
 ### Fixed
 
@@ -32,10 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Glassmorphism card opacity** — Bumped from `rgba(255,255,255,0.08)` to `0.12` for better card visibility over mesh gradients. Border opacity `0.15` → `0.18`.
 - **Brutalist hover effect** — Changed from `lift` to `glow` with `glowColor: #000000` for a hard shadow punch matching the brutalist aesthetic. Added entrance animation (`animationType: lift`).
 - **Glow alpha** — Theme glow shadow opacity increased from `40` (25%) to `66` (40%) hex for more visible glow effects on Neon Cyberpunk and Retro Sunset.
-
-### Security
-
-- **npm dependency overrides** — Bumped `fast-uri` to `^3.1.5` (ReDoS via backslash authority), `brace-expansion` to `^5.0.9` (DoS via unbounded arrays), and added `hono` override to `^4.12.34` (ReDoS in CORS middleware). `npm audit` now reports 0 vulnerabilities.
 
 ## [1.2.2] - 2026-08-02
 

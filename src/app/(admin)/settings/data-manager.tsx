@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Database, Download, Upload, Trash2, Save } from "lucide-react";
 import {
   restoreBackup,
@@ -112,14 +113,13 @@ export function DataManager({
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- download endpoint (Content-Disposition: attachment); a plain anchor is correct, <Link/> is for page navigation */}
-            <a
+            <Link
               href="/api/backup"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
             >
               <Download className="size-4" />
               Export backup
-            </a>
+            </Link>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted">
               <Upload className="size-4" />
               {restorePending ? "Restoring…" : "Restore backup"}
@@ -189,9 +189,12 @@ export function DataManager({
               Check for new releases on the dashboard.
             </p>
           </div>
-          <label className="relative inline-flex cursor-pointer items-center">
+          <label htmlFor="update-check" className="relative inline-flex cursor-pointer items-center">
             <input
+              id="update-check"
               type="checkbox"
+              role="switch"
+              aria-label="Enable update notifications"
               className="peer sr-only"
               defaultChecked={updateCheckEnabled}
               onChange={async (e) => {

@@ -91,8 +91,10 @@ export async function ensureDefaultPage(): Promise<PageRow> {
   if (existing[0]) return existing[0];
 
   const slug = (await getSetting("slug")) || "u";
-  const profileRow = await getProfile();
-  const activeTheme = await getActiveTheme();
+  const [profileRow, activeTheme] = await Promise.all([
+    getProfile(),
+    getActiveTheme(),
+  ]);
 
   const inserted = await db
     .insert(pages)
@@ -581,12 +583,12 @@ async function rangeDayCount(range: AnalyticsRange): Promise<number> {
     return range === "7d" ? 7 : range === "30d" ? 30 : 90;
   }
   // "all": span from the earliest analytics record to today (capped at 365).
-  const [pv] = await db
-    .select({ m: sql<string>`min(${analyticsPageviews.createdAt})` })
-    .from(analyticsPageviews);
-  const [cl] = await db
-    .select({ m: sql<string>`min(${analyticsClicks.createdAt})` })
-    .from(analyticsClicks);
+  const [pvRow, clRow] = await Promise.all([
+    db.select({ m: sql<string>`min(${analyticsPageviews.createdAt})` }).from(analyticsPageviews),
+    db.select({ m: sql<string>`min(${analyticsClicks.createdAt})` }).from(analyticsClicks),
+  ]);
+  const pv = pvRow[0];
+  const cl = clRow[0];
   const earliest = [pv?.m, cl?.m].filter(Boolean).sort()[0];
   if (!earliest) return 30;
   // Handle both ISO (2026-07-29T...) and SQLite datetime (2026-07-29 ...) formats
@@ -783,9 +785,11 @@ export async function getAnalyticsBreakdown(
   pageId?: number,
 ): Promise<AnalyticsBreakdown> {
   const clean = (rows: Array<{ label: string | null; count: number }>) =>
-    rows
-      .filter((r) => r.label && r.label.trim() !== "")
-      .map((r) => ({ label: r.label as string, count: Number(r.count) }));
+    rows.flatMap((r) =>
+      r.label && r.label.trim() !== ""
+        ? [{ label: r.label as string, count: Number(r.count) }]
+        : [],
+    );
 
   const since = sinceExpr(range);
   const pageCondition = pageId !== undefined ? eq(analyticsPageviews.pageId, pageId) : undefined;

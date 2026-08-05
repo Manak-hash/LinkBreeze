@@ -1,6 +1,3 @@
-import * as React from "react";
-import type { ThemeRow } from "@/server/queries";
-
 // ─── Constant option arrays ───────────────────────────────────────────────
 
 export const FONT_OPTIONS = [
@@ -14,6 +11,7 @@ export const FONT_OPTIONS = [
   { id: "bebas", label: "Bebas Neue", sample: "Aa" },
   { id: "sora", label: "Sora", sample: "Aa" },
   { id: "outfit", label: "Outfit", sample: "Aa" },
+  { id: "press-start", label: "Press Start 2P", sample: "8b" },
 ];
 
 export const BG_TYPES = [
@@ -34,6 +32,7 @@ export const LINK_STYLES = [
   { value: "glass", label: "Glass" },
   { value: "outline", label: "Outline" },
   { value: "neon", label: "Neon" },
+  { value: "pixel", label: "Pixel" },
 ];
 
 export const SHADOW_STRENGTHS = [
@@ -98,14 +97,3 @@ export const MODE_OPTIONS = [
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-export function swatchFor(theme: ThemeRow): React.CSSProperties {
-  const parts = theme.backgroundValue?.split(",") ?? [];
-  if (theme.backgroundType === "solid") return { background: parts[0] || "#0a0820" };
-  if (theme.backgroundType === "aurora") return { background: "#0a0820" };
-  if (theme.backgroundType === "mesh" || parts.length >= 3) {
-    return { background: `linear-gradient(135deg, ${theme.backgroundValue})` };
-  }
-  return {
-    background: `linear-gradient(135deg, ${theme.backgroundValue})`,
-  };
-}

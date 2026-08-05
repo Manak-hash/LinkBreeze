@@ -146,17 +146,19 @@ export async function confirmImport(
   let importedCount = 0;
 
   // Import page links.
-  for (const link of selectedLinks) {
-    await createLink({
-      title: link.title.slice(0, 100),
-      url: link.url,
-      pageId: page.id,
-      type: link.type || "url",
-      description: link.description?.slice(0, 200),
-      imageUrl: link.imageUrl,
-    });
-    importedCount++;
-  }
+  await Promise.all(
+    selectedLinks.map((link) =>
+      createLink({
+        title: link.title.slice(0, 100),
+        url: link.url,
+        pageId: page.id,
+        type: link.type || "url",
+        description: link.description?.slice(0, 200),
+        imageUrl: link.imageUrl,
+      }),
+    ),
+  );
+  importedCount = selectedLinks.length;
 
   // Merge social links into the page's socialLinks array.
   let socialCount = 0;

@@ -163,8 +163,11 @@ export async function changePassword(formData: FormData): Promise<ActionResult> 
 
   // Bump session version to invalidate any other sessions (e.g. stolen cookies)
   const { updateSetting, updateUserPassword } = await import("@/server/queries");
-  await updateUserPassword(user.id, newHash);
-  const currentVersion = Number(await getSetting("sessionVersion")) || 0;
+  const [, currentVersionRaw] = await Promise.all([
+    updateUserPassword(user.id, newHash),
+    getSetting("sessionVersion"),
+  ]);
+  const currentVersion = Number(currentVersionRaw) || 0;
   await updateSetting("sessionVersion", String(currentVersion + 1));
 
   // Re-issue the current session with the new version

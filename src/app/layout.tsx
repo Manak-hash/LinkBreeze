@@ -10,6 +10,7 @@ import {
   Bebas_Neue,
   Sora,
   Outfit,
+  Press_Start_2P,
 } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -132,6 +133,14 @@ const outfit = Outfit({
   preload: false,
 });
 
+const pressStart2P = Press_Start_2P({
+  variable: "--lb-font-press-start",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  preload: false,
+});
+
 export async function generateMetadata(): Promise<Metadata> {
   // Resolve the origin from request headers (or BASE_URL env) so metadata
   // resolves correctly on every self-hosted instance, not just the demo.
@@ -189,7 +198,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

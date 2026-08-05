@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ── Hide scrollbars everywhere (all browsers) ──────────────────────────── */
+/* Page still scrolls — only the ugly scrollbar track/thumb is hidden.       */
+* {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge legacy */
+}
+*::-webkit-scrollbar {
+  display: none;                   /* Chrome, Safari, Opera, Edge */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -167,6 +177,99 @@
 .lb-link-card[data-hover="scale"]:hover { transform: scale(1.02); }
 .lb-link-card[data-hover="glow"]:hover { box-shadow: 0 0 24px var(--lb-glow); }
 .lb-link-card[data-neon="true"]:hover { box-shadow: 0 0 24px var(--lb-accent); }
+
+/* ── Pixel (8-bit) hover: hard shadow, no blur ──────────────────────────── */
+.lb-link-card[data-pixel="true"]:hover { box-shadow: 6px 6px 0 var(--lb-accent); }
+
+/* ── Pixel mode (8-bit): clip-paths + wrapper-based borders ─────────────── */
+/* Pixel borders use a wrapper div with accent background + clip-path,       */
+/* with the content inset 3px inside. No GPU-expensive filters.              */
+
+/* Pixel clip-path for small elements (badge, social, email input) */
+main.lb-pixel-mode .lb-pixel-clip {
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+}
+
+/* Pixel subscribe button: orange bg + stepped corners + hard shadow */
+main.lb-pixel-mode button.lb-pixel-shadow {
+  background: var(--lb-accent) !important;
+  color: #fff !important;
+  border: none !important;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+  box-shadow: 4px 4px 0 var(--lb-text) !important;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+main.lb-pixel-mode button.lb-pixel-shadow:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--lb-text) !important;
+}
+/* Pixel email input: orange wrapper + stepped inner input */
+main.lb-pixel-mode .lb-pixel-input-wrap {
+  background: var(--lb-accent);
+  padding: 3px;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+}
+main.lb-pixel-mode .lb-pixel-input {
+  border: none !important;
+  border-radius: 0 !important;
+  background: var(--lb-card-bg) !important;
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 2px 4px, 2px 2px);
+}
+
+/* Pixel border wrapper for small elements (badge, social, email) */
+/* Outer element = orange layer with stepped clip-path */
+/* Inner element = card-bg layer with slightly smaller clip-path */
+main.lb-pixel-mode .lb-pixel-border {
+  position: relative;
+  background: var(--lb-accent) !important;
+  border: none !important;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+}
+main.lb-pixel-mode .lb-pixel-border > *:first-child {
+  background: var(--lb-card-bg);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px 4px, 0 4px);
+}
+/* Badge in pixel mode: orange bg, white text, no two-layer needed */
+main.lb-pixel-mode span.lb-pixel-border:not(:has(*)) {
+  background: var(--lb-accent);
+  color: #fff;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+}
+
+/* Pixel link card hover (wrapper-based, no filters needed) */
+.lb-pixel-card-wrap { transition: transform .15s ease, box-shadow .15s ease; }
+.lb-pixel-card-wrap:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--lb-accent) !important; }
+.lb-pixel-card-wrap .lb-link-card:hover { transform: none; }
+
+/* Pixel hover: hard shadow on buttons */
+main.lb-pixel-mode .lb-pixel-shadow {
+  box-shadow: 4px 4px 0 var(--lb-accent);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+main.lb-pixel-mode .lb-pixel-shadow:hover {
+  box-shadow: 6px 6px 0 var(--lb-accent);
+  transform: translate(-2px, -2px);
+}
+
+/* Pixel avatar: square with wrapper border */
+main.lb-pixel-mode .lb-pixel-avatar {
+  background: var(--lb-accent);
+  padding: 3px;
+  border: none !important;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px), 0 8px, 4px 8px, 4px 4px);
+}
+main.lb-pixel-mode .lb-pixel-avatar > img,
+main.lb-pixel-mode .lb-pixel-avatar > span {
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
+  border-radius: 0 !important;
+}
+
+/* In pixel mode, remove all border-radius */
+main.lb-pixel-mode .lb-pixel-clip,
+main.lb-pixel-mode .lb-pixel-avatar,
+main.lb-pixel-mode .lb-pixel-avatar img {
+  border-radius: 0 !important;
+}
 
 /* ── Social icon hover (CSS-based, same reduced-motion gate) ────────────── */
 .lb-social-icon:hover { transform: translateY(-2px); border-color: var(--lb-accent); }

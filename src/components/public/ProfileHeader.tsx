@@ -10,6 +10,9 @@ interface ProfileHeaderProps {
  * Renders avatar, display name, bio, and optional badge.
  * All colors come from theme tokens (CSS custom properties).
  *
+ * Pixel mode: adds lb-pixel-* classes so the CSS in globals.css applies
+ * pixel-stepped clip-paths and drop-shadow borders when --lb-pixel is "1".
+ *
  * The display name uses calc() from --lb-font-size so themes with large
  * fontScale (e.g. Retro Sunset 120%, Brutalist) get proportionally larger
  * headings without overflowing on mobile — no hardcoded Tailwind text-3xl.
@@ -24,29 +27,19 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       className="flex flex-col items-center text-center"
     >
       {profile.avatarUrl ? (
-        <Image
-          src={profile.avatarUrl}
-          alt={displayName}
-          width={96}
-          height={96}
-          unoptimized
-          className="mb-4 h-24 w-24 rounded-full object-cover"
-          style={{
-            padding: 3,
-            background: "var(--lb-avatar-border)",
-            boxShadow: "0 0 24px var(--lb-avatar-glow)",
-          }}
-          loading="eager"
-        />
+        <div className="lb-pixel-avatar mb-4 rounded-full p-0.5" style={{ border: "2px solid var(--lb-avatar-border, var(--lb-accent))" }}>
+          <Image
+            src={profile.avatarUrl}
+            alt={displayName}
+            width={90}
+            height={90}
+            unoptimized
+            className="block h-[90px] w-[90px] rounded-full object-cover"
+            loading="eager"
+          />
+        </div>
       ) : (
-        <div
-          className="mb-4 flex h-24 w-24 items-center justify-center rounded-full"
-          style={{
-            padding: 3,
-            background: "var(--lb-avatar-border)",
-            boxShadow: "0 0 24px var(--lb-avatar-glow)",
-          }}
-        >
+        <div className="lb-pixel-avatar mb-4 flex h-[90px] w-[90px] items-center justify-center rounded-full" style={{ border: "2px solid var(--lb-avatar-border, var(--lb-accent))" }}>
           <span
             className="flex h-full w-full items-center justify-center rounded-full text-3xl font-semibold"
             style={{ background: "var(--lb-card-bg)", color: "var(--lb-accent)" }}
@@ -58,11 +51,9 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 
       {badge ? (
         <span
-          className="mb-2 inline-block rounded-full px-3 py-0.5 text-xs font-medium"
+          className="lb-pixel-border mb-2 inline-block px-3 py-0.5 text-xs font-medium"
           style={{
             color: "var(--lb-text)",
-            background: "var(--lb-card-bg)",
-            border: "var(--lb-border-width) solid var(--lb-card-border)",
           }}
         >
           {badge}

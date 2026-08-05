@@ -44,6 +44,7 @@ export default async function AdminLayout({
 
   return (
     <PreviewProvider pages={pageList}>
+      <React.Suspense fallback={null}>
       <div className="dark relative min-h-dvh bg-background text-foreground">
         <AuroraBackground />
         {/* Full-bleed row: sidebar anchors to the left edge instead of floating
@@ -58,13 +59,17 @@ export default async function AdminLayout({
               </span>
             </div>
 
-            <AdminNav />
+            <React.Suspense fallback={null}>
+              <AdminNav />
+            </React.Suspense>
 
             <div className="border-t border-border pt-3 mb-3">
               <p className="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground">
                 Pages
               </p>
-              <PageSwitcher pages={pageList} />
+              <React.Suspense fallback={null}>
+                <PageSwitcher pages={pageList} />
+              </React.Suspense>
             </div>
 
             <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
@@ -94,7 +99,9 @@ export default async function AdminLayout({
                 <span className="font-heading font-semibold">LinkBreeze</span>
               </div>
               <div className="flex items-center gap-2">
-                <PageSwitcher pages={pageList} variant="compact" />
+                <React.Suspense fallback={null}>
+                  <PageSwitcher pages={pageList} variant="compact" />
+                </React.Suspense>
                 <form action={logout}>
                   <Button variant="ghost" size="icon-sm" type="submit">
                     <LogOut className="size-4" />
@@ -118,10 +125,13 @@ export default async function AdminLayout({
                 {children}
               </div>
             </main>
-            <MobileTabBar />
+            <React.Suspense fallback={null}>
+              <MobileTabBar />
+            </React.Suspense>
           </div>
         </div>
       </div>
+      </React.Suspense>
     </PreviewProvider>
   );
 }

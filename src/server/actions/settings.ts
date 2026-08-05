@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { demoBlock } from "@/lib/demo";
-import { updateSetting as updateSettingQuery, getSettings } from "@/server/queries";
+import { updateSetting as updateSettingQuery } from "@/server/queries";
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
@@ -66,10 +66,4 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   revalidatePath("/settings");
   revalidatePath("/");
   return { success: true };
-}
-
-/** Helper used by the settings page to hydrate the form. */
-export async function getSettingsForForm() {
-  if (!(await getSession())) return null;
-  return getSettings();
 }

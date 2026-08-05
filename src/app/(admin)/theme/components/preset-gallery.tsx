@@ -1,9 +1,8 @@
 "use client";
 
-import { Check, Palette, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Badge } from "@/components/ui/badge";
-import { swatchFor } from "../theme-constants";
 
 interface PresetGalleryProps {
   themes: ThemeRow[];
@@ -12,6 +11,74 @@ interface PresetGalleryProps {
   delPending: number | null;
   onSelect: (id: number) => void;
   onDeleteClick: (id: number) => void;
+}
+
+/**
+ * Build a mini visual preview of a theme using its actual tokens.
+ * Each card shows a tiny mockup: background swatch + 2-3 fake link cards
+ * with the theme's colors, border style, and font family.
+ */
+function ThemePreview({ theme }: { theme: ThemeRow }) {
+  // Build background
+  let bgStyle: React.CSSProperties;
+  if (theme.backgroundType === "solid") {
+    bgStyle = { background: theme.backgroundValue ?? "#0a0820" };
+  } else if (theme.backgroundType === "aurora") {
+    bgStyle = { background: theme.backgroundValue ?? "#0a0820" };
+  } else if (theme.backgroundType === "mesh" || (theme.backgroundValue?.split(",").length ?? 0) >= 3) {
+    bgStyle = { background: `linear-gradient(135deg, ${theme.backgroundValue})` };
+  } else {
+    bgStyle = { background: `linear-gradient(${theme.backgroundAngle ?? "135deg"}, ${theme.backgroundValue})` };
+  }
+
+  const radius = theme.radius ?? "12px";
+  const isPill = theme.linkStyle === "pill";
+  const isSharp = theme.linkStyle === "sharp";
+  const isPixel = theme.linkStyle === "pixel";
+
+  const cardRadius = isPill ? "9999px" : isSharp || isPixel ? "0px" : radius;
+
+  // Fake link card
+  const fakeCard: React.CSSProperties = {
+    background: theme.cardBackground ?? "rgba(255,255,255,0.1)",
+    padding: "4px 8px",
+    marginBottom: "4px",
+  };
+
+  if (isPixel) {
+    fakeCard.clipPath = "polygon(4px 0,calc(100% - 4px) 0,calc(100% - 4px) 2px,calc(100% - 2px) 2px,calc(100% - 2px) 4px,100% 4px,100% calc(100% - 4px),calc(100% - 2px) calc(100% - 4px),calc(100% - 2px) calc(100% - 2px),calc(100% - 4px) calc(100% - 2px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 2px),2px calc(100% - 2px),2px 4px,0 4px)";
+    fakeCard.boxShadow = `0 0 0 2px ${theme.cardBorderColor ?? "#ea580c"}`;
+  } else {
+    fakeCard.border = `1px solid ${theme.cardBorderColor ?? "rgba(255,255,255,0.1)"}`;
+    fakeCard.borderRadius = cardRadius;
+  }
+
+  return (
+    <div className="relative flex h-32 flex-col items-center justify-center overflow-hidden p-3" style={bgStyle}>
+      {/* Mini avatar circle */}
+      <div
+        className="mb-2 h-6 w-6 rounded-full"
+        style={{
+          background: theme.primaryColor ?? "#7c5ff0",
+          border: `2px solid ${theme.primaryColor ?? "#7c5ff0"}`,
+        }}
+      />
+      {/* Name bar */}
+      <div
+        className="mb-2 h-1.5 w-16 rounded-full"
+        style={{ background: theme.textColor ?? "#fff", opacity: 0.8 }}
+      />
+      {/* Fake link cards */}
+      <div className="w-full px-2">
+        <div style={fakeCard}>
+          <div className="h-1 w-full rounded-full" style={{ background: theme.textColor ?? "#fff", opacity: 0.5 }} />
+        </div>
+        <div style={{ ...fakeCard, marginBottom: 0 }}>
+          <div className="h-1 w-3/4 rounded-full" style={{ background: theme.primaryColor ?? "#7c5ff0", opacity: 0.7 }} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function PresetGallery({
@@ -29,7 +96,7 @@ export function PresetGallery({
         return (
           <div
             key={theme.id}
-            className="group relative overflow-hidden rounded-xl border border-border text-left backdrop-blur-xl transition-all hover:ring-2 hover:ring-ring/50 data-[active=true]:ring-2 data-[active=true]:ring-primary"
+            className="group relative overflow-hidden rounded-xl border border-border text-left transition-[border-color,box-shadow] hover:ring-2 hover:ring-ring/50 data-[active=true]:ring-2 data-[active=true]:ring-primary"
             data-active={isActive}
           >
             <button
@@ -38,31 +105,25 @@ export function PresetGallery({
               type="button"
               disabled={selecting === theme.id}
             >
-              <div
-                className="flex h-28 items-end p-3"
-                style={{ ...swatchFor(theme), color: theme.textColor ?? "#fff" }}
-              >
-                <span
-                  className="rounded-full px-2 py-0.5 text-xs font-medium backdrop-blur-sm"
-                  style={{ background: "rgba(0,0,0,0.25)", color: theme.textColor ?? "#fff" }}
-                >
-                  {theme.name}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 bg-card p-2.5">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Palette className="size-3" />
-                  <span className="capitalize">{theme.linkStyle}</span>
+              <ThemePreview theme={theme} />
+              <div className="bg-card p-2.5">
+                <div className="truncate text-sm font-medium text-foreground">{theme.name}</div>
+                <div className="mt-0.5 flex items-center justify-between gap-2">
+                  <span className="truncate text-xs capitalize text-muted-foreground">
+                    {theme.linkStyle} · {theme.fontFamily}
+                  </span>
+                  {isActive ? (
+                    <Badge className="shrink-0 border-transparent bg-[var(--aurora-grad)] text-white">
+                      <Check className="size-3" /> Active
+                    </Badge>
+                  ) : selecting === theme.id ? (
+                    <span className="shrink-0 text-xs text-muted-foreground">Applying...</span>
+                  ) : (
+                    <span className="shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                      Use
+                    </span>
+                  )}
                 </div>
-                {isActive ? (
-                  <Badge className="border-transparent bg-[var(--aurora-grad)] text-white">
-                    <Check className="size-3" /> Active
-                  </Badge>
-                ) : selecting === theme.id ? (
-                  <span className="text-xs text-muted-foreground">Applying…</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Use</span>
-                )}
               </div>
             </button>
             {/* Delete button for non-preset, non-active custom themes */}

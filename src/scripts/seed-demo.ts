@@ -48,7 +48,7 @@ async function seed() {
   }).run();
   console.log("✓ Admin user created (demo / demo1234)");
 
-  // ─── Themes — seed all 9 presets from the canonical source ─────
+  // ─── Themes — seed all 10 presets from the canonical source ─────
   // Import from theme-presets.ts so the seed never diverges from the
   // preset definitions that tests validate against.
   const { PRESETS } = await import("../lib/theme-presets");
@@ -61,7 +61,7 @@ async function seed() {
 
   // Get theme IDs for page assignment
   const auroraTheme = db.select().from(schema.themes).where(sql`name = 'Aurora'`).get() as { id: number };
-  const neonTheme = db.select().from(schema.themes).where(sql`name = 'Neon Cyberpunk'`).get() as { id: number };
+  const eightBitTheme = db.select().from(schema.themes).where(sql`name = '8-Bit Retro'`).get() as { id: number };
 
   // ─── Clean up the auto-created default page from migration 0007 ──
   // Migration creates a page with slug "u" from old profile/settings data.
@@ -116,7 +116,7 @@ async function seed() {
     avatarUrl: "https://avatars.githubusercontent.com/u/189721984?v=4",
     badgeText: "Developer",
     socialLinks: manakSocialLinks,
-    themeId: neonTheme?.id,
+    themeId: eightBitTheme?.id,
     orderIndex: 1,
     isDefault: false,
     isPublished: true,
@@ -126,7 +126,7 @@ async function seed() {
     emailCapture: false,
   }).returning({ id: schema.pages.id }).get();
   const manakPageId = manakPage.id;
-  console.log(`✓ Page 2 created: Manak (id=${manakPageId}, Neon Cyberpunk theme, 4 social links)`);
+  console.log(`✓ Page 2 created: Manak (id=${manakPageId}, 8-Bit Retro theme, 4 social links)`);
 
   // ─── Links for PAGE 1: Alex Rivera ──────────────
   const now = new Date();
@@ -272,7 +272,7 @@ async function seed() {
     {
       title: "LinkBreeze Demo — See It Live",
       url: "https://linkbreeze-demo.omnirise.dev/alex",
-      description: "Full demo with 9 themes, embeds, and analytics",
+      description: "Full demo with 10 themes, embeds, and analytics",
       type: "url",
       isHighlighted: false,
       orderIndex: 2,
@@ -289,7 +289,7 @@ async function seed() {
     },
     {
       title: "Get in touch",
-      url: "mailto:hello@omnirise.dev",
+      url: "mailto:manak@omnirise.dev",
       description: "Freelance work, collaborations, or just say hi",
       type: "email",
       isHighlighted: false,
@@ -321,11 +321,17 @@ async function seed() {
 
   // ─── Fake analytics (last 7 days, 2 pages) ──────
   const referrers = [
-    null, "https://instagram.com", "https://tiktok.com",
-    "https://youtube.com", null, "https://google.com", null,
-    "https://bsky.app", "https://x.com", "https://reddit.com",
+    null, null, "https://instagram.com", "https://tiktok.com",
+    "https://youtube.com", "https://google.com", "https://bsky.app",
+    "https://x.com", "https://reddit.com", "https://github.com",
+    "https://discord.com", "https://facebook.com", null, "https://t.co",
   ];
-  const devices = ["mobile", "mobile", "desktop", "mobile", "tablet"];
+  const devices = ["mobile", "mobile", "mobile", "desktop", "desktop", "tablet"];
+  const countries = [
+    "United States", "United States", "United States", "United Kingdom",
+    "Germany", "India", "India", "Japan", "Brazil", "Canada",
+    "France", "Australia", "Netherlands", "Singapore",
+  ];
 
   // Pageviews for both pages
   const nowMs = Date.now();
@@ -342,7 +348,7 @@ async function seed() {
           visitorHash: hash,
           referrer: referrers[Math.floor(Math.random() * referrers.length)],
           deviceType: devices[Math.floor(Math.random() * devices.length)],
-          country: null,
+          country: countries[Math.floor(Math.random() * countries.length)],
           pageId,
           createdAt: ts,
         }).run();
@@ -374,7 +380,7 @@ async function seed() {
   console.log("\n✅ Demo seed complete (v1.2.3)!");
   console.log("   Admin: demo / demo1234");
   console.log("   Page 1: /alex (Alex Rivera — Aurora theme)");
-  console.log("   Page 2: /manak (Manak — Neon Cyberpunk theme)");
+  console.log("   Page 2: /manak (Manak — 8-Bit Retro theme)");
   console.log("   Features showcased:");
   console.log("     - Multi-page support (2 pages, different themes)");
   console.log("     - Auto-favicon (real URLs → favicons load)");
@@ -383,7 +389,7 @@ async function seed() {
   console.log("     - Per-page SEO + email capture settings");
   console.log("     - 2 embed widgets (YouTube, Spotify)");
   console.log("     - Cross-page linking (/manak from Alex page)");
-  console.log("     - 9 theme presets available");
+  console.log("     - 10 theme presets available");
   console.log("     - Full 7-day analytics for both pages");
 }
 

@@ -7,7 +7,7 @@ import { addSubscriber } from "@/server/queries";
 export type SubscribeResult = { success: true } | { success: false; error: string };
 
 const subscribeSchema = z.object({
-  email: z.string().email("Please enter a valid email").max(320),
+  email: z.email("Please enter a valid email").max(320),
 });
 
 export async function subscribe(formData: FormData): Promise<SubscribeResult> {
@@ -39,17 +39,5 @@ export async function subscribe(formData: FormData): Promise<SubscribeResult> {
   }
 
   revalidatePath("/");
-  return { success: true };
-}
-
-export async function clearAllSubscribers(): Promise<
-  { success: true } | { success: false; error: string }
-> {
-  const { getSession } = await import("@/lib/auth");
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
-
-  const { clearSubscribers } = await import("@/server/queries");
-  await clearSubscribers();
-  revalidatePath("/settings");
   return { success: true };
 }

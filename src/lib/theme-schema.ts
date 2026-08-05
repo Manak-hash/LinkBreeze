@@ -59,7 +59,7 @@ export const customSchema = z.object({
   letterSpacing: z.string().max(10).optional(),
   // Card
   linkStyle: z
-    .enum(["pill", "rounded", "sharp", "glass", "outline", "neon"])
+    .enum(["pill", "rounded", "sharp", "glass", "outline", "neon", "pixel"])
     .optional(),
   animationType: z.enum(["lift", "scale", "none"]).optional(),
   radius: z.string().max(20).optional(),

@@ -540,18 +540,19 @@ function extractProfileMeta(
   return { name, bio, avatar };
 }
 
-function findNestedKey(obj: unknown, keys: string[]): unknown {
+function findNestedKey(obj: unknown, keys: string[] | Set<string>): unknown {
   if (!obj || typeof obj !== "object") return null;
+  const keySet = keys instanceof Set ? keys : new Set(keys);
   if (Array.isArray(obj)) {
     for (const item of obj) {
-      const found = findNestedKey(item, keys);
+      const found = findNestedKey(item, keySet);
       if (found) return found;
     }
     return null;
   }
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-    if (keys.includes(k) && v && typeof v === "string" && v.length > 0) return v;
-    const nested = findNestedKey(v, keys);
+    if (keySet.has(k) && v && typeof v === "string" && v.length > 0) return v;
+    const nested = findNestedKey(v, keySet);
     if (nested) return nested;
   }
   return null;

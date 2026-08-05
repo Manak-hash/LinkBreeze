@@ -7,8 +7,6 @@ import { demoBlock } from "@/lib/demo";
 import {
   createPage as createPageQuery,
   updatePage as updatePageQuery,
-  deletePage as deletePageQuery,
-  reorderPages as reorderPagesQuery,
   getAllPages,
 } from "@/server/queries";
 
@@ -138,36 +136,6 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   return { success: true };
 }
 
-export async function deletePageAction(pageId: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
-
-  try {
-    await deletePageQuery(pageId);
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete page" };
-  }
-
-  revalidatePath("/links");
-  revalidatePath("/dashboard");
-  revalidatePath("/");
-  return { success: true };
-}
-
-export async function setDefaultPageAction(pageId: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
-
-  await updatePageQuery(pageId, { isDefault: true });
-
-  revalidatePath("/links");
-  revalidatePath("/dashboard");
-  revalidatePath("/");
-  return { success: true };
-}
-
 export async function setPageThemeAction(pageId: number, themeId: number): Promise<ActionResult> {
   const demo = demoBlock();
   if (demo) return { success: false, error: demo };
@@ -177,15 +145,5 @@ export async function setPageThemeAction(pageId: number, themeId: number): Promi
 
   revalidatePath("/theme");
   revalidatePath(`/`);
-  return { success: true };
-}
-
-export async function reorderPagesAction(orderedIds: number[]): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
-
-  await reorderPagesQuery(orderedIds);
-  revalidatePath("/links");
   return { success: true };
 }

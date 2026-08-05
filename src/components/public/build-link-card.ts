@@ -102,6 +102,7 @@ export function buildLinkCardHtml(options: {
   // Neon style: glowing border
   const isNeon = linkStyle === "neon";
   const isGlass = linkStyle === "glass";
+  const isPixel = linkStyle === "pixel";
 
   const border = link.isHighlighted
     ? `var(--lb-border-width) solid var(--lb-accent)`
@@ -118,7 +119,7 @@ export function buildLinkCardHtml(options: {
 
   // CSS-based hover effects (class + data attributes) — replaces inline
   // onmouseover/onmouseout so prefers-reduced-motion can gate them.
-  const hoverAttrs = ` class="lb-link-card" data-hover="${hoverEffect}"${isNeon ? ` data-neon="true"` : ""}`;
+  const hoverAttrs = ` class="lb-link-card" data-hover="${hoverEffect}"${isNeon ? ` data-neon="true"` : ""}${isPixel ? ` data-pixel="true"` : ""}`;
 
   const imageUrl = link.imageUrl ?? "";
   const hasImage = !!imageUrl;
@@ -138,6 +139,14 @@ export function buildLinkCardHtml(options: {
       ? `backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur));`
       : "";
 
+  // Pixel style: stepped clip-path corners (the ReactBits 8-bit signature look)
+  // For pixel cards: wrap in a div that acts as the orange border layer.
+  // The inner <a> is inset 3px with its own clip-path, creating a stepped
+  // orange border without expensive GPU filters.
+  const pixelClip = isPixel
+    ? `clip-path:polygon(8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px),0 8px,4px 8px,4px 4px);`
+    : "";
+
   // Layout differs: cards with thumbnail use block layout (image on top,
   // content row below). Cards without thumbnail use flex directly on the <a>.
   const display = hasImage
@@ -152,6 +161,31 @@ export function buildLinkCardHtml(options: {
     ? `${image}\n  <div style="display:flex;align-items:center;padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x)">\n    ${contentRow}\n  </div>`
     : contentRow;
 
+  if (isPixel) {
+    // Pixel cards: wrap <a> in a div that serves as the orange border layer.
+    // The div has the accent background + outer clip-path.
+    // The <a> is positioned inside with inset:3px + inner clip-path.
+    return `<div class="lb-pixel-card-wrap" style="position:relative;margin:0 0 var(--lb-spacing);${pixelClip}">
+  <div style="position:absolute;inset:0;background:var(--lb-accent);${pixelClip};z-index:0"></div>
+  <a
+    href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
+    style="
+      ${display};text-decoration:none;width:calc(100% - 6px);box-sizing:border-box;
+      ${paddingStyle}
+      position:relative;z-index:1;
+      background:var(--lb-card-bg);border:none;border-radius:0;
+      color:var(--lb-text);transition:transform .15s ease,box-shadow .15s ease;
+      margin:3px;
+      clip-path:polygon(6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),0 6px,3px 6px,3px 3px);
+      box-shadow:4px 4px 0 var(--lb-accent);
+      ${reveal}
+    "
+  >
+    ${innerContent}
+  </a>
+</div>`;
+  }
+
   return `<a
   href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
   style="
@@ -159,7 +193,7 @@ export function buildLinkCardHtml(options: {
     ${paddingStyle}margin:0 0 var(--lb-spacing);
     background:var(--lb-card-bg);border:${border};border-radius:var(--lb-card-radius);
     color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-    ${backdropBlur}${overflow}${reveal}
+    ${backdropBlur}${overflow}${pixelClip}${reveal}
   "
 >
   ${innerContent}

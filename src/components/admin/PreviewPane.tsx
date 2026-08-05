@@ -40,6 +40,21 @@ export function PreviewProvider({
   pages: PageMeta[];
   children: React.ReactNode;
 }) {
+  return (
+    <ActivePageResolver pages={pages}>
+      {children}
+    </ActivePageResolver>
+  );
+}
+
+/** Reads search params — must be inside <Suspense> (the layout wraps us). */
+function ActivePageResolver({
+  pages,
+  children,
+}: {
+  pages: PageMeta[];
+  children: React.ReactNode;
+}) {
   const searchParams = useSearchParams();
   const pageId = searchParams.get("page");
 
@@ -55,14 +70,16 @@ export function PreviewProvider({
   const [manualReload, setManualReload] = React.useState(0);
   const reload = React.useCallback(() => setManualReload((k) => k + 1), []);
 
-  // Reload key combines page id with manual reload count so changing
-  // pages OR clicking refresh both re-render the iframe.
   const reloadKey = `${activePage?.id ?? 0}-${manualReload}`;
-
   const previewUrl = activePage ? `/${activePage.slug}` : null;
 
+  const contextValue = React.useMemo(
+    () => ({ reload, open, setOpen, previewUrl }),
+    [reload, open, previewUrl],
+  );
+
   return (
-    <PreviewContext.Provider value={{ reload, open, setOpen, previewUrl }}>
+    <PreviewContext.Provider value={contextValue}>
       {children}
       {previewUrl && open && (
         <PreviewOverlay
@@ -190,6 +207,7 @@ function PhoneFrame({ src }: { src: string }) {
           title="Live preview"
           className="h-full w-full border-0"
           loading="lazy"
+          sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
         />
       </div>
     </div>

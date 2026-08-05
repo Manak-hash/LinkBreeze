@@ -234,7 +234,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
             {socialLinks.length > 0 && (
               <div className="flex flex-col gap-2">
                 {socialLinks.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={`${item.platform}-${item.url}`} className="flex items-center gap-2">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet/15 text-lavender">
                       <PlatformIcon platform={item.platform as SocialPlatform} />
                     </div>

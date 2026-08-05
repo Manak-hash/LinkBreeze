@@ -14,9 +14,11 @@ export async function register() {
   // Only run in the Node.js runtime — skip the edge runtime entirely.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const { db } = await import("@/db");
-  const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
-  const path = await import("path");
+  const [{ db }, { migrate }, path] = await Promise.all([
+    import("@/db"),
+    import("drizzle-orm/better-sqlite3/migrator"),
+    import("path"),
+  ]);
 
   // Works in both runtimes:
   //  - standalone (node server.js): cwd is /app → /app/src/db/migrations

@@ -18,8 +18,10 @@ export async function GET(
         "localhost"
       ).toString()}`;
 
-  const page = await getPageBySlug(slug);
-  const theme = await getActiveTheme();
+  const [page, theme] = await Promise.all([
+    getPageBySlug(slug),
+    getActiveTheme(),
+  ]);
 
   const name = page?.title || "LinkBreeze";
   const bio = page?.bio || "All my links in one place";

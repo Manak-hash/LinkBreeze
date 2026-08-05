@@ -31,6 +31,7 @@ export function ColorField({
       <div className="flex items-center gap-2">
         <input
           type="color"
+          aria-label={label}
           value={allowRgba ? "#000000" : (val?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000")}
           onChange={(e) => setVal(e.target.value)}
           className="size-9 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent"
@@ -97,6 +98,7 @@ export function ToggleField({
         type="button"
         role="switch"
         aria-checked={on}
+        aria-label={label}
         onClick={() => setOn(!on)}
         className={`relative h-6 w-11 rounded-full transition-colors ${
           on ? "bg-primary" : "bg-muted"
@@ -142,6 +144,7 @@ export function SliderField({
       </div>
       <input
         type="range"
+        aria-label={label}
         name={name}
         value={val}
         min={min}

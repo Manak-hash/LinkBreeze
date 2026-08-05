@@ -57,28 +57,18 @@ export function LinksManager({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    // Compute the reordered array from prev inside setItems so we read the
-    // current (non-stale) state. Use the same array for both state update and
-    // persistence — previously `items.map(...)` below read the stale closure
-    // value, sending the OLD order to the server. The result is captured in a
-    // holder object because TS control-flow narrowing keeps a `let` pinned to
-    // its initial value across a callback assignment.
-    const result: { value: LinkRow[] | null } = { value: null };
-    setItems((prev) => {
-      const oldIndex = prev.findIndex((l) => l.id === active.id);
-      const newIndex = prev.findIndex((l) => l.id === over.id);
-      if (oldIndex < 0 || newIndex < 0) {
-        result.value = null;
-        return prev;
-      }
-      result.value = arrayMove(prev, oldIndex, newIndex);
-      return result.value;
-    });
+    // Compute the reordered array from the current `items` closure value,
+    // outside the setState updater. React may double-invoke updater functions
+    // (Strict Mode), so side effects must not live inside setItems().
+    const oldIndex = items.findIndex((l) => l.id === active.id);
+    const newIndex = items.findIndex((l) => l.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
 
-    if (result.value) {
-      await reorderLinks(result.value.map((l) => l.id));
-      reloadPreview();
-    }
+    const reordered = arrayMove(items, oldIndex, newIndex);
+    setItems(reordered);
+
+    await reorderLinks(reordered.map((l) => l.id));
+    reloadPreview();
   };
 
   const openEdit = (link: LinkRow) => {

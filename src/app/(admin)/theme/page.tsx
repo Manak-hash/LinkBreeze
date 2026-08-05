@@ -21,13 +21,16 @@ export default async function ThemePage({
   const { page: pageParam } = await searchParams;
 
   // Resolve active page.
-  const allPages = await getAllPages();
+  const [allPages, defaultPage] = await Promise.all([
+    getAllPages(),
+    getDefaultPage(),
+  ]);
   let activePage;
   if (pageParam) {
     activePage = allPages.find((p) => p.id === Number(pageParam));
   }
   if (!activePage) {
-    activePage = (await getDefaultPage()) ?? allPages[0];
+    activePage = defaultPage ?? allPages[0];
   }
 
   const [themes, active] = await Promise.all([getAllThemes(), getActiveTheme()]);

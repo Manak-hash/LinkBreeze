@@ -1,5 +1,5 @@
 /**
- * Theme preset definitions — the 9 built-in themes.
+ * Theme preset definitions — the 10 built-in themes.
  *
  * Extracted from src/server/queries/index.ts (seedThemesIfEmpty) so the
  * presets can be imported by tests without dragging in the "server-only"
@@ -237,7 +237,7 @@ export const PRESETS: ThemePreset[] = [
     shadowStrength: "none",
     buttonSize: "lg",
     fontWeight: "700",
-    letterSpacing: "-0.5",
+    letterSpacing: "0.5",
     hoverEffect: "glow",
     glow: "true",
     glowColor: "#000000",
@@ -285,6 +285,39 @@ export const PRESETS: ThemePreset[] = [
     shadowStrength: "subtle",
     hoverEffect: "lift",
     fontWeight: "500",
+  },
+  // ── 10. 8-Bit Retro ──────────────────────────────────────────────────
+  // Pixel-perfect retro gaming aesthetic. Press Start 2P font, stepped
+  // clip-path corners, hard 0-blur shadows. Light mode matching the
+  // ReactBits 8-bit template: white bg, near-black text, orange accent.
+  // Card borders are orange so accent color dominates the visual.
+  {
+    ...base,
+    mode: "light",
+    name: "8-Bit Retro",
+    backgroundType: "solid",
+    backgroundValue: "#ffffff",
+    fontFamily: "press-start",
+    primaryColor: "#ea580c",
+    secondaryColor: "#0a0a0a",
+    cardBackground: "#ffffff",
+    cardBorderColor: "#ea580c",
+    textColor: "#0a0a0a",
+    mutedTextColor: "#737373",
+    linkStyle: "pixel",
+    animationType: "lift",
+    radius: "0px",
+    borderWidth: "3px",
+    shadowStrength: "none",
+    hoverEffect: "lift",
+    glow: "false",
+    glowColor: "#ea580c",
+    blur: "0px",
+    fontWeight: "400",
+    fontScale: "75",
+    letterSpacing: "0",
+    buttonSize: "md",
+    containerWidth: "480px",
   },
 ];
 

@@ -57,7 +57,7 @@ jobs:
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
         run: |
-          npm install -g @lhci/cli@0.15.x
+          npm install -g @lhci/cli@0.15.x --ignore-scripts
           lhci autorun --upload.target=temporary-public-storage || echo "LHCI warnings — check report artifact"
 
       - name: Upload Lighthouse report

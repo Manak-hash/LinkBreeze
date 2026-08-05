@@ -12,6 +12,7 @@ import {
   Minus,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import {
   getDashboardStats,
   getPreviousStats,
@@ -175,10 +176,12 @@ function FaviconForLabel({ label }: { label: string }) {
   const domain = label.includes(".") ? label : null;
   if (!domain) return null;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
       alt=""
+      width={16}
+      height={16}
+      unoptimized
       className="size-4 shrink-0 rounded-sm"
       loading="lazy"
     />
@@ -216,7 +219,7 @@ function BreakdownList({
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-[var(--aurora-grad)] transition-all"
+                className="h-full rounded-full bg-[var(--aurora-grad)] transition-[width]"
                 style={{ width: `${pct}%` }}
               />
             </div>

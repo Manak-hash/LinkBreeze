@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const RANGES = [
@@ -10,11 +10,10 @@ const RANGES = [
   { value: "all", label: "All" },
 ] as const;
 
-/** Segmented range control. Preserves the current route via usePathname, so it
- *  works on both /dashboard and /links/[id]. */
+/** Segmented range control. Preserves the current route via window.location,
+ *  so it works on both /dashboard and /links/[id]. */
 export function RangePicker({ current }: { current: string }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   return (
     <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
@@ -25,7 +24,7 @@ export function RangePicker({ current }: { current: string }) {
             key={r.value}
             type="button"
             aria-pressed={active}
-            onClick={() => router.push(`${pathname}?range=${r.value}`)}
+            onClick={() => router.push(`${window.location.pathname}?range=${r.value}`)}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               active

@@ -5,6 +5,8 @@ import { getAllSubscribers } from "@/server/queries";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const CSV_HEADER = ["email", "subscribed_at"];
+
 function csvCell(v: unknown): string {
   const s = v == null ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -17,10 +19,9 @@ export async function GET() {
   }
 
   const rows = await getAllSubscribers();
-  const header = ["email", "subscribed_at"];
   const lines = rows.map((r) => [r.email, r.createdAt].map(csvCell).join(","));
 
-  const csv = [header.join(","), ...lines].join("\n");
+  const csv = [CSV_HEADER.join(","), ...lines].join("\n");
   const today = new Date().toISOString().slice(0, 10);
 
   return new NextResponse(csv, {

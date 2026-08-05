@@ -196,7 +196,7 @@ export default async function PublicPage({ params }: PageProps) {
       name: page.title || undefined,
       description: page.bio || undefined,
       image: page.avatarUrl || undefined,
-      sameAs: socialLinks.map((s) => s.url).filter(Boolean),
+      sameAs: socialLinks.flatMap((s) => (s.url ? [s.url] : [])),
     },
   };
 
@@ -225,7 +225,7 @@ export default async function PublicPage({ params }: PageProps) {
           minHeight: "100vh",
           boxSizing: "border-box",
         }}
-        className="relative flex w-full flex-col"
+        className={`relative flex w-full flex-col${themeInput.linkStyle === "pixel" ? " lb-pixel-mode" : ""}`}
         data-alignment={themeInput.alignment || "center"}
       >
       <div
@@ -240,7 +240,7 @@ export default async function PublicPage({ params }: PageProps) {
 
         {socialLinks.length > 0 ? (
           <div className="mb-8 mt-6">
-            <SocialIcons socialLinks={socialLinks} />
+            <SocialIcons socialLinks={socialLinks} theme={themeInput} />
           </div>
         ) : null}
 
@@ -254,6 +254,7 @@ export default async function PublicPage({ params }: PageProps) {
                   title={link.title}
                   index={i}
                   animationType={theme?.animationType || "lift"}
+                  theme={themeInput}
                 />
               ) : (
                 <LinkCard

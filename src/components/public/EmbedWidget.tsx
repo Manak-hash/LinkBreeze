@@ -1,9 +1,12 @@
 
+import type { ThemeInput } from "@/lib/theme-tokens";
+
 interface EmbedWidgetProps {
   url: string;
   title: string;
   index: number;
   animationType: string;
+  theme?: ThemeInput;
 }
 
 /**
@@ -96,9 +99,11 @@ function buildEmbedUrl(url: string): { src: string; aspect: string; provider: st
   }
 }
 
-export function EmbedWidget({ url, title, index, animationType }: EmbedWidgetProps) {
+export function EmbedWidget({ url, title, index, animationType, theme }: EmbedWidgetProps) {
   const embed = buildEmbedUrl(url);
   if (!embed) return null;
+
+  const isPixel = theme?.linkStyle === "pixel";
 
   const reveal =
     animationType === "none"
@@ -112,26 +117,19 @@ export function EmbedWidget({ url, title, index, animationType }: EmbedWidgetPro
   // Only render a caption for providers that don't (SoundCloud, Bandcamp).
   const showCaption = embed.provider === "soundcloud" || embed.provider === "bandcamp";
 
-  return (
-    <div
-      className="overflow-hidden"
-      style={{
-        animation: reveal || undefined,
-        animationDelay: delay,
-        background: "var(--lb-card-bg)",
-        border: "var(--lb-border-width) solid var(--lb-card-border)",
-        borderRadius: "var(--lb-card-radius)",
-        backdropFilter: "blur(var(--lb-blur))",
-        WebkitBackdropFilter: "blur(var(--lb-blur))",
-        margin: "0 0 var(--lb-spacing)",
-      }}
-    >
+  // Pixel clip-paths
+  const pixelOuterClip = "polygon(8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px),0 8px,4px 8px,4px 4px)";
+  const pixelInnerClip = "polygon(6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),0 6px,3px 6px,3px 3px)";
+
+  const iframeContent = (
+    <>
       {isFixed ? (
         <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
           <iframe
             src={embed.src}
             title={title}
             loading="lazy"
+            sandbox="allow-scripts allow-popups allow-presentation"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             style={{
@@ -149,8 +147,9 @@ export function EmbedWidget({ url, title, index, animationType }: EmbedWidgetPro
           src={embed.src}
           title={title}
           loading="lazy"
+          sandbox="allow-scripts allow-popups allow-presentation"
           allow="autoplay"
-          style={{ width: "100%", height: `${embed.height}px`, border: 0 }}
+          style={{ width: "100%", height: `${embed.height}px`, border: 0, display: "block" }}
         />
       )}
       {showCaption ? (
@@ -166,6 +165,60 @@ export function EmbedWidget({ url, title, index, animationType }: EmbedWidgetPro
           {title}
         </p>
       ) : null}
+    </>
+  );
+
+  // Pixel mode: two-layer wrapper (orange outer + white inner, both clipped)
+  if (isPixel) {
+    return (
+      <div
+        className="lb-pixel-embed-wrap"
+        style={{
+          position: "relative",
+          margin: "0 0 var(--lb-spacing)",
+          animation: reveal || undefined,
+          animationDelay: delay,
+          clipPath: pixelOuterClip,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "var(--lb-accent)",
+            clipPath: pixelOuterClip,
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            margin: "3px",
+            background: "var(--lb-card-bg)",
+            clipPath: pixelInnerClip,
+            overflow: "hidden",
+          }}
+        >
+          {iframeContent}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        animation: reveal || undefined,
+        animationDelay: delay,
+        background: "var(--lb-card-bg)",
+        border: "var(--lb-border-width) solid var(--lb-card-border)",
+        borderRadius: "var(--lb-card-radius)",
+        backdropFilter: "blur(var(--lb-blur))",
+        WebkitBackdropFilter: "blur(var(--lb-blur))",
+        margin: "0 0 var(--lb-spacing)",
+      }}
+    >
+      {iframeContent}
     </div>
   );
 }

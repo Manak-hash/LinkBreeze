@@ -20,8 +20,12 @@ export function Tabs({
   className?: string;
 }) {
   const [value, setValue] = React.useState(defaultValue);
+  const contextValue = React.useMemo(
+    () => ({ value, setValue }),
+    [value],
+  );
   return (
-    <TabsContext.Provider value={{ value, setValue }}>
+    <TabsContext.Provider value={contextValue}>
       <div className={cn("flex flex-col", className)}>{children}</div>
     </TabsContext.Provider>
   );
