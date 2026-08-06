@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/Public-Page-iPhone-Dashboard-iMac(-10MB).png" alt="Banner" width="100%" />
+<img src="public/Public-Page-iPhone-Dashboard-iMac.png" alt="Banner" width="100%" />
 
 ---
 
@@ -310,7 +310,7 @@ cloudflared tunnel --url http://localhost:3000
     <td>Admin Dashboard</td>
     </tr>
     <tr>
-    <td><img src="public/screenshots/Public-Page.jpeg" alt="Public Page" /></td>
+    <td><img src="public/screenshots/Public-Page(Aurora).jpeg" alt="Public Page [Aurora Theme]" /></td>
     <td><img src="public/screenshots/Admin-Dashboard.jpeg" alt="Admin Dashboard" /></td>
     </tr>
     <tr>
@@ -323,11 +323,26 @@ cloudflared tunnel --url http://localhost:3000
     </tr>
     <tr>
     <td>Theme</td>
-    <td>Settings</td>
+    <td>Live Preview Pane</td>
     </tr>
     <tr>
-    <td><img src="public/screenshots/Theme-Picker.jpeg" alt="Theme Picker" /></td>
-    <td><img src="public/screenshots/Settings.jpeg" alt="Settings Page" /></td>
+    <td><img src="public/screenshots/Theme.jpeg" alt="Theme Page" /></td>
+    <td><img src="public/screenshots/Preview.jpeg" alt="Live Preview Pane" /></td>
+    </tr>
+    <tr>
+    <td>Settings [General]</td>
+    <td>Settings [Appearance]</td>
+    </tr>
+    <tr>
+    <td><img src="public/screenshots/Settings(General).jpeg" alt="Settings Page [General Tab]" /></td>
+    <td><img src="public/screenshots/Settings(Appearance).jpeg" alt="Settings Page [Appearance Tab]" /></td>
+    <tr>
+    <td>Settings [Security]</td>
+    <td>Settings [Data]</td>
+    </tr>
+    <tr>
+    <td><img src="public/screenshots/Settings(Security).jpeg" alt="Settings Page [Security Tab]" /></td>
+    <td><img src="public/screenshots/Settings(Data).jpeg" alt="Settings Page [Data Tab]" /></td>
     </tr>
 </table>
 
