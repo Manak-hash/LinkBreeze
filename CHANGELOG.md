@@ -5,6 +5,30 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-08-09
+
+### Added
+
+- **UTM Parameter Builder (#49)** — URL-type links in the link editor now have an optional UTM parameter section (toggled via a Switch). Five fields: source, medium, campaign, term (optional), content (optional). Values are appended to the URL client-side before the server action fires (no DB migration needed). When editing a link that already has UTM params embedded, the builder auto-detects them, strips them from the URL field display, and pre-fills the UTM inputs. The builder only appears for `type: "url"` links.
+- **Content-Security-Policy (Report-Only)** — A CSP header is now sent in Report-Only mode on all public and admin pages. Restricts script-src, style-src, img-src, font-src, connect-src, frame-src (whitelisted embed providers only), frame-ancestors, base-uri, form-action, and object-src. Shipped as Report-Only first to observe real-world violations before enforcing. Includes `'unsafe-inline'` for script-src and style-src (required by Next.js inline styles and sendBeacon click tracking); nonce/hash-based CSP is a future hardening step.
+- **Dynamic robots.txt route** — Replaced the static `public/robots.txt` with a Next.js route handler (`src/app/robots.ts`). The static file had a relative `Sitemap: /sitemap.xml` URL, which is invalid (Google requires absolute URLs). For a self-hosted product where every instance has a different domain, a static file cannot produce a valid absolute sitemap URL. The route resolves the origin from `BASE_URL` or request headers, matching the same pattern as the sitemap route.
+- **Playwright E2E test suite** — Added `@playwright/test` and `playwright.config.ts` with browser E2E tests. New `npm run test:e2e` and `npm run test:all` scripts in package.json.
+- **Expanded unit test coverage** — Added 9 new test files: `utm.test.ts` (20 tests), `analytics-range.test.ts`, `auth.test.ts`, `favicon.test.ts` (11 tests), `migration-wizard.test.ts`, `theme-presets.test.ts`, `theme-schema.test.ts`, `theme-tokens.test.ts`, `update-check.test.ts`, `utils.test.ts`. Plus new server action tests: `pages.test.ts`, `profile.test.ts`, `subscribers.test.ts`, `theme.test.ts`, `uploads.test.ts`, and queries tests. Total test count: 445 unit + 9 integration + 5 E2E = 459 tests.
+- **Test infrastructure for server actions** — Added `sql.js` (WASM SQLite) and in-memory DB test setup so server action tests can exercise real database operations without file-based SQLite or the segfault-prone `better-sqlite3` native module. Added `server-only` mock alias to vitest config. Tests run single-threaded (`maxWorkers: 1`) with the threads pool for deterministic DB isolation.
+
+### Changed
+
+- **Static asset cache headers fixed** — Added an explicit `Cache-Control: public, max-age=31536000, immutable` header rule for `/_next/static/:path*` in `next.config.ts`. This was an active performance bug: the `/:slug*` catch-all rule was matching `/_next/static/*` and overriding Next.js's default immutable cache with `s-maxage=60`, causing every hashed JS/CSS chunk to be revalidated every 60 seconds instead of cached for a year. The new rule is ordered above the catch-all so it takes precedence.
+- **Avatar LCP optimization** — Added the `priority` prop to the avatar `<Image>` in `ProfileHeader.tsx`. This adds `<link rel="preload">` in the `<head>` and `fetchpriority="high"` on the img tag, preloading the LCP element (~300-500ms saving on mobile 3G).
+- **Public page favicon fallback** — `buildIcon()` in `build-link-card.ts` now falls back to Google's S2 favicon service (`google.com/s2/favicons?domain=X&sz=64`) for http(s) links when no cached `iconUrl` exists. Previously, links without a cached favicon (seeded demo data, links created before auto-favicon shipped, or initial fetch failures) showed a first-letter avatar fallback instead of a real favicon. The S2 fallback mirrors the same approach already used in the admin sortable-link component.
+- **Thumbnail alt text** — Link card thumbnail images now use the link title as `alt` text instead of an empty string, improving accessibility and SEO. Added a test to verify.
+- **Embed iframe sandbox attributes** — Changed `allow-popups` to `allow-same-origin` on both fixed-aspect (YouTube/Vimeo) and auto-height (Spotify/SoundCloud/Bandcamp) embed iframes. `allow-same-origin` is required for the embed players to function correctly (Spotify, SoundCloud, and Bandcamp players broke without it).
+- **DnD context ID** — Added `id="links-dnd"` to the links drag-and-drop `DndContext` for proper instance identification when multiple DnD contexts coexist.
+
+### Removed
+
+- **Static `public/robots.txt`** — Replaced by the dynamic route handler `src/app/robots.ts` (see Added).
+
 ## [1.2.3] - 2026-08-05
 
 ### Added

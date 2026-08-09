@@ -1,6 +1,6 @@
 {
-  "version": "1.2.3",
-  "releasedAt": "2026-08-05",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.3",
-  "notes": "8-Bit Retro theme (preset #10) with pixel clip-path UI, theme preview mockups in preset gallery, iframe sandbox hardening, lazy-loaded charts, parallelized server queries, dead code cleanup (5 files + 2 npm deps removed)."
+  "version": "1.2.4",
+  "releasedAt": "2026-08-09",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.4",
+  "notes": "UTM parameter builder (#49), CSP Report-Only header, dynamic robots.txt, static asset cache-control fix (immutable 1yr), avatar LCP preload, public favicon S2 fallback, Playwright E2E + expanded unit tests (459 total)."
 }

@@ -32,6 +32,14 @@ import {
   getUrlPlaceholder,
   prefixLinkUrl,
 } from "../link-helpers";
+import {
+  parseUTM,
+  stripUTM,
+  appendUTM,
+  emptyUTM,
+  hasUTM,
+  type UTMParams,
+} from "@/lib/utm";
 
 export interface LinkDialogProps {
   open: boolean;
@@ -42,16 +50,22 @@ export interface LinkDialogProps {
 
 export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogProps) {
   const [pending, startTransition] = React.useTransition();
+  const formRef = React.useRef<HTMLFormElement>(null);
   const [type, setType] = React.useState(editing?.type ?? "url");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
   const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
   const [autoIcon, setAutoIcon] = React.useState(editing?.autoIcon ?? true);
+
+  // UTM state — only relevant for type === "url"
+  const isUrlType = type === "url";
+  const storedUrl = editing?.url ?? "";
+  const hadUTM = isUrlType && hasUTM(storedUrl);
+  const [showUTM, setShowUTM] = React.useState(hadUTM);
+
   const router = useRouter();
 
   // Reset local form state whenever the dialog opens (or switches target).
-  // Adjusting state during render — instead of in an effect — avoids the
-  // cascading-render anti-pattern.
   const sessionKey = open ? `open:${editing?.id ?? "new"}` : "closed";
   const [lastSession, setLastSession] = React.useState(sessionKey);
   if (sessionKey !== lastSession) {
@@ -62,17 +76,58 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
       setActive(editing?.isActive ?? true);
       setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
       setAutoIcon(editing?.autoIcon ?? true);
+
+      const had = editing?.type === "url" && hasUTM(editing?.url ?? "");
+      setShowUTM(had);
     }
   }
+
+  // If user switches away from "url" type, collapse UTM (values preserved).
+  const utmVisible = isUrlType && showUTM;
 
   const urlLabel = getUrlLabel(type);
   const urlPlaceholder = getUrlPlaceholder(type);
 
-  const handleSubmit = (formData: FormData) => {
+  // For the URL field default: show the clean URL (UTM stripped) so the
+  // user sees the base URL separately from the UTM builder.
+  const urlDefault = hadUTM ? stripUTM(storedUrl) : storedUrl;
+
+  // Pre-compute default values for the UTM fields when editing.
+  const utmDefaults: UTMParams = hadUTM ? parseUTM(storedUrl) : emptyUTM();
+
+  const handleSubmit = () => {
+    const form = formRef.current;
+    if (!form) return;
+    // Use native form.reportValidity() so required fields, maxLength etc. work.
+    if (!form.reportValidity()) return;
+
+    const formData = new FormData(form);
+
     // Prepend the correct prefix for non-URL types
     const rawUrl = (formData.get("url") as string) || "";
-    formData.set("url", prefixLinkUrl(type, rawUrl));
+    let finalUrl = prefixLinkUrl(type, rawUrl);
     formData.set("type", type);
+
+    // Append UTM params for URL-type links when the builder is open.
+    // Read from form fields (uncontrolled inputs) — no React state needed.
+    if (utmVisible) {
+      const utm: Partial<UTMParams> = {
+        source: (formData.get("utm_source") as string) || "",
+        medium: (formData.get("utm_medium") as string) || "",
+        campaign: (formData.get("utm_campaign") as string) || "",
+        term: (formData.get("utm_term") as string) || "",
+        content: (formData.get("utm_content") as string) || "",
+      };
+      // Remove the raw utm_* fields from formData — they go into the URL.
+      formData.delete("utm_source");
+      formData.delete("utm_medium");
+      formData.delete("utm_campaign");
+      formData.delete("utm_term");
+      formData.delete("utm_content");
+      finalUrl = appendUTM(finalUrl, utm);
+    }
+    formData.set("url", finalUrl);
+
     formData.set("isHighlighted", highlighted ? "on" : "off");
     formData.set("isActive", active ? "on" : "off");
     formData.set("autoIcon", autoIcon ? "on" : "off");
@@ -84,11 +139,8 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
     }
 
     startTransition(async () => {
-      if (editing) {
-        await updateLink(formData);
-      } else {
-        await createLink(formData);
-      }
+      const result = editing ? await updateLink(formData) : await createLink(formData);
+      if (!result.success) return;
       router.refresh();
       onOpenChange(false);
     });
@@ -103,7 +155,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
             {editing ? "Update the details of this link." : "Create a new link for your page."}
           </DialogDescription>
         </DialogHeader>
-        <form action={handleSubmit} className="flex flex-col gap-4">
+        <form ref={formRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId && !editing ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
@@ -122,7 +174,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
             <Input
               id="url"
               name="url"
-              defaultValue={editing?.url ?? ""}
+              defaultValue={urlDefault}
               required
               maxLength={2048}
               placeholder={urlPlaceholder}
@@ -179,6 +231,25 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
             </label>
           </div>
 
+          {/* UTM builder — only for URL-type links */}
+          {isUrlType ? (
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={showUTM} onCheckedChange={setShowUTM} />
+                UTM parameters
+              </label>
+              {utmVisible ? (
+                <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+                  <UTMField label="Source" name="utm_source" placeholder="instagram" defaultValue={utmDefaults.source} />
+                  <UTMField label="Medium" name="utm_medium" placeholder="social" defaultValue={utmDefaults.medium} />
+                  <UTMField label="Campaign" name="utm_campaign" placeholder="spring_sale" defaultValue={utmDefaults.campaign} />
+                  <UTMField label="Term (optional)" name="utm_term" placeholder="running_shoes" defaultValue={utmDefaults.term} />
+                  <UTMField label="Content (optional)" name="utm_content" placeholder="banner_ad_1" defaultValue={utmDefaults.content} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={scheduled} onCheckedChange={setScheduled} />
@@ -218,12 +289,38 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="button" disabled={pending} onClick={handleSubmit}>
               {pending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Single UTM input field with inline label (uncontrolled). */
+function UTMField({
+  label,
+  name,
+  placeholder,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  placeholder: string;
+  defaultValue: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-28 shrink-0 text-xs text-muted-foreground">{label}</span>
+      <Input
+        type="text"
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        className="h-8 text-sm"
+      />
+    </div>
   );
 }

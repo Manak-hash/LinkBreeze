@@ -43,14 +43,33 @@ function resolveLinkUrl(link: LinkRow): {
 
 /**
  * Build the icon element shown before the title.
- * Priority: auto-fetched favicon (iconUrl) → first-letter avatar fallback.
+ * Priority: cached favicon (iconUrl) → Google S2 live fallback → first-letter.
  * Only shown for cards WITHOUT a thumbnail (thumbnail cards use the
  * full-bleed image at the top instead).
+ *
+ * The S2 fallback covers links created before auto-favicon shipped, seed
+ * data, or cases where the initial fetch failed. It mirrors the same
+ * fallback the admin uses, keeping public and admin icon behaviour
+ * consistent.
  */
 function buildIcon(link: LinkRow): string {
+  // Cached favicon from fetchAndCacheFavicon — always preferred when present.
   if (link.iconUrl) {
     return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
   }
+
+  // Live fallback for http(s) links: Google S2 favicon service.
+  // Same approach as the admin sortable-link component.
+  if (link.type === "url" || link.type === "embed") {
+    try {
+      const u = new URL(link.url);
+      const s2 = `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
+      return `<img src="${esc(s2)}" alt="" loading="lazy" width="20" height="20" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
+    } catch {
+      // Not a valid URL — fall through to first-letter below.
+    }
+  }
+
   // First-letter fallback using the title's initial.
   const letter = (link.title || "?").trim().charAt(0).toUpperCase();
   return `<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-card-bg)">${esc(letter)}</span>`;
@@ -125,9 +144,11 @@ export function buildLinkCardHtml(options: {
   const hasImage = !!imageUrl;
 
   // Thumbnail rendered as a full-bleed image at the top of the card.
-  // The card's overflow:hidden clips it to the card's border-radius.
+  // alt text uses the link title so screen readers and search engines
+  // get meaningful context (not an empty string). The card's
+  // overflow:hidden clips it to the card's border-radius.
   const image = hasImage
-    ? `<img src="${esc(imageUrl)}" alt="" loading="lazy" style="display:block;width:100%;height:auto;max-height:220px;object-fit:cover" />`
+    ? `<img src="${esc(imageUrl)}" alt="${esc(link.title)}" loading="lazy" style="display:block;width:100%;height:auto;max-height:220px;object-fit:cover" />`
     : "";
 
   // Thumbnail cards need overflow:hidden so the image clips to the card radius.

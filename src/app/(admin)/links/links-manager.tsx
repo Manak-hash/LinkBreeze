@@ -117,6 +117,7 @@ export function LinksManager({
         </Card>
       ) : (
         <DndContext
+          id="links-dnd"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}

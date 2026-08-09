@@ -88,4 +88,18 @@ describe("buildLinkCardHtml", () => {
     });
     expect(html).toContain("var(--lb-accent)");
   });
+
+  it("uses link title as alt text for thumbnail images", () => {
+    const html = buildLinkCardHtml({
+      link: {
+        ...baseLink,
+        title: "My Photography Portfolio",
+        imageUrl: "https://example.com/photo.jpg",
+      } as LinkRow,
+      theme,
+      index: 0,
+    });
+    expect(html).toContain('alt="My Photography Portfolio"');
+    expect(html).not.toContain('alt=""');
+  });
 });

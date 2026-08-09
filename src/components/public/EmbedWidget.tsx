@@ -129,7 +129,7 @@ export function EmbedWidget({ url, title, index, animationType, theme }: EmbedWi
             src={embed.src}
             title={title}
             loading="lazy"
-            sandbox="allow-scripts allow-popups allow-presentation"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             style={{
@@ -147,7 +147,7 @@ export function EmbedWidget({ url, title, index, animationType, theme }: EmbedWi
           src={embed.src}
           title={title}
           loading="lazy"
-          sandbox="allow-scripts allow-popups allow-presentation"
+          sandbox="allow-scripts allow-same-origin"
           allow="autoplay"
           style={{ width: "100%", height: `${embed.height}px`, border: 0, display: "block" }}
         />

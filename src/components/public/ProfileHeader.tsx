@@ -36,6 +36,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
             unoptimized
             className="block h-[90px] w-[90px] rounded-full object-cover"
             loading="eager"
+            priority
           />
         </div>
       ) : (
