@@ -5,12 +5,16 @@ import crypto from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
+import {
+  validationError,
+  unauthorizedError,
+} from "@/lib/errors";
 import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
 
 export type UploadResult =
   | { success: true; url: string }
-  | { success: false; error: string };
+  | { success: false; error: string; errorCode: string };
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_EXT = new Set([
@@ -34,25 +38,25 @@ const FAVICON_MAX_BYTES = 1 * 1024 * 1024; // 1 MB — favicons are tiny
 
 /** Accepts an image upload, stores it on disk, returns its public URL. */
 export async function uploadAvatar(formData: FormData): Promise<UploadResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return { success: false, error: blocked.error, errorCode: blocked.errorCode };
+  if (!(await getSession())) return unauthorizedError();
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return { success: false, error: "No file provided" };
+    return validationError("No file provided");
   }
-  if (file.size === 0) return { success: false, error: "File is empty" };
+  if (file.size === 0) return validationError("File is empty");
   if (file.size > MAX_BYTES) {
-    return { success: false, error: "File too large (max 2 MB)" };
+    return validationError("File too large (max 2 MB)");
   }
 
   const ext = path.extname(file.name).toLowerCase();
   if (!ALLOWED_EXT.has(ext)) {
-    return { success: false, error: "Unsupported file type" };
+    return validationError("Unsupported file type");
   }
   if (file.type && !file.type.startsWith("image/")) {
-    return { success: false, error: "File must be an image" };
+    return validationError("File must be an image");
   }
 
   await ensureUploadsDir();
@@ -69,27 +73,27 @@ export async function uploadAvatar(formData: FormData): Promise<UploadResult> {
 
 /** Accepts a favicon upload (.ico/.png/.svg/.gif/.webp), stores it, returns URL. */
 export async function uploadFavicon(formData: FormData): Promise<UploadResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return { success: false, error: blocked.error, errorCode: blocked.errorCode };
+  if (!(await getSession())) return unauthorizedError();
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return { success: false, error: "No file provided" };
+    return validationError("No file provided");
   }
-  if (file.size === 0) return { success: false, error: "File is empty" };
+  if (file.size === 0) return validationError("File is empty");
   if (file.size > FAVICON_MAX_BYTES) {
-    return { success: false, error: "File too large (max 1 MB)" };
+    return validationError("File too large (max 1 MB)");
   }
 
   const ext = path.extname(file.name).toLowerCase();
   if (!FAVICON_ALLOWED_EXT.has(ext)) {
-    return { success: false, error: "Unsupported file type. Use .ico, .png, .svg, .gif, or .webp" };
+    return validationError("Unsupported file type. Use .ico, .png, .svg, .gif, or .webp");
   }
 
   // SVG is text-based, so it won't start with "image/". Validate by extension.
   if (ext !== ".svg" && file.type && !file.type.startsWith("image/")) {
-    return { success: false, error: "File must be an image" };
+    return validationError("File must be an image");
   }
 
   await ensureUploadsDir();

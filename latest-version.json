@@ -1,6 +1,6 @@
 {
-  "version": "1.2.4",
-  "releasedAt": "2026-08-09",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.4",
-  "notes": "UTM parameter builder (#49), CSP Report-Only header, dynamic robots.txt, static asset cache-control fix (immutable 1yr), avatar LCP preload, public favicon S2 fallback, Playwright E2E + expanded unit tests (459 total)."
+  "version": "1.2.5",
+  "releasedAt": "2026-08-11",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.5",
+  "notes": "Secure cookie over HTTP (#70), auto-generate SECRET_KEY on boot, full error system (ActionResult + error boundaries + UI components), CSP enforcement, axe-core a11y E2E tests, backup/restore integration tests, nanoid+js-yaml security overrides, dependency bumps (next 16.3)."
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
 import { customSchema } from "@/lib/theme-schema";
 import {
   setActiveTheme,
@@ -11,26 +11,41 @@ import {
   duplicateTheme,
   deleteTheme,
 } from "@/server/queries";
-
-export type ActionResult = { success: true } | { success: false; error: string };
+import {
+  type ActionResult,
+  validationError,
+  unauthorizedError,
+  notFoundError,
+  conflictError,
+  logError,
+} from "@/lib/errors";
 
 export async function activateTheme(id: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
   if (typeof id !== "number" || Number.isNaN(id)) {
-    return { success: false, error: "Invalid theme id" };
+    return validationError("Invalid theme id");
   }
-  await setActiveTheme(id);
-  revalidatePath("/theme");
-  revalidatePath("/");
-  return { success: true };
+  try {
+    await setActiveTheme(id);
+    revalidatePath("/theme");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("activateTheme", err, { id });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: "internal",
+    };
+  }
 }
 
 export async function customizeActiveTheme(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const parsed = customSchema.safeParse({
     backgroundType: formData.get("backgroundType") || undefined,
@@ -66,18 +81,27 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     noise: formData.get("noise") || undefined,
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   const active = await getActiveTheme();
-  if (!active) return { success: false, error: "No active theme" };
+  if (!active) return notFoundError("No active theme");
 
   const updates: Record<string, string> = {};
   for (const [key, value] of Object.entries(parsed.data)) {
     if (value !== undefined) updates[key] = value as string;
   }
   if (Object.keys(updates).length > 0) {
-    await updateTheme(active.id, updates);
+    try {
+      await updateTheme(active.id, updates);
+    } catch (err) {
+      logError("customizeActiveTheme", err, { themeId: active.id });
+      return {
+        success: false,
+        error: "Something went wrong. Please try again.",
+        errorCode: "internal",
+      };
+    }
   }
 
   revalidatePath("/theme");
@@ -86,41 +110,59 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
 }
 
 export async function duplicateActiveTheme(name: string): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const active = await getActiveTheme();
-  if (!active) return { success: false, error: "No active theme" };
+  if (!active) return notFoundError("No active theme");
 
   const trimmed = (name || "").trim().slice(0, 100);
-  if (!trimmed) return { success: false, error: "Name is required" };
+  if (!trimmed) return validationError("Name is required");
 
   const { themeNameExists } = await import("@/server/queries");
   if (await themeNameExists(trimmed)) {
-    return { success: false, error: "A theme with this name already exists" };
+    return conflictError("A theme with this name already exists");
   }
 
-  await duplicateTheme(active.id, trimmed);
-  revalidatePath("/theme");
-  return { success: true };
+  try {
+    await duplicateTheme(active.id, trimmed);
+    revalidatePath("/theme");
+    return { success: true };
+  } catch (err) {
+    logError("duplicateActiveTheme", err, { themeId: active.id, name: trimmed });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: "internal",
+    };
+  }
 }
 
 export async function deleteCustomTheme(id: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
   if (typeof id !== "number" || Number.isNaN(id)) {
-    return { success: false, error: "Invalid theme id" };
+    return validationError("Invalid theme id");
   }
 
   // Don't allow deleting presets or the active theme
   const active = await getActiveTheme();
   if (active?.id === id) {
-    return { success: false, error: "Cannot delete the active theme" };
+    return validationError("Cannot delete the active theme");
   }
 
-  await deleteTheme(id);
-  revalidatePath("/theme");
-  return { success: true };
+  try {
+    await deleteTheme(id);
+    revalidatePath("/theme");
+    return { success: true };
+  } catch (err) {
+    logError("deleteCustomTheme", err, { id });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: "internal",
+    };
+  }
 }

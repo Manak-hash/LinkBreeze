@@ -61,9 +61,9 @@ describe("restoreBackup", () => {
       }),
     );
 
-    await expect(restoreBackup(formData)).resolves.toEqual({
+    await expect(restoreBackup(formData)).resolves.toMatchObject({
       success: false,
-      error: "Unsupported backup version: 2. This instance expects version 1.",
+      errorCode: "validation",
     });
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();

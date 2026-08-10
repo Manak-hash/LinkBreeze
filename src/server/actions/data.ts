@@ -13,7 +13,14 @@ import {
   analyticsClicks,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
+import {
+  type ActionResult,
+  validationError,
+  conflictError,
+  unauthorizedError,
+  ErrorCode,
+} from "@/lib/errors";
 import { isAllowedLinkUrl } from "@/lib/link-url";
 import {
   updateSetting,
@@ -22,7 +29,6 @@ import {
   type ThemeRow,
 } from "@/server/queries";
 
-export type ActionResult = { success: true } | { success: false; error: string };
 
 const SUPPORTED_BACKUP_VERSION = 1;
 
@@ -182,20 +188,20 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
 /** Transactional restore: replace profile/links/settings/themes from a backup
  *  file. Rolls back on any error so a bad file never wipes current data. */
 export async function restoreBackup(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return { success: false, error: "No backup file provided" };
+    return validationError("No backup file provided");
   }
 
   let parsed: BackupPayload;
   try {
     parsed = JSON.parse(await file.text()) as BackupPayload;
   } catch {
-    return { success: false, error: "Invalid JSON file" };
+    return validationError("Invalid JSON file");
   }
 
   if (
@@ -206,14 +212,11 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
     !Array.isArray(parsed.settings) ||
     !Array.isArray(parsed.themes)
   ) {
-    return { success: false, error: "Not a valid LinkBreeze backup" };
+    return validationError("Not a valid LinkBreeze backup");
   }
 
   if (parsed.version !== SUPPORTED_BACKUP_VERSION) {
-    return {
-      success: false,
-      error: `Unsupported backup version: ${parsed.version}. This instance expects version ${SUPPORTED_BACKUP_VERSION}.`,
-    };
+    return validationError(`Unsupported backup version. This instance expects version 1.`);
   }
 
   // Validate every row's shape before touching the DB. A malformed backup
@@ -223,7 +226,7 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
   const validatedSettings = z.array(settingRowSchema).safeParse(parsed.settings);
   const validatedThemes = z.array(themeRowSchema).safeParse(parsed.themes);
   if (!validatedProfile.success || !validatedLinks.success || !validatedSettings.success || !validatedThemes.success) {
-    return { success: false, error: "Backup contains malformed data — rows don't match the expected schema" };
+    return validationError("Backup contains malformed data — rows do not match the expected schema");
   }
   parsed.profile = validatedProfile.data as ProfileRow[];
   parsed.links = validatedLinks.data as LinkRow[];
@@ -250,7 +253,7 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
     });
   } catch (err) {
     console.error("[restoreBackup]", err);
-    return { success: false, error: "Restore failed — backup may be incompatible" };
+    return { success: false, error: "Restore failed — backup may be incompatible", errorCode: ErrorCode.INTERNAL };
   }
 
   // Everything changed; revalidate the whole tree.
@@ -260,9 +263,9 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
 
 /** Wipe all analytics + reset per-link click counters. */
 export async function clearAnalytics(): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   db.transaction((tx) => {
     tx.delete(analyticsPageviews).run();
@@ -277,9 +280,9 @@ export async function clearAnalytics(): Promise<ActionResult> {
 
 /** Set the analytics retention window in days (0 = keep forever). */
 export async function setRetention(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const raw = (formData.get("retention") as string) || "";
   const days = raw && /^\d+$/.test(raw) ? Number(raw) : 0;
@@ -295,7 +298,7 @@ export async function setRetention(formData: FormData): Promise<ActionResult> {
  * the API route can map to a 401.
  */
 export async function exportTheme(id: number): Promise<ExportableTheme> {
-  if (demoBlock()) throw new Error("read-only");
+  if (demoGuard()) throw new Error("read-only");
   if (!(await getSession())) throw new Error("Unauthorized");
 
   const rows = await db.select().from(themes).where(eq(themes.id, id)).limit(1);
@@ -344,29 +347,26 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
 
 /** Import a previously-exported theme, creating a new (inactive) copy. */
 export async function importTheme(json: string): Promise<ActionResult> {
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
+  if (!(await getSession())) return unauthorizedError();
+  const blocked = demoGuard();
+  if (blocked) return blocked;
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
-    return { success: false, error: "Invalid JSON" };
+    return validationError("Invalid JSON");
   }
 
   const result = exportableThemeSchema.safeParse(parsed);
   if (!result.success) {
-    return {
-      success: false,
-      error: result.error.issues[0]?.message ?? "Invalid theme file",
-    };
+    return validationError(result.error.issues[0]?.message ?? "Invalid theme file");
   }
   const t = result.data;
 
   const { themeNameExists } = await import("@/server/queries");
   if (await themeNameExists(t.name)) {
-    return { success: false, error: "A theme with this name already exists" };
+    return conflictError("A theme with this name already exists");
   }
 
   await db.insert(themes).values({

@@ -12,29 +12,29 @@ const securityHeaders = [
 ];
 
 /**
- * Content-Security-Policy (Report-Only mode).
+ * Content-Security-Policy (ENFORCED).
  *
- * Shipped as Report-Only first so we can observe real-world violations
- * before enforcing. Browsers log violations to the dev console — open
- * devtools on the demo to see what would break.
+ * Moved from Report-Only to enforced in v1.2.5 after verifying no real-world
+ * violations. Documented exceptions:
  *
- * Key directives for a link-in-bio product:
- * - frame-src: embed widgets (YouTube, Spotify, Vimeo, SoundCloud, Bandcamp).
- *   These are the origins users can embed. An unconstrained frame-src would
- *   allow arbitrary iframe injection.
- * - connect-src: restricts where fetch/XHR/beacon can send data. 'self' covers
- *   our own /api/track endpoint. If users inject analytics (Plausible, Umami,
- *   etc.) via the analyticsScript field, violations will show up here and we
- *   add those origins before switching to enforce mode.
- * - img-src https: is intentionally permissive — avatars, favicons, and
+ * - script-src 'unsafe-inline': Required for the sendBeacon click tracker on
+ *   public link cards. The onclick handler is injected via build-link-card.ts
+ *   as a raw HTML string. Nonce/hash-based CSP is a future hardening step.
+ * - style-src 'unsafe-inline': Required for theme CSS custom properties
+ *   (--lb-* tokens injected as inline <style> tags) and Next.js inline styles.
+ * - frame-src: whitelisted embed providers only (YouTube, Spotify, Vimeo,
+ *   SoundCloud, Bandcamp). Prevents arbitrary iframe injection.
+ * - img-src https: data: blob: permissive by design — avatars, favicons, and
  *   thumbnails come from user-supplied domains (Unsplash, GitHub, etc.).
- * - script-src/style-src include 'unsafe-inline' because Next.js relies on
- *   inline styles for theme tokens (CSS custom properties) and inline event
- *   handlers for click tracking (sendBeacon). Switching to nonce/hash-based
- *   CSP is a future hardening step.
+ * - connect-src 'self': covers /api/track. Users who inject external analytics
+ *   (Plausible, Umami) via the analyticsScript field will see those scripts
+ *   blocked by connect-src unless they add the origin here. This is the
+ *   expected trade-off for a secure default.
+ * - object-src 'none': no Flash, Java, or other plugins. Ever.
+ * - form-action 'self': prevents form data exfiltration to external domains.
  */
-const cspReportOnly = {
-  key: "Content-Security-Policy-Report-Only",
+const cspEnforced = {
+  key: "Content-Security-Policy",
   value: [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
         source: "/:slug*",
         headers: [
           ...securityHeaders,
-          cspReportOnly,
+          cspEnforced,
           {
             key: "Cache-Control",
             value: "public, s-maxage=60, stale-while-revalidate=300",
@@ -146,7 +146,7 @@ const nextConfig: NextConfig = {
         source: "/(dashboard|links|profile|theme|settings)(:path*)?",
         headers: [
           ...securityHeaders,
-          cspReportOnly,
+          cspEnforced,
           { key: "Cache-Control", value: "no-store" },
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],

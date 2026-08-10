@@ -5,7 +5,7 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.5] - Unreleased
+## [1.2.5] - 2026-08-11
 
 ### Fixed
 
@@ -14,15 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Regression tests for #70** — The cookie mock in `auth.test.ts` now captures the full options object and asserts the actual `secure` flag value (not just that `createSession` didn't throw). 5 new tests verify: non-secure over plain HTTP, secure with `X-Forwarded-Proto: https`, non-secure with `X-Forwarded-Proto: http`, `destroySession` respects the flag, and `httpOnly`/`sameSite` are always set.
-- **Regression tests for SECRET_KEY bootstrap** — New `instrumentation.test.ts` (4 tests) verifies `ensureSecretKey()`: generates and persists a key when absent, loads existing key from file on subsequent boots, respects user-provided `SECRET_KEY` env var, and generates different keys on fresh volumes.
+- **Full error system** — Centralized `ActionResult` type with `ErrorCode` enum (validation, unauthorized, forbidden, demo, rate_limit, not_found, conflict, internal), structured logging via `logError()`, `withDemoGuard()` wrapper replacing ad-hoc `demoBlock()` pattern, and typed convenience constructors (`validationError()`, `unauthorizedError()`, etc.). All server actions now use the unified error contract.
+- **Error boundaries** — Three React error boundaries: `global-error.tsx` (critical failures, dependency-free inline styles), `(admin)/error.tsx` (admin route recovery UI with retry button), and `(public)/error.tsx` (public page fallback). Each logs to console and provides a "Try again" button that resets the boundary.
+- **Error UI components** — `ErrorBanner` (inline, color-coded by error code, auto-dismiss for non-critical) and `SuccessToast` (bottom-right, 3s auto-dismiss) components for consistent feedback across forms.
+- **Accessibility regression tests** — axe-core Playwright E2E tests (`e2e/accessibility.spec.ts`) scanning public link page, login page, and 404 page for WCAG 2.2 AA violations. Catches a11y regressions before they ship.
+- **Backup/restore integration tests** — Integration test suite (`backup-restore.integration.test.ts`) verifying full backup-then-restore round-trip: snapshot reflects seed data, restore reproduces exact data after mutation, rejects invalid JSON, rejects unsupported versions, rejects malformed rows without partial writes.
+
+### Changed
+
+- **CSP enforcement** — Promoted Content-Security-Policy from Report-Only (1.2.4) to enforced on all routes. Exceptions documented inline in `next.config.ts`: `script-src 'unsafe-inline'` (sendBeacon click tracker), `style-src 'unsafe-inline'` (theme CSS custom properties), `frame-src` (whitelisted embed providers only), `object-src 'none'`, `form-action 'self'`.
+- **Dependency bumps** — next 16.3.0, better-sqlite3 13.0.3, lucide-react 1.30.0, @base-ui/react 1.7.0, shadcn 4.16.2, eslint-config-next 16.3.0.
+
+### Security
+
+- **npm overrides** — Added `nanoid >=3.3.17` and `js-yaml >=4.3.1` overrides to resolve two high-severity Dependabot alerts in transitive dependencies (postcss -> nanoid infinite loop, eslint/cosmiconfig -> js-yaml quadratic CPU).
 
 ## [1.2.4] - 2026-08-09
 
 ### Added
 
 - **UTM Parameter Builder (#49)** — URL-type links in the link editor now have an optional UTM parameter section (toggled via a Switch). Five fields: source, medium, campaign, term (optional), content (optional). Values are appended to the URL client-side before the server action fires (no DB migration needed). When editing a link that already has UTM params embedded, the builder auto-detects them, strips them from the URL field display, and pre-fills the UTM inputs. The builder only appears for `type: "url"` links.
-- **Content-Security-Policy (Report-Only)** — A CSP header is now sent in Report-Only mode on all public and admin pages. Restricts script-src, style-src, img-src, font-src, connect-src, frame-src (whitelisted embed providers only), frame-ancestors, base-uri, form-action, and object-src. Shipped as Report-Only first to observe real-world violations before enforcing. Includes `'unsafe-inline'` for script-src and style-src (required by Next.js inline styles and sendBeacon click tracking); nonce/hash-based CSP is a future hardening step.
+- **Content-Security-Policy (Report-Only)** — A CSP header was sent in Report-Only mode on all public and admin pages. Restricted script-src, style-src, img-src, font-src, connect-src, frame-src (whitelisted embed providers only), frame-ancestors, base-uri, form-action, and object-src. Shipped as Report-Only first to observe real-world violations before enforcing (enforcement shipped in 1.2.5).
 - **Dynamic robots.txt route** — Replaced the static `public/robots.txt` with a Next.js route handler (`src/app/robots.ts`). The static file had a relative `Sitemap: /sitemap.xml` URL, which is invalid (Google requires absolute URLs). For a self-hosted product where every instance has a different domain, a static file cannot produce a valid absolute sitemap URL. The route resolves the origin from `BASE_URL` or request headers, matching the same pattern as the sitemap route.
 - **Playwright E2E test suite** — Added `@playwright/test` and `playwright.config.ts` with browser E2E tests. New `npm run test:e2e` and `npm run test:all` scripts in package.json.
 - **Expanded unit test coverage** — Added 9 new test files: `utm.test.ts` (20 tests), `analytics-range.test.ts`, `auth.test.ts`, `favicon.test.ts` (11 tests), `migration-wizard.test.ts`, `theme-presets.test.ts`, `theme-schema.test.ts`, `theme-tokens.test.ts`, `update-check.test.ts`, `utils.test.ts`. Plus new server action tests: `pages.test.ts`, `profile.test.ts`, `subscribers.test.ts`, `theme.test.ts`, `uploads.test.ts`, and queries tests. Total test count: 445 unit + 9 integration + 5 E2E = 459 tests.

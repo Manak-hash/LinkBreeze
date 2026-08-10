@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { setup } from "@/server/actions/auth";
+import type { ActionResult } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
@@ -27,7 +28,7 @@ export function SetupForm({ defaultUsername }: { defaultUsername: string }) {
       }
       return result;
     },
-    null as { success: false; error: string } | null,
+    null as ActionResult | null,
   );
 
   return (

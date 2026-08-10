@@ -3,11 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
+import {
+  type ActionResult,
+  validationError,
+  unauthorizedError,
+} from "@/lib/errors";
 import { updateProfile as updateProfileQuery, type SocialLink } from "@/server/queries";
 import { SUPPORTED_PLATFORMS } from "@/lib/social-icons";
 
-export type ActionResult = { success: true } | { success: false; error: string };
 
 const platformEnum = z.enum(SUPPORTED_PLATFORMS as [string, ...string[]]);
 
@@ -44,9 +48,9 @@ const profileSchema = z.object({
 });
 
 export async function updateProfile(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const parsed = profileSchema.safeParse({
     displayName: formData.get("displayName"),
@@ -56,7 +60,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
     socialLinks: formData.get("socialLinks") || "[]",
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   const d = parsed.data;

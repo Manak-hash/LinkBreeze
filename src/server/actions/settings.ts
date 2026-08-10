@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
+import {
+  type ActionResult,
+  validationError,
+  unauthorizedError,
+} from "@/lib/errors";
 import { updateSetting as updateSettingQuery } from "@/server/queries";
 
-export type ActionResult = { success: true } | { success: false; error: string };
 
 const settingsSchema = z.object({
   slug: z
@@ -25,9 +29,9 @@ const settingsSchema = z.object({
 });
 
 export async function updateSettings(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const parsed = settingsSchema.safeParse({
     slug: formData.get("slug"),
@@ -41,7 +45,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
     activeThemeId: formData.get("activeThemeId") || undefined,
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   const d = parsed.data;

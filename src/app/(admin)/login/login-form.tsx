@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { login } from "@/server/actions/auth";
+import type { ActionResult } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,7 @@ export function LoginForm() {
       }
       return result;
     },
-    null as { success: false; error: string } | null,
+    null as ActionResult | null,
   );
 
   return (

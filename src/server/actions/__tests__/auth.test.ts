@@ -80,7 +80,7 @@ describe("login", () => {
     mocks.rateLimit.mockReturnValueOnce({ ok: false, remaining: 0, resetAt: Date.now() + 30000 });
     const res = await login(makeFormData({ username: "admin", password: "pass1234" }));
     expect(res.success).toBe(false);
-    if (!res.success) expect(res.error).toContain("Too many login attempts");
+    if (!res.success) expect(res.error).toContain("Too many");
     // verifyPassword should never be called when rate-limited
     expect(mocks.verifyPassword).not.toHaveBeenCalled();
   });

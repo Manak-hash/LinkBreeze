@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
 import { isAllowedLinkUrl } from "@/lib/link-url";
 import { truthy } from "@/lib/utils";
 import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
@@ -14,8 +14,14 @@ import {
   getAllLinks,
   reorderLinks as reorderLinksQuery,
 } from "@/server/queries";
-
-export type ActionResult = { success: true } | { success: false; error: string };
+import {
+  type ActionResult,
+  validationError,
+  unauthorizedError,
+  notFoundError,
+  ErrorCode,
+  logError,
+} from "@/lib/errors";
 
 async function requireAuth(): Promise<boolean> {
   const session = await getSession();
@@ -52,9 +58,9 @@ const linkSchema = z
   });
 
 export async function createLink(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await requireAuth())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
 
   const parsed = linkSchema.safeParse({
     title: formData.get("title"),
@@ -70,41 +76,50 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     autoIcon: formData.get("autoIcon") || undefined,
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   const d = parsed.data;
 
-  // Auto-fetch favicon for URL-type links when autoIcon is enabled.
-  let iconUrl: string | null = null;
-  if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
-    iconUrl = await fetchAndCacheFavicon(d.url);
+  try {
+    // Auto-fetch favicon for URL-type links when autoIcon is enabled.
+    let iconUrl: string | null = null;
+    if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
+      iconUrl = await fetchAndCacheFavicon(d.url);
+    }
+
+    await createLinkQuery({
+      title: d.title,
+      url: d.url,
+      pageId: d.pageId,
+      description: d.description || null,
+      imageUrl: d.imageUrl || null,
+      type: d.type,
+      isHighlighted: d.isHighlighted,
+      isActive: d.isActive,
+      autoIcon: d.autoIcon,
+      iconUrl,
+      scheduleStart: d.scheduleStart || null,
+      scheduleEnd: d.scheduleEnd || null,
+    });
+
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("createLink", err, { title: d.title, type: d.type });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
   }
-
-  await createLinkQuery({
-    title: d.title,
-    url: d.url,
-    pageId: d.pageId,
-    description: d.description || null,
-    imageUrl: d.imageUrl || null,
-    type: d.type,
-    isHighlighted: d.isHighlighted,
-    isActive: d.isActive,
-    autoIcon: d.autoIcon,
-    iconUrl,
-    scheduleStart: d.scheduleStart || null,
-    scheduleEnd: d.scheduleEnd || null,
-  });
-
-  revalidatePath("/links");
-  revalidatePath("/");
-  return { success: true };
 }
 
 export async function updateLink(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await requireAuth())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
 
   const parsed = linkSchema.safeParse({
     id: formData.get("id") || undefined,
@@ -120,82 +135,117 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     autoIcon: formData.get("autoIcon") || undefined,
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
   if (!parsed.data.id) {
-    return { success: false, error: "Missing link id" };
+    return validationError("Missing link id");
   }
 
   const d = parsed.data;
 
-  // Auto-fetch favicon for URL-type links when autoIcon is enabled.
-  // Re-fetches when enabled (URL may have changed). Clears iconUrl when disabled.
-  let iconUrl: string | null = null;
-  if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
-    iconUrl = await fetchAndCacheFavicon(d.url);
+  try {
+    // Auto-fetch favicon for URL-type links when autoIcon is enabled.
+    let iconUrl: string | null = null;
+    if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
+      iconUrl = await fetchAndCacheFavicon(d.url);
+    }
+
+    await updateLinkQuery(Number(d.id), {
+      title: d.title,
+      url: d.url,
+      description: d.description || null,
+      imageUrl: d.imageUrl || null,
+      type: d.type,
+      isHighlighted: d.isHighlighted,
+      isActive: d.isActive,
+      autoIcon: d.autoIcon,
+      iconUrl,
+      scheduleStart: d.scheduleStart || null,
+      scheduleEnd: d.scheduleEnd || null,
+    });
+
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("updateLink", err, { id: d.id, title: d.title });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
   }
-
-  await updateLinkQuery(Number(d.id), {
-    title: d.title,
-    url: d.url,
-    description: d.description || null,
-    imageUrl: d.imageUrl || null,
-    type: d.type,
-    isHighlighted: d.isHighlighted,
-    isActive: d.isActive,
-    autoIcon: d.autoIcon,
-    iconUrl,
-    scheduleStart: d.scheduleStart || null,
-    scheduleEnd: d.scheduleEnd || null,
-  });
-
-  revalidatePath("/links");
-  revalidatePath("/");
-  return { success: true };
 }
 
 export async function deleteLink(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await requireAuth())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
 
   const idStr = formData.get("id");
-  if (!idStr) return { success: false, error: "Missing link id" };
+  if (!idStr) return validationError("Missing link id");
   const id = Number(idStr);
-  if (Number.isNaN(id)) return { success: false, error: "Invalid link id" };
+  if (Number.isNaN(id)) return validationError("Invalid link id");
 
-  await deleteLinkQuery(id);
-  revalidatePath("/links");
-  revalidatePath("/");
-  return { success: true };
+  try {
+    await deleteLinkQuery(id);
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("deleteLink", err, { id });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
 }
 
 export async function toggleLink(id: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await requireAuth())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
 
   const all = await getAllLinks();
   const link = all.find((l) => l.id === id);
-  if (!link) return { success: false, error: "Link not found" };
+  if (!link) return notFoundError("Link not found");
 
-  await updateLinkQuery(id, { isActive: !link.isActive });
-  revalidatePath("/links");
-  revalidatePath("/");
-  return { success: true };
+  try {
+    await updateLinkQuery(id, { isActive: !link.isActive });
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("toggleLink", err, { id });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
 }
 
 export async function reorderLinks(orderedIds: number[]): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await requireAuth())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
 
   if (!Array.isArray(orderedIds) || orderedIds.some((n) => typeof n !== "number")) {
-    return { success: false, error: "Invalid order payload" };
+    return validationError("Invalid order payload");
   }
 
-  await reorderLinksQuery(orderedIds);
-  revalidatePath("/links");
-  revalidatePath("/");
-  return { success: true };
+  try {
+    await reorderLinksQuery(orderedIds);
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("reorderLinks", err, { count: orderedIds.length });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
 }

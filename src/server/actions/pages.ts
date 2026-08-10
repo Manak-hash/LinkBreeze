@@ -3,14 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
-import { demoBlock } from "@/lib/demo";
+import { demoGuard } from "@/lib/demo-guard";
+import {
+  type ActionResult,
+  validationError,
+  unauthorizedError,
+  conflictError,
+} from "@/lib/errors";
 import {
   createPage as createPageQuery,
   updatePage as updatePageQuery,
   getAllPages,
 } from "@/server/queries";
 
-export type ActionResult = { success: true; pageId?: number } | { success: false; error: string };
 
 const slugSchema = z
   .string()
@@ -24,10 +29,10 @@ const createPageSchema = z.object({
   bio: z.string().max(300).optional().default(""),
 });
 
-export async function createPageAction(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+export async function createPageAction(formData: FormData): Promise<ActionResult<{ pageId: number }>> {
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const parsed = createPageSchema.safeParse({
     slug: (formData.get("slug") as string)?.trim().toLowerCase(),
@@ -35,13 +40,13 @@ export async function createPageAction(formData: FormData): Promise<ActionResult
     bio: formData.get("bio") || "",
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   // Check slug uniqueness.
   const existing = await getAllPages();
   if (existing.some((p) => p.slug.toLowerCase() === parsed.data.slug.toLowerCase())) {
-    return { success: false, error: "A page with this slug already exists" };
+    return conflictError("A page with this slug already exists");
   }
 
   const page = await createPageQuery({
@@ -78,9 +83,9 @@ const updatePageSchema = z.object({
 });
 
 export async function updatePageAction(formData: FormData): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   const data: Record<string, unknown> = {
     pageId: formData.get("pageId"),
@@ -113,7 +118,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
 
   const parsed = updatePageSchema.safeParse(data);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
   const { pageId, ...updateData } = parsed.data;
@@ -122,7 +127,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   if (updateData.slug) {
     const all = await getAllPages();
     if (all.some((p) => p.id !== pageId && p.slug.toLowerCase() === updateData.slug!.toLowerCase())) {
-      return { success: false, error: "A page with this slug already exists" };
+      return conflictError("A page with this slug already exists");
     }
   }
 
@@ -137,9 +142,9 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
 }
 
 export async function setPageThemeAction(pageId: number, themeId: number): Promise<ActionResult> {
-  const demo = demoBlock();
-  if (demo) return { success: false, error: demo };
-  if (!(await getSession())) return { success: false, error: "Unauthorized" };
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
 
   await updatePageQuery(pageId, { themeId });
 

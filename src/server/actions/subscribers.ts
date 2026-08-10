@@ -3,19 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { addSubscriber } from "@/server/queries";
+import {
+  type ActionResult,
+  validationError,
+  rateLimitError,
+} from "@/lib/errors";
 
-export type SubscribeResult = { success: true } | { success: false; error: string };
 
 const subscribeSchema = z.object({
   email: z.email("Please enter a valid email").max(320),
 });
 
-export async function subscribe(formData: FormData): Promise<SubscribeResult> {
+export async function subscribe(formData: FormData): Promise<ActionResult> {
   const parsed = subscribeSchema.safeParse({
     email: formData.get("email"),
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid email" };
+    return validationError(parsed.error.issues[0]?.message ?? "Invalid email");
   }
 
   // Rate limit: 10 signups per minute per IP to prevent table-flooding.
@@ -28,7 +32,7 @@ export async function subscribe(formData: FormData): Promise<SubscribeResult> {
   const { rateLimit } = await import("@/lib/rate-limit");
   const rl = rateLimit(`subscribe:${ip}`, 10, 60_000);
   if (!rl.ok) {
-    return { success: false, error: "Too many requests. Please try again later." };
+    return rateLimitError(60);
   }
 
   try {
