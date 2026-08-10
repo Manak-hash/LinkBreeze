@@ -10,7 +10,6 @@ import { RotateCcw } from "lucide-react";
  * styling — this is the public face.
  */
 export default function PublicError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import Link from "next/link";
 
 /**
  * Admin route group error boundary.
@@ -49,12 +50,12 @@ export default function AdminError({
           <RotateCcw className="size-4" />
           Try again
         </button>
-        <a
+        <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted"
         >
           Back to dashboard
-        </a>
+        </Link>
       </div>
     </div>
   );
