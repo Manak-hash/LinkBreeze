@@ -49,4 +49,7 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 *.swp
+
+# auto-generated session secret (from instrumentation.ts)
+.secret-key
 test-results/

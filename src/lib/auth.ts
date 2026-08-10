@@ -1,6 +1,6 @@
 import "server-only";
 import * as bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   createToken,
   verifyToken,
@@ -12,6 +12,30 @@ import { getSetting } from "@/server/queries";
 const SESSION_COOKIE = "lb_session";
 
 export type { SessionPayload };
+
+/**
+ * Determine whether the current request was made over HTTPS.
+ *
+ * LinkBreeze is commonly accessed over plain HTTP on a LAN IP (e.g.
+ * http://192.168.1.50:3000 or http://truenas:3000/docker). In production mode
+ * a cookie flagged `secure` is silently rejected by the browser over HTTP,
+ * which means the session is never set and the user is stuck on the login
+ * page forever (GitHub issue #70).
+ *
+ * Instead of tying the flag to NODE_ENV, we inspect the actual transport:
+ *   - X-Forwarded-Proto: https  → behind a TLS-terminating proxy (Caddy, nginx, Cloudflare)
+ *   - Explicit https://         → direct HTTPS
+ * Everything else (bare HTTP, LAN IP without proxy) gets a non-secure cookie
+ * so login actually works. When a reverse proxy IS in front, it sends
+ * X-Forwarded-Proto and we correctly upgrade to Secure.
+ */
+async function isHttps(): Promise<boolean> {
+  const h = await headers();
+  // x-forwarded-proto is the standard header set by reverse proxies.
+  const xfp = h.get("x-forwarded-proto");
+  if (xfp) return xfp.split(",")[0].trim().toLowerCase() === "https";
+  return false;
+}
 
 /**
  * Read and verify the session cookie. Returns the session payload or null.
@@ -49,10 +73,11 @@ export async function createSession(userId: number, username: string): Promise<v
     pv,
   };
   const token = createToken(payload);
+  const secure = await isHttps();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
@@ -63,10 +88,11 @@ export async function createSession(userId: number, username: string): Promise<v
  */
 export async function destroySession(): Promise<void> {
   const store = await cookies();
+  const secure = await isHttps();
   store.set(SESSION_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: 0,
   });

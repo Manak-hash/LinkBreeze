@@ -5,6 +5,18 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - Unreleased
+
+### Fixed
+
+- **Secure cookie over HTTP (#70)** — Session cookies were always flagged `Secure` in Docker because the flag was tied to `NODE_ENV === "production"`. Browsers silently reject Secure cookies over plain HTTP, so self-hosters on LAN IPs (e.g. `http://192.168.1.50:3000`, TrueNAS, Synology) could never log in. The flag is now derived from the actual request transport via the `X-Forwarded-Proto` header: non-secure over HTTP, secure when behind a TLS-terminating proxy (Caddy, nginx, Cloudflare). Zero configuration required.
+- **500 on login/setup without SECRET_KEY** — Bare `docker run` (without `docker-compose.yml`) doesn't set `SECRET_KEY`, causing `getSecret()` to throw FATAL in production mode and every login or setup attempt to 500. The app now auto-generates a 32-byte random key on first boot, persists it to `/app/data/.secret-key` (survives container restarts as long as the volume is mounted), and injects it into the process environment before any request is served. Existing `SECRET_KEY` env vars take priority and are never overridden.
+
+### Added
+
+- **Regression tests for #70** — The cookie mock in `auth.test.ts` now captures the full options object and asserts the actual `secure` flag value (not just that `createSession` didn't throw). 5 new tests verify: non-secure over plain HTTP, secure with `X-Forwarded-Proto: https`, non-secure with `X-Forwarded-Proto: http`, `destroySession` respects the flag, and `httpOnly`/`sameSite` are always set.
+- **Regression tests for SECRET_KEY bootstrap** — New `instrumentation.test.ts` (4 tests) verifies `ensureSecretKey()`: generates and persists a key when absent, loads existing key from file on subsequent boots, respects user-provided `SECRET_KEY` env var, and generates different keys on fresh volumes.
+
 ## [1.2.4] - 2026-08-09
 
 ### Added

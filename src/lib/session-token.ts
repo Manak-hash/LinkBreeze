@@ -24,8 +24,9 @@ function getSecret(): string {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
         "[LinkBreeze] FATAL: SECRET_KEY is not set. " +
-          "Session tokens would be forgeable by anyone with the source code. " +
-          "Set SECRET_KEY to a random string (e.g. `openssl rand -hex 32`).",
+          "This should have been auto-generated on boot (check server logs for " +
+          "'[auth] No SECRET_KEY found'). If the data volume is read-only, set " +
+          "SECRET_KEY explicitly (e.g. `openssl rand -hex 32`).",
       );
     }
     return DEFAULT_SECRET;

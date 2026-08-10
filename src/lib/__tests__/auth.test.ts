@@ -1,13 +1,42 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { hashPassword, verifyPassword } from "@/lib/auth";
 
-// Mock next/headers cookies for session functions
-const mockCookieStore = new Map<string, string>();
+/**
+ * Cookie mock that captures the options object — not just the value.
+ *
+ * Bug #70 slipped through because the previous mock only stored the cookie
+ * value and discarded options (where `secure` lives). The old test literally
+ * said: "The mock cookie store doesn't store options, but the call should
+ * succeed without throwing. The real assertion happens in the browser test."
+ *
+ * That is how `secure: NODE_ENV === 'production'` went unnoticed — the unit
+ * test never checked the flag. This mock fixes that.
+ */
+type CookieOptions = {
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: string;
+  path?: string;
+  maxAge?: number;
+};
+
+const mockCookieStore = new Map<
+  string,
+  { value: string; options: CookieOptions }
+>();
+const mockHeaders = new Map<string, string>();
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
-    get: (name: string) => (mockCookieStore.has(name) ? { value: mockCookieStore.get(name) } : undefined),
-    set: (name: string, value: string) => mockCookieStore.set(name, value),
+    get: (name: string) =>
+      mockCookieStore.has(name)
+        ? { value: mockCookieStore.get(name)!.value }
+        : undefined,
+    set: (name: string, value: string, options: CookieOptions = {}) =>
+      mockCookieStore.set(name, { value, options }),
+  }),
+  headers: async () => ({
+    get: (name: string) => mockHeaders.get(name.toLowerCase()) ?? null,
   }),
 }));
 
@@ -42,14 +71,17 @@ describe("hashPassword / verifyPassword", () => {
 });
 
 describe("session lifecycle", () => {
-  it("returns null when no session cookie exists", async () => {
+  beforeEach(() => {
     mockCookieStore.clear();
+    mockHeaders.clear();
+  });
+
+  it("returns null when no session cookie exists", async () => {
     const session = await getSession();
     expect(session).toBeNull();
   });
 
   it("creates a session, then getSession reads it", async () => {
-    mockCookieStore.clear();
     await createSession(1, "admin");
     const session = await getSession();
     expect(session).not.toBeNull();
@@ -61,7 +93,64 @@ describe("session lifecycle", () => {
     await createSession(1, "admin");
     expect(mockCookieStore.has("lb_session")).toBe(true);
     await destroySession();
-    // Cookie value is emptied
-    expect(mockCookieStore.get("lb_session")).toBe("");
+    expect(mockCookieStore.get("lb_session")!.value).toBe("");
+  });
+});
+
+/**
+ * Regression tests for GitHub issue #70.
+ *
+ * The bug: `secure: process.env.NODE_ENV === "production"` was always true in
+ * Docker, so browsers silently rejected the session cookie over plain HTTP.
+ * The fix: detect HTTPS dynamically from the X-Forwarded-Proto header.
+ *
+ * These tests assert the ACTUAL `secure` flag in the cookie options, not just
+ * that the call succeeded. If someone reverts the fix, these fail immediately.
+ */
+describe("secure cookie flag (issue #70 regression)", () => {
+  beforeEach(() => {
+    mockCookieStore.clear();
+    mockHeaders.clear();
+  });
+
+  it("sets non-secure cookie over plain HTTP (no X-Forwarded-Proto)", async () => {
+    await createSession(1, "admin");
+
+    const cookie = mockCookieStore.get("lb_session");
+    expect(cookie).toBeDefined();
+    expect(cookie!.options.secure).toBe(false);
+  });
+
+  it("sets secure cookie when X-Forwarded-Proto is https", async () => {
+    mockHeaders.set("x-forwarded-proto", "https");
+    await createSession(1, "admin");
+
+    const cookie = mockCookieStore.get("lb_session");
+    expect(cookie).toBeDefined();
+    expect(cookie!.options.secure).toBe(true);
+  });
+
+  it("sets non-secure cookie when X-Forwarded-Proto is http", async () => {
+    mockHeaders.set("x-forwarded-proto", "http");
+    await createSession(1, "admin");
+
+    const cookie = mockCookieStore.get("lb_session");
+    expect(cookie).toBeDefined();
+    expect(cookie!.options.secure).toBe(false);
+  });
+
+  it("destroySession also respects the HTTPS flag over HTTP", async () => {
+    await destroySession();
+    const cookie = mockCookieStore.get("lb_session");
+    expect(cookie).toBeDefined();
+    expect(cookie!.options.secure).toBe(false);
+    expect(cookie!.value).toBe("");
+  });
+
+  it("always sets httpOnly and sameSite=lax regardless of transport", async () => {
+    await createSession(1, "admin");
+    const cookie = mockCookieStore.get("lb_session");
+    expect(cookie!.options.httpOnly).toBe(true);
+    expect(cookie!.options.sameSite).toBe("lax");
   });
 });
