@@ -219,7 +219,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={highlighted} onCheckedChange={setHighlighted} />
-              Highlight
+              Featured
             </label>
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={active} onCheckedChange={setActive} />

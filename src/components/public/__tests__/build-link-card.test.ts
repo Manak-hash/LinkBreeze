@@ -39,18 +39,23 @@ describe("buildLinkCardHtml", () => {
     expect(mail).not.toContain('target="_blank"');
   });
 
-  it("adds the highlight dot + accent border only when highlighted", () => {
+  it("adds the featured badge + accent border/background only when highlighted", () => {
     const plain = buildLinkCardHtml({ link: baseLink, theme, index: 0 });
-    expect(plain).not.toContain("background:var(--lb-accent);margin-right:8px");
+    expect(plain).not.toContain("Featured");
+    expect(plain).toContain("var(--lb-card-bg)");
     const hi = buildLinkCardHtml({
       link: { ...baseLink, isHighlighted: true } as LinkRow,
       theme,
       index: 0,
     });
-    // Highlight dot uses the accent token
-    expect(hi).toContain("background:var(--lb-accent)");
-    // Static border for highlighted card uses accent, not card-border
-    expect(hi).toContain("solid var(--lb-accent)");
+    // Featured badge with star icon
+    expect(hi).toContain("Featured");
+    // Accent-tinted background via color-mix
+    expect(hi).toContain("color-mix(in srgb, var(--lb-accent) 12%, var(--lb-card-bg))");
+    // Thicker accent border
+    expect(hi).toContain("calc(var(--lb-border-width) + 1px) solid var(--lb-accent)");
+    // Bolder font weight
+    expect(hi).toContain("calc(var(--lb-font-weight) + 100)");
   });
 
   it("includes a per-card stagger delay", () => {

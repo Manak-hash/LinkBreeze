@@ -81,8 +81,11 @@ function buildIcon(link: LinkRow): string {
  */
 function buildContentRow(link: LinkRow): string {
   const icon = buildIcon(link);
-  const highlightDot = link.isHighlighted
-    ? `<span aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:9999px;background:var(--lb-accent);margin-right:8px;flex-shrink:0"></span>`
+  const featured = link.isHighlighted;
+
+  // Featured links get a "Featured" badge instead of the small dot
+  const featuredBadge = featured
+    ? `<span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-accent);margin-bottom:4px">&#9733; Featured</span>`
     : "";
 
   const description = link.description
@@ -90,9 +93,17 @@ function buildContentRow(link: LinkRow): string {
     : "";
 
   const title = esc(link.title);
+  // Featured links: bolder title + slightly larger font
+  const fontWeight = featured
+    ? "calc(var(--lb-font-weight) + 100)"
+    : "var(--lb-font-weight)";
+  const fontSize = featured
+    ? "calc(var(--lb-font-size) + 3px)"
+    : "calc(var(--lb-font-size) + 1px)";
 
   return `<span style="display:flex;flex-direction:column;flex:1;min-width:0">
-      <span style="display:flex;align-items:center;font-weight:var(--lb-font-weight);font-size:calc(var(--lb-font-size) + 1px);letter-spacing:var(--lb-letter-spacing)">${highlightDot}${title}</span>
+      ${featuredBadge}
+      <span style="display:flex;align-items:center;font-weight:${fontWeight};font-size:${fontSize};letter-spacing:var(--lb-letter-spacing)">${title}</span>
       ${description}
     </span>
     ${icon}
@@ -123,11 +134,23 @@ export function buildLinkCardHtml(options: {
   const isGlass = linkStyle === "glass";
   const isPixel = linkStyle === "pixel";
 
-  const border = link.isHighlighted
-    ? `var(--lb-border-width) solid var(--lb-accent)`
+  // Featured links: accent-tinted background + thicker accent border
+  const featured = link.isHighlighted;
+  const border = featured
+    ? `calc(var(--lb-border-width) + 1px) solid var(--lb-accent)`
     : isNeon
       ? `var(--lb-border-width) solid var(--lb-accent)`
       : `var(--lb-border-width) solid var(--lb-card-border)`;
+
+  // Featured links get a subtle accent-tinted background overlay
+  const cardBg = featured
+    ? `color-mix(in srgb, var(--lb-accent) 12%, var(--lb-card-bg))`
+    : `var(--lb-card-bg)`;
+
+  // Featured links: extra vertical padding for a taller card
+  const featuredPadding = featured
+    ? `padding-top:calc(var(--lb-btn-padding-y) + 6px);padding-bottom:calc(var(--lb-btn-padding-y) + 6px);`
+    : ``;
 
   const reveal =
     theme.animationType === "none"
@@ -192,9 +215,9 @@ export function buildLinkCardHtml(options: {
     href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
     style="
       ${display};text-decoration:none;width:calc(100% - 6px);box-sizing:border-box;
-      ${paddingStyle}
+      ${paddingStyle}${featuredPadding}
       position:relative;z-index:1;
-      background:var(--lb-card-bg);border:none;border-radius:0;
+      background:${cardBg};border:none;border-radius:0;
       color:var(--lb-text);transition:transform .15s ease,box-shadow .15s ease;
       margin:3px;
       clip-path:polygon(6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),0 6px,3px 6px,3px 3px);
@@ -211,8 +234,8 @@ export function buildLinkCardHtml(options: {
   href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
   style="
     ${display};text-decoration:none;width:100%;box-sizing:border-box;
-    ${paddingStyle}margin:0 0 var(--lb-spacing);
-    background:var(--lb-card-bg);border:${border};border-radius:var(--lb-card-radius);
+    ${paddingStyle}${featuredPadding}margin:0 0 var(--lb-spacing);
+    background:${cardBg};border:${border};border-radius:var(--lb-card-radius);
     color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
     ${backdropBlur}${overflow}${pixelClip}${reveal}
   "
