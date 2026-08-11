@@ -10,20 +10,28 @@ import {
   MonitorSmartphone,
   Share2,
   Minus,
+  Plus,
+  DownloadCloud,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   getDashboardStats,
   getPreviousStats,
   getAllLinks,
   getAllPages,
   getAnalyticsBreakdown,
+  getActiveTheme,
+  getProfile,
+  getSetting,
   type AnalyticsRange,
   type BreakdownEntry,
 } from "@/server/queries";
 import { checkForUpdates } from "@/lib/update-check";
 import { UpdateChecker } from "@/components/admin/UpdateChecker";
+import { OnboardingChecklist } from "@/components/admin/OnboardingChecklist";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { ViewsChart } from "./views-chart";
@@ -284,12 +292,15 @@ export default async function DashboardPage({
     allPages[0];
   const pageId = activePage?.id;
 
-  const [stats, prevStats, links, breakdown, updateResult] = await Promise.all([
+  const [stats, prevStats, links, breakdown, updateResult, profile, activeTheme, slug] = await Promise.all([
     getDashboardStats(range, pageId),
     getPreviousStats(range, pageId),
     getAllLinks(pageId),
     getAnalyticsBreakdown(range, pageId),
     checkForUpdates(),
+    getProfile(),
+    getActiveTheme(),
+    getSetting("slug"),
   ]);
 
   const activeCount = links.filter((l) => l.isActive).length;
@@ -300,10 +311,62 @@ export default async function DashboardPage({
   const devTotal = breakdown.devices.reduce((s, e) => s + e.count, 0) || 1;
   const ctryTotal = breakdown.countries.reduce((s, e) => s + e.count, 0) || 1;
 
+  // Fresh install: no links, no views. Show a welcome hero instead of
+  // an empty dashboard full of zeroes.
+  const isEmptyState = links.length === 0 && stats.totalViews === 0;
+
   return (
     <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
       <UpdateChecker initialResult={updateResult} />
 
+      {/* Onboarding checklist — auto-hides when all done or dismissed */}
+      <OnboardingChecklist
+        hasLinks={activeCount > 0}
+        hasDisplayName={(profile?.displayName?.length ?? 0) > 0}
+        hasTheme={activeTheme !== null}
+        pageSlug={slug ?? "u"}
+      />
+
+      {isEmptyState ? (
+        /* Welcome hero for fresh installs — replaces empty stats grid */
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card/50 p-8 text-center lg:p-12">
+          <div className="flex size-16 items-center justify-center rounded-full bg-violet/15">
+            <Sparkles className="size-8 text-violet" />
+          </div>
+          <div>
+            <h2 className="font-heading text-xl font-semibold">
+              Welcome to your dashboard
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your page is live at{" "}
+              <a
+                href={`/${slug ?? "u"}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-violet underline"
+              >
+                /{slug ?? "u"}
+              </a>
+              . Add your first link to start collecting analytics.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Link
+              href="/links"
+              className="inline-flex items-center gap-2 rounded-lg bg-violet px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet/90"
+            >
+              <Plus className="size-4" /> Add your first link
+            </Link>
+            <Link
+              href="/settings?tab=data"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <DownloadCloud className="size-4" /> Import from Linktree
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Header: title + range picker */}
       <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div>
@@ -479,6 +542,8 @@ export default async function DashboardPage({
           expanded={<BreakdownList entries={breakdown.countries} total={ctryTotal} />}
         />
       </div>
+        </>
+      )}
     </div>
   );
 }

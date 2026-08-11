@@ -1,0 +1,72 @@
+# docker-compose.https-portal.yml
+#
+# SCENARIO: Use https-portal for one-line TLS.
+#
+# https-portal is a sidecar container that automatically fetches Let's
+# Encrypt certificates for any domain in its configuration. It terminates
+# TLS and proxies to LinkBreeze. No manual Certbot commands needed.
+#
+# REQUIRED:
+#   - A domain pointed to your server (A record to your public IP)
+#   - Ports 80 and 443 open on your firewall
+#
+# ENV VARS:
+#   - DOMAIN (e.g., "links.example.com") — your domain
+#   - EMAIL (for Let's Encrypt registration)
+#   - SECRET_KEY (generated with: openssl rand -hex 32)
+#
+# PORTS:
+#   - 80 (HTTP) — Let's Encrypt challenge
+#   - 443 (HTTPS) — https-portal terminates TLS
+#
+# https-portal automatically obtains and renews certificates. First start
+# takes ~30 seconds while it provisions the certificate.
+#
+# Upgrade: docker compose pull && docker compose up -d
+# Logs: docker compose logs -f https-portal linkbreeze
+
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - linkbreeze-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  https-portal:
+    image: steveltn/https-portal:latest
+    container_name: https-portal
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - https-portal-data:/var/lib/https-portal
+    environment:
+      - DOMAINS=${DOMAIN} -> http://linkbreeze:3000
+      - STAGE=production
+      - EMAIL=${EMAIL}
+    networks:
+      - linkbreeze-net
+    depends_on:
+      linkbreeze:
+        condition: service_healthy
+
+networks:
+  linkbreeze-net:
+    driver: bridge
+
+volumes:
+  linkbreeze-data:
+  https-portal-data:

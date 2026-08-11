@@ -1,0 +1,136 @@
+# docker-compose.with-backup.yml
+#
+# SCENARIO: Production setup with scheduled SQLite backup sidecar.
+#
+# This example adds a backup sidecar that periodically dumps the SQLite
+# database and uploads it to local storage. Backups are retained for
+# N days (configurable) and can be restored by copying the dump file to
+# /app/data and restarting LinkBreeze.
+#
+# REQUIRED:
+#   - A backup destination (local volume or S3-compatible storage)
+#
+# ENV VARS:
+#   - BACKUP_SCHEDULE — cron expression for backup frequency (e.g., "0 3 * * *" for daily at 3am)
+#   - BACKUP_RETENTION_DAYS — how many backups to keep (default: 7)
+#   - SECRET_KEY — for LinkBreeze session signing (generate with: openssl rand -hex 32)
+#
+# OPTIONAL (for S3 backups using minio/mc):
+#   - AWS_ACCESS_KEY_ID — S3 access key
+#   - AWS_SECRET_ACCESS_KEY — S3 secret key
+#   - AWS_S3_ENDPOINT — S3 endpoint (e.g., https://s3.amazonaws.com or your MinIO/S3-compatible service)
+#   - AWS_S3_BUCKET — S3 bucket name
+#   - AWS_S3_PREFIX — prefix for backup files in bucket (default: "linkbreeze-backups")
+#
+# PORTS:
+#   - 3000 (HTTP) — expose directly or add a reverse proxy
+#
+# BACKUP PROCESS:
+#   The backup sidecar runs on the schedule specified by BACKUP_SCHEDULE.
+#   It:
+#     1. Runs "sqlite3 linkbreeze.db '.backup backup.db'" (online backup, no downtime)
+#     2. Compresses the backup with gzip
+#     3. Uploads to S3 (if configured) using minio/mc client
+#     4. Deletes backups older than BACKUP_RETENTION_DAYS
+#
+# RESTORING FROM BACKUP:
+#   1. Stop LinkBreeze: docker compose stop linkbreeze
+#   2. Copy the backup file to the data volume: docker compose cp backup-data/linkbreeze-YYYYMMDD-HHMMSS.db.gz ./linkbreeze.db.gz
+#   3. Extract: gunzip ./linkbreeze.db.gz
+#   4. Copy to data volume: docker compose cp ./linkbreeze.db linkbreeze-data:/app/data/linkbreeze.db
+#   5. Restart LinkBreeze: docker compose start linkbreeze
+#
+# UPGRADE: docker compose pull && docker compose up -d
+# LOGS: docker compose logs -f linkbreeze backup
+
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backup:
+    image: minio/mc:latest
+    container_name: linkbreeze-backup
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/data:ro
+      - backup-data:/backups
+    environment:
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 3 * * *}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-}
+      - AWS_S3_PREFIX=${AWS_S3_PREFIX:-linkbreeze-backups}
+    command: >
+      sh -c '
+        apk add --no-cache sqlite3 gzip curl findutils
+
+        backup() {
+          echo "[$(date)] Starting backup"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_FILE="/backups/linkbreeze-$$TIMESTAMP.db.gz"
+
+          # Online backup (no downtime)
+          sqlite3 /data/linkbreeze.db ".backup /tmp/backup.db"
+          gzip -c /tmp/backup.db > $$BACKUP_FILE
+          rm /tmp/backup.db
+
+          # Upload to S3 if configured using minio/mc client
+          if [ -n "$$AWS_S3_BUCKET" ] && [ -n "$$AWS_S3_ENDPOINT" ] && [ -n "$$AWS_ACCESS_KEY_ID" ] && [ -n "$$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "[$(date)] Uploading to S3: $$AWS_S3_BUCKET/$$AWS_S3_PREFIX/linkbreeze-$$TIMESTAMP.db.gz"
+            mc alias set s3 $$AWS_S3_ENDPOINT $$AWS_ACCESS_KEY_ID $$AWS_SECRET_ACCESS_KEY
+            mc cp $$BACKUP_FILE s3/$$AWS_S3_BUCKET/$$AWS_S3_PREFIX/ || echo "[$(date)] S3 upload failed (check credentials)"
+          fi
+
+          # Delete old backups
+          echo "[$(date)] Cleaning up backups older than $$BACKUP_RETENTION_DAYS days"
+          find /backups -name "linkbreeze-*.db.gz" -mtime +$$BACKUP_RETENTION_DAYS -delete
+
+          echo "[$(date)] Backup completed: $$BACKUP_FILE"
+        }
+
+        # Run backup immediately on start
+        backup
+
+        # Wait until next scheduled time using sleep loop
+        while true; do
+          CURRENT_HOUR=$(date +%H)
+          CURRENT_MIN=$(date +%M)
+          SCHEDULE_HOUR=$(echo $$BACKUP_SCHEDULE | cut -d " " -f 2)
+          SCHEDULE_MIN=$(echo $$BACKUP_SCHEDULE | cut -d " " -f 1)
+
+          # Calculate seconds until next scheduled time
+          if [ "$$CURRENT_HOUR" -lt "$$SCHEDULE_HOUR" ] || ([ "$$CURRENT_HOUR" -eq "$$SCHEDULE_HOUR" ] && [ "$$CURRENT_MIN" -lt "$$SCHEDULE_MIN" ]); then
+            SECONDS_UNTIL=$$(( (SCHEDULE_HOUR * 3600 + SCHEDULE_MIN * 60) - (CURRENT_HOUR * 3600 + CURRENT_MIN * 60) ))
+          else
+            SECONDS_UNTIL=$$(( (24 * 3600) - (CURRENT_HOUR * 3600 + CURRENT_MIN * 60) + (SCHEDULE_HOUR * 3600 + SCHEDULE_MIN * 60) ))
+          fi
+
+          echo "[$(date)] Next backup in $$SECONDS_UNTIL seconds (scheduled: $$SCHEDULE_MIN:$$SCHEDULE_HOUR)"
+          sleep $$SECONDS_UNTIL
+          backup
+        done
+      '
+    depends_on:
+      linkbreeze:
+        condition: service_healthy
+
+volumes:
+  linkbreeze-data:
+  backup-data:

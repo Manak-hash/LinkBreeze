@@ -41,8 +41,20 @@ async function isHttps(): Promise<boolean> {
  * Read and verify the session cookie. Returns the session payload or null.
  * Checks the password version against the DB — if the password was changed
  * since this token was issued, the token is treated as invalid.
+ *
+ * When DEMO_AUTO_LOGIN=true, returns a mock session without checking cookies,
+ * so visitors land directly on the dashboard without a login wall.
  */
 export async function getSession(): Promise<SessionPayload | null> {
+  if (process.env.DEMO_AUTO_LOGIN === "true") {
+    return {
+      userId: 1,
+      username: "demo",
+      exp: Date.now() + 86400000,
+      pv: 0,
+    };
+  }
+
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;

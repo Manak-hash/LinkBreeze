@@ -7,7 +7,7 @@ import fs from "node:fs/promises";
  * volume as the SQLite DB. Swap for object storage later without touching the
  * action/route contracts.
  */
-export const UPLOADS_DIR = path.resolve(process.env.UPLOAD_DIR || "./data/uploads");
+export const UPLOADS_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR || "./data/uploads");
 
 const CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -36,7 +36,7 @@ export async function ensureUploadsDir(): Promise<void> {
 export function safeUploadPath(filename: string): string | null {
   const clean = path.basename(filename);
   if (!clean || clean === "." || clean === "..") return null;
-  const resolved = path.resolve(UPLOADS_DIR, clean);
+  const resolved = path.resolve(/*turbopackIgnore: true*/ UPLOADS_DIR, clean);
   if (resolved !== UPLOADS_DIR && !resolved.startsWith(UPLOADS_DIR + path.sep)) {
     return null;
   }

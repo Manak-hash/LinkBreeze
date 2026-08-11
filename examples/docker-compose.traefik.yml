@@ -1,0 +1,113 @@
+# docker-compose.traefik.yml
+#
+# SCENARIO: Put LinkBreeze behind Traefik with automatic TLS via Let's Encrypt.
+#
+# Traefik provides automatic service discovery, a dashboard for monitoring,
+# and handles TLS certificates automatically. Configure your domain's A record
+# to point to this server, and Traefik handles the ACME challenge and renewal.
+#
+# REQUIRED:
+#   - A domain pointed to your server (A record to your public IP)
+#   - Ports 80 and 443 open on your firewall
+#
+# ENV VARS:
+#   - DOMAIN (e.g., "links.example.com") — your domain
+#   - EMAIL (for Let's Encrypt registration)
+#   - SECRET_KEY (generated with: openssl rand -hex 32)
+#
+# OPTIONAL (for Traefik dashboard authentication):
+#   - TRAEFIK_DASHBOARD_USERNAME — dashboard username
+#   - TRAEFIK_DASHBOARD_PASSWORD — dashboard password (bcrypt hash: htpasswd -nbB user password)
+#
+# PORTS:
+#   - 80 (HTTP) — ACME challenge and redirect to HTTPS
+#   - 443 (HTTPS) — Traefik terminates TLS
+#   - 8080 (Traefik dashboard) — optional, comment out if not needed
+#
+# ACME CHALLENGE:
+#   This example uses DNS challenge (recommended for wildcard certs and when port 80 is blocked).
+#   Configure your DNS provider credentials in environment variables (see Traefik docs).
+#   For HTTP-01 challenge (simpler, requires port 80), change certResolver to "letsencrypt-http"
+#   in the LinkBreeze labels and add an HTTP-01 resolver to Traefik configuration.
+#
+# BASIC AUTH FOR DASHBOARD (OPTIONAL):
+#   Uncomment the traefik-docker-auth middleware below and configure your credentials.
+#   Use: htpasswd -nbB username password to generate a bcrypt hash.
+#
+# Upgrade: docker compose pull && docker compose up -d
+# Logs: docker compose logs -f traefik linkbreeze
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-letsencrypt:/letsencrypt
+    networks:
+      - traefik-net
+
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkbreeze.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.linkbreeze.entrypoints=websecure"
+      - "traefik.http.routers.linkbreeze.tls.certresolver=letsencrypt"
+      - "traefik.http.services.linkbreeze.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Basic Auth middleware for Traefik dashboard
+  # Uncomment to enable. Generate bcrypt hash with: htpasswd -nbB username password
+  # traefik-docker-auth:
+  #   image: traefik/traefik-certs-dumper:latest
+  #   container_name: traefik-auth
+  #   restart: unless-stopped
+  #   command:
+  #     - --version=v2
+  #     - --domain=${DOMAIN}
+  #     - --authfile=/auth/.htpasswd
+  #   volumes:
+  #     - ./traefik-auth:/auth
+  #   environment:
+  #     - TRAEFIK_DASHBOARD_USERNAME=${TRAEFIK_DASHBOARD_USERNAME}
+  #     - TRAEFIK_DASHBOARD_PASSWORD=${TRAEFIK_DASHBOARD_PASSWORD}
+  #   networks:
+  #     - traefik-net
+
+networks:
+  traefik-net:
+    driver: bridge
+
+volumes:
+  traefik-letsencrypt:
+  linkbreeze-data:

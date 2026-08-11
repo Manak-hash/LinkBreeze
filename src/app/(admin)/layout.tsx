@@ -116,9 +116,13 @@ export default async function AdminLayout({
               <div className="w-full">
                 {isDemoMode && (
                   <div className="mb-4 shrink-0 rounded-lg border border-violet/30 bg-violet/10 px-4 py-3 text-sm text-lavender">
-                    <strong>Read-only demo.</strong> Deploy your own instance to make changes.{" "}
+                    <strong>Live demo.</strong>{" "}
+                    <a href="https://linkbreeze.omnirise.dev/" className="underline hover:text-foreground" target="_blank" rel="noopener noreferrer">
+                      Visit LinkBreeze
+                    </a>
+                    {" · "}
                     <a href="https://github.com/Manak-hash/LinkBreeze" className="underline hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                      View on GitHub →
+                      Deploy your own instance
                     </a>
                   </div>
                 )}

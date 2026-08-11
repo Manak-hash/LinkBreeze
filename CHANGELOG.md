@@ -5,6 +5,40 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - Unreleased
+
+### Added
+
+- **Examples directory (#42)** — New `examples/` directory at repo root containing battle-tested deployment configurations for common production scenarios. Each example is a single, self-contained file with a header comment explaining when to use it, required env vars, ports, and traffic flow. Includes:
+  - `docker-compose.caddy.yml` — Behind Caddy reverse proxy with automatic TLS (Let's Encrypt handled automatically, no Certbot required)
+  - `docker-compose.traefik.yml` — Behind Traefik with automatic TLS via Let's Encrypt, includes dashboard for monitoring
+  - `docker-compose.cloudflare-tunnel.yml` — Exposed via Cloudflare Tunnel (no open ports, zero-trust, works behind NAT)
+  - `docker-compose.nginx.yml` — Behind Nginx reverse proxy with Certbot TLS (assumes Nginx already running on host)
+  - `docker-compose.https-portal.yml` — Using https-portal for one-line TLS (single certificate manager for multiple services)
+  - `docker-compose.with-backup.yml` — Production setup with scheduled SQLite backup sidecar (dumps DB, compresses, uploads to S3 or local volume, retains N days)
+  - `kubernetes.yaml` — Full K8s manifest (Deployment, Service, Ingress, ConfigMap, Secret, PVC, HPA)
+- `examples/README.md` — Decision table matching examples to scenarios, file-by-file breakdown with traffic flow diagrams, common patterns across examples, and security considerations.
+- README updates — "Making Your Page Public" section now includes quick reference table linking to examples, and each reverse proxy option (Caddy, Nginx, Cloudflare Tunnel) links to its complete compose file.
+
+### Changed
+
+- **Demo instance mode** — Added 4 new env vars for public demo deployments: `DEMO_MODE` (blocks mutations, shows banner), `DEMO_AUTO_LOGIN` (skips login wall, returns mock session), `DEMO_FRAME_ORIGIN` (relaxes CSP `frame-ancestors` to allow iframe embedding from marketing site), `NEXT_PUBLIC_DEMO_MODE` (exposes `DEMO_MODE` to browser for postMessage theme listener). All documented in `.env.example`.
+- **CSP frame-ancestors conditional** — Content-Security-Policy `frame-ancestors` directive now dynamically includes `DEMO_FRAME_ORIGIN` when `DEMO_MODE=true`, allowing demo instance to be embedded via iframe while maintaining strict same-origin policy for normal deployments. `X-Frame-Options` header omitted entirely in demo mode to avoid contradictory specs.
+- **Demo banner links** — Admin layout demo banner now includes "Visit LinkBreeze" (links to marketing site) and "Deploy your own instance" (links to GitHub), replacing the single "View on GitHub" link.
+- **Theme preview listener** — New `ThemePreviewListener` component in public layout listens for `lb-theme-preview` and `lb-theme-reset` postMessage events from iframe parent, applies ephemeral CSS variable overrides to `document.documentElement`. Gated by `NEXT_PUBLIC_DEMO_MODE`. Enables live theme switching in marketing site iframe without persisting to database.
+- **Auto-login middleware bypass** — `proxy.ts` middleware now skips cookie verification when `DEMO_AUTO_LOGIN=true`, allowing visitors to land directly on `/dashboard` without a session cookie. The admin layout's `getSession()` also returns a mock session in demo mode, so the page renders normally.
+- **Docker build args for demo mode** — Dockerfile accepts `DEMO_MODE`, `DEMO_AUTO_LOGIN`, `DEMO_FRAME_ORIGIN`, and `NEXT_PUBLIC_DEMO_MODE` as build args, passing them through to the build environment so `next.config.ts` can evaluate CSP conditions at build time (Next.js bakes config into standalone output). `docker-compose.demo.yml` updated to use `build:` with these args instead of pre-built image.
+- **TurbopackIgnore annotations** — `src/lib/uploads.ts` now includes `/*turbopackIgnore: true*/` comments on `path.resolve()` calls to prevent Turbopack from tracing the entire filesystem at build time (which caused build failures with the current Next.js 16 + Turbopack stack). Build output now succeeds without warnings.
+
+### Security
+
+- **Demo mode security boundary** — All demo features (`DEMO_MODE`, `DEMO_AUTO_LOGIN`, `DEMO_FRAME_ORIGIN`, postMessage theme listener) are gated by env vars and explicitly documented as read-only for public demos. The demo instance cannot modify data (mutations are blocked by `DEMO_MODE=true`). PostMessage listener validates `event.source === window.parent` to ensure it only accepts events from the expected parent origin.
+- **CSP frame-ancestors validation** — When `DEMO_FRAME_ORIGIN` is set, it's included in `frame-ancestors` but all other CSP directives remain strict. Only the marketing website can embed the demo, not arbitrary origins.
+
+### Technical
+
+- **Demo env vars build-time evaluation** — `next.config.ts` now reads `DEMO_MODE` and `DEMO_FRAME_ORIGIN` at build time via `process.env`, not runtime. This is required because Next.js bakes CSP headers into the standalone build output. For demo builds, pass build args via `docker-compose.demo.yml` or set env vars before running `npx next build`.
+
 ## [1.2.5] - 2026-08-11
 
 ### Fixed

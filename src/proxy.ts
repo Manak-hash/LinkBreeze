@@ -61,6 +61,12 @@ export function proxy(request: NextRequest) {
   );
 
   if (isProtected) {
+    // Demo auto-login: skip the cookie check entirely. The admin layout's
+    // getSession() also returns a mock session, so the page renders normally.
+    if (process.env.DEMO_AUTO_LOGIN === "true") {
+      return NextResponse.next();
+    }
+
     const sessionCookie = request.cookies.get("lb_session")?.value;
     // Verify the token — not just cookie existence. A forged or expired
     // cookie is redirected to login just like a missing one.

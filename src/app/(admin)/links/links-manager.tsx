@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, DownloadCloud } from "lucide-react";
 import { reorderLinks } from "@/server/actions/links";
 import type { LinkRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
@@ -106,13 +106,32 @@ export function LinksManager({
       {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              No links yet. Add your first link to get started.
-            </p>
-            <Button onClick={openCreate}>
-              <Plus className="size-4" />
-              Add link
-            </Button>
+            <div className="flex size-12 items-center justify-center rounded-full bg-violet/15">
+              <Plus className="size-5 text-violet" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                No links yet
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Add a link or import from an existing page.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button onClick={openCreate}>
+                <Plus className="size-4" />
+                Add your first link
+              </Button>
+              <a
+                href="/settings?tab=data"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                <DownloadCloud className="size-4" />
+                Import from Linktree
+              </a>
+            </div>
           </CardContent>
         </Card>
       ) : (

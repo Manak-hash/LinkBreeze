@@ -1,0 +1,71 @@
+# docker-compose.nginx.yml
+#
+# SCENARIO: Put LinkBreeze behind Nginx reverse proxy with Certbot for TLS.
+#
+# This example assumes you already have Nginx and Certbot running on your
+# host. Nginx terminates TLS on port 443 and proxies to localhost:3000.
+# Certbot handles certificate acquisition and renewal automatically.
+#
+# REQUIRED:
+#   - Nginx installed and running on the host (not in container)
+#   - Certbot installed on the host (certbot --nginx your-domain.com)
+#   - A domain pointed to your server (A record to your public IP)
+#   - Port 443 open on your firewall
+#
+# ENV VARS:
+#   - SECRET_KEY (generated with: openssl rand -hex 32)
+#
+# PORTS:
+#   - 3000 (HTTP) — exposed only on localhost for Nginx to proxy to
+#
+# Add this Nginx server block to your Nginx config (usually /etc/nginx/sites-available/your-domain):
+#
+# server {
+#   listen 443 ssl http2;
+#   server_name links.example.com;
+#
+#   ssl_certificate /etc/letsencrypt/live/links.example.com/fullchain.pem;
+#   ssl_certificate_key /etc/letsencrypt/live/links.example.com/privkey.pem;
+#   include /etc/letsencrypt/options-ssl-nginx.conf;
+#   ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+#
+#   location / {
+#     proxy_pass http://localhost:3000;
+#     proxy_http_version 1.1;
+#     proxy_set_header Upgrade $http_upgrade;
+#     proxy_set_header Connection 'upgrade';
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Real-IP $remote_addr;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+#     proxy_cache_bypass $http_upgrade;
+#   }
+# }
+#
+# Run Certbot once to obtain the certificate: certbot --nginx -d links.example.com
+# Certbot adds the renewal cron job automatically.
+#
+# Upgrade: docker compose pull && docker compose up -d
+# Logs: docker compose logs -f linkbreeze
+
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  linkbreeze-data:

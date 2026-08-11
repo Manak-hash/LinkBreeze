@@ -1,0 +1,70 @@
+# docker-compose.caddy.yml
+#
+# SCENARIO: Put LinkBreeze behind Caddy with automatic HTTPS (Let's Encrypt).
+#
+# Caddy automatically fetches and renews certificates for you — no Certbot
+# or manual TLS configuration needed. Point your A record to this server,
+# and Caddy handles the rest.
+#
+# REQUIRED:
+#   - A domain pointed to your server (A record to your public IP)
+#   - Ports 80 and 443 open on your firewall
+#
+# ENV VARS:
+#   - DOMAIN (e.g., "links.example.com") — the domain for Caddy to serve
+#   - EMAIL (for Let's Encrypt registration and renewal notices)
+#   - SECRET_KEY (generated with: openssl rand -hex 32)
+#
+# PORTS:
+#   - 80 (HTTP) — Let's Encrypt challenge and redirect to HTTPS
+#   - 443 (HTTPS) — Caddy terminates TLS, proxies to localhost:3000
+#
+# Caddy auto-configures TLS for the domain in the Caddyfile. No manual
+# certificate handling required. Renewals happen automatically in the
+# background (Caddy handles ACME protocol).
+#
+# Upgrade: docker compose pull && docker compose up -d
+# Logs: docker compose logs -f caddy linkbreeze
+
+services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy-data:/data
+      - ./caddy-config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - linkbreeze-net
+
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - linkbreeze-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # No ports exposed here — Caddy proxies to this container on localhost:3000
+
+networks:
+  linkbreeze-net:
+    driver: bridge
+
+volumes:
+  linkbreeze-data:
+  caddy-data:
+  caddy-config:

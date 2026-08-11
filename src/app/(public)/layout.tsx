@@ -1,5 +1,6 @@
 import * as React from "react";
 import { EmbeddedDetector } from "./embedded-detector";
+import { ThemePreviewListener } from "./theme-preview-listener";
 
 /**
  * Minimal layout for public link pages. The root layout already provides
@@ -14,6 +15,7 @@ export default function PublicLayout({
   return (
     <div className="min-h-screen w-full">
       <EmbeddedDetector />
+      <ThemePreviewListener />
       {children}
     </div>
   );

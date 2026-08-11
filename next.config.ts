@@ -1,54 +1,64 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
-  },
-];
+/**
+ * Security headers. X-Frame-Options is omitted entirely when DEMO_MODE is
+ * active — in that mode CSP frame-ancestors is the sole frame-embedding gate
+ * (see buildCsp below), and sending both X-Frame-Options and a permissive
+ * frame-ancestors simultaneously is contradictory per the spec. In normal
+ * mode, SAMEORIGIN prevents clickjacking on non-demo deployments.
+ */
+const securityHeaders = process.env.DEMO_MODE === "true"
+  ? [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+    ]
+  : [
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+    ];
 
 /**
- * Content-Security-Policy (ENFORCED).
+ * Build the Content-Security-Policy header value.
  *
- * Moved from Report-Only to enforced in v1.2.5 after verifying no real-world
- * violations. Documented exceptions:
- *
- * - script-src 'unsafe-inline': Required for the sendBeacon click tracker on
- *   public link cards. The onclick handler is injected via build-link-card.ts
- *   as a raw HTML string. Nonce/hash-based CSP is a future hardening step.
- * - style-src 'unsafe-inline': Required for theme CSS custom properties
- *   (--lb-* tokens injected as inline <style> tags) and Next.js inline styles.
- * - frame-src: whitelisted embed providers only (YouTube, Spotify, Vimeo,
- *   SoundCloud, Bandcamp). Prevents arbitrary iframe injection.
- * - img-src https: data: blob: permissive by design — avatars, favicons, and
- *   thumbnails come from user-supplied domains (Unsplash, GitHub, etc.).
- * - connect-src 'self': covers /api/track. Users who inject external analytics
- *   (Plausible, Umami) via the analyticsScript field will see those scripts
- *   blocked by connect-src unless they add the origin here. This is the
- *   expected trade-off for a secure default.
- * - object-src 'none': no Flash, Java, or other plugins. Ever.
- * - form-action 'self': prevents form data exfiltration to external domains.
+ * When DEMO_MODE=true, the frame-ancestors directive is relaxed to allow
+ * embedding from the origin specified in DEMO_FRAME_ORIGIN (e.g. the
+ * marketing website). This enables the live demo iframe without weakening
+ * security for normal self-hosted deployments.
  */
-const cspEnforced = {
-  key: "Content-Security-Policy",
-  value: [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data:",
-    "connect-src 'self'",
-    "frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com",
-    "frame-ancestors 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "object-src 'none'",
-  ].join("; "),
-};
+function buildCsp(): { key: string; value: string } {
+  const frameAncestors =
+    process.env.DEMO_MODE === "true" && process.env.DEMO_FRAME_ORIGIN
+      ? `frame-ancestors 'self' ${process.env.DEMO_FRAME_ORIGIN}`
+      : "frame-ancestors 'self'";
+
+  return {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com",
+      frameAncestors,
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join("; "),
+  };
+}
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -124,7 +134,7 @@ const nextConfig: NextConfig = {
         source: "/:slug*",
         headers: [
           ...securityHeaders,
-          cspEnforced,
+          buildCsp(),
           {
             key: "Cache-Control",
             value: "public, s-maxage=60, stale-while-revalidate=300",
@@ -146,7 +156,7 @@ const nextConfig: NextConfig = {
         source: "/(dashboard|links|profile|theme|settings)(:path*)?",
         headers: [
           ...securityHeaders,
-          cspEnforced,
+          buildCsp(),
           { key: "Cache-Control", value: "no-store" },
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],

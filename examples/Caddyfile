@@ -1,0 +1,51 @@
+# Caddyfile for LinkBreeze
+#
+# Replace ${DOMAIN} with your actual domain (e.g., links.example.com)
+# Replace ${EMAIL} with your email for Let's Encrypt
+#
+# Caddy will automatically obtain and renew HTTPS certificates.
+
+${DOMAIN} {
+    # Automatically redirect HTTP to HTTPS
+    encode zstd gzip
+
+    # Proxy to LinkBreeze container on localhost:3000
+    reverse_proxy linkbreeze:3000 {
+        # Pass real client IP and protocol
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # Health check (optional, for Caddy's passive health checks)
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 10s
+    }
+
+    # TLS configuration
+    tls ${EMAIL}
+
+    # Security headers (optional but recommended)
+    header {
+        # Enable HSTS (upgrade insecure requests)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Content Security Policy (adjust to your needs)
+        # This is a baseline CSP — LinkBreeze sets its own via next.config.ts
+        # Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';"
+    }
+}
+
+# Redirect www to non-www (optional)
+www.${DOMAIN} {
+    redir https://${DOMAIN}{uri} permanent
+}

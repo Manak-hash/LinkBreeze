@@ -10,6 +10,21 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# Demo env vars — passed as build args so next.config.ts can evaluate them
+# at build time (Next.js bakes config into the standalone output).
+# For non-demo builds, omit these args (defaults to secure mode).
+ARG DEMO_MODE=false
+ARG DEMO_AUTO_LOGIN=false
+ARG DEMO_FRAME_ORIGIN=""
+ARG NEXT_PUBLIC_DEMO_MODE=false
+ENV DEMO_MODE=${DEMO_MODE}
+ENV DEMO_AUTO_LOGIN=${DEMO_AUTO_LOGIN}
+ENV DEMO_FRAME_ORIGIN=${DEMO_FRAME_ORIGIN}
+ENV NEXT_PUBLIC_DEMO_MODE=${NEXT_PUBLIC_DEMO_MODE}
+# Dummy DB path for build-time — the real path is set at runtime via volumes
+ENV DATABASE_PATH=/tmp/build-dummy.db
+
 RUN npx next build
 
 # ─── Runner Stage ──────────────────────────────────────

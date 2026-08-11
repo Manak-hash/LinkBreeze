@@ -1,18 +1,30 @@
 import { redirect } from "next/navigation";
-import { getUserCount } from "@/server/queries";
-import { SetupForm } from "./setup-form";
+import { getUserCount, getAllThemes, getActiveTheme } from "@/server/queries";
+import { getSession } from "@/lib/auth";
+import { SetupWizard } from "./setup-wizard";
 
+// Never cache this page — always check fresh state.
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
   const count = await getUserCount();
+  const session = await getSession();
 
-  // If an admin already exists, setup is no longer available.
+  // Once an admin exists, setup is over. If they're logged in, go to
+  // dashboard; otherwise send them to login.
   if (count > 0) {
-    redirect("/login");
+    redirect(session ? "/dashboard" : "/login");
   }
 
+  // Preload themes so step 3 can render without a round-trip.
+  const themes = await getAllThemes();
+  const activeTheme = await getActiveTheme();
+
   return (
-    <SetupForm defaultUsername={process.env.ADMIN_USERNAME || ""} />
+    <SetupWizard
+      defaultUsername={process.env.ADMIN_USERNAME || ""}
+      themes={themes}
+      activeThemeId={activeTheme?.id ?? null}
+    />
   );
 }

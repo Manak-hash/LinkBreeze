@@ -256,6 +256,33 @@ npm run dev
 LinkBreeze runs on your server. Once deployed, your page is accessible to anyone
 at `https://your-domain.com/your-slug`. Here's how to get it online:
 
+### Quick start: Point your domain
+
+1. Point your domain's A record to your server IP
+2. Expose port 3000 or add a reverse proxy
+3. Done — your page is live at `https://your-domain.com/your-slug`
+
+### Advanced deployment scenarios
+
+For production setups — reverse proxies with automatic TLS, zero-trust tunnels,
+Kubernetes, scheduled backups — see the **[`examples/`](examples/)** directory.
+Each example is a single, self-contained file with a header comment explaining
+when to use it.
+
+<details>
+<summary>Quick reference: which example for which scenario?</summary>
+
+| What you want | Use this file |
+|---------------|---------------|
+| Automatic TLS without manual config | `docker-compose.caddy.yml` or `docker-compose.https-portal.yml` |
+| Automatic TLS with a dashboard (Traefik) | `docker-compose.traefik.yml` |
+| Expose without opening ports (zero-trust) | `docker-compose.cloudflare-tunnel.yml` |
+| You already use Nginx + Certbot | `docker-compose.nginx.yml` |
+| Scheduled SQLite backups | `docker-compose.with-backup.yml` |
+| Running on Kubernetes cluster | `kubernetes.yaml` |
+
+</details>
+
 ### Option 1: Reverse Proxy with Your Domain
 
 Point your domain's A record to your server IP, then use a reverse proxy with
@@ -269,6 +296,8 @@ links.example.com {
     reverse_proxy localhost:3000
 }
 ```
+
+For a complete Docker Compose setup with Caddy, see [`examples/docker-compose.caddy.yml`](examples/docker-compose.caddy.yml).
 
 </details>
 
@@ -288,6 +317,8 @@ server {
 }
 ```
 
+For a complete Docker Compose setup with Nginx, see [`examples/docker-compose.nginx.yml`](examples/docker-compose.nginx.yml).
+
 </details>
 
 ### Option 2: Cloudflare Tunnel (no open ports)
@@ -297,6 +328,8 @@ No domain purchase or port forwarding needed:
 ```bash
 cloudflared tunnel --url http://localhost:3000
 ```
+
+For a complete Docker Compose setup with Cloudflare Tunnel, see [`examples/docker-compose.cloudflare-tunnel.yml`](examples/docker-compose.cloudflare-tunnel.yml).
 
 ## 📸 Screenshots
 

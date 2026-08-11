@@ -1,0 +1,236 @@
+# kubernetes.yaml
+#
+# SCENARIO: Run LinkBreeze on Kubernetes cluster.
+#
+# This manifest includes Deployment, Service, Ingress, ConfigMap, Secret,
+# PVC, and HPA. Adapt the namespace, resource limits, and Ingress annotations
+# for your cluster and ingress controller.
+#
+# REQUIRED:
+#   - A Kubernetes cluster
+#   - An Ingress controller (nginx-ingress, Traefik, etc.)
+#   - A PVC provisioner (e.g., Longhorn, Ceph, local-path)
+#
+# ENV VARS:
+#   Passed via ConfigMap (non-secret) and Secret (sensitive).
+#   Update the ConfigMap and Secret values below.
+#
+# PORTS:
+#   - 3000 (container port) — exposed via Service, routed via Ingress
+#
+# DEPLOYMENT:
+#   Run: kubectl apply -f kubernetes.yaml
+#
+# UPGRADE:
+#   Update image tag in Deployment, then: kubectl apply -f kubernetes.yaml
+#
+# LOGS:
+#   kubectl logs -f deployment/linkbreeze
+#
+# SCALE:
+#   kubectl scale deployment/linkbreeze --replicas=3
+#   (Note: SQLite doesn't support concurrent writes. Scale only if you use a distributed database adapter.)
+#
+---
+# Namespace (optional — create if needed)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: linkbreeze
+
+---
+# ConfigMap for non-secret environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkbreeze-config
+  namespace: linkbreeze
+data:
+  PORT: "3000"
+  DATABASE_PATH: "/app/data/linkbreeze.db"
+
+---
+# Secret for sensitive environment variables
+apiVersion: v1
+kind: Secret
+metadata:
+  name: linkbreeze-secret
+  namespace: linkbreeze
+type: Opaque
+stringData:
+  # Generate with: openssl rand -hex 32
+  SECRET_KEY: "changeme-generate-with-openssl-rand-hex-32"
+  # Optional: Cloudflare Tunnel token if using tunnel mode
+  # TUNNEL_TOKEN: "your-cloudflare-tunnel-token"
+
+---
+# PersistentVolumeClaim for data storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: linkbreeze-data
+  namespace: linkbreeze
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # Use a storage class available in your cluster
+  # For local-path: storageClassName: local-path
+  # For Longhorn: storageClassName: longhorn
+  # For AWS EBS: storageClassName: gp3 (or standard)
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkbreeze
+  namespace: linkbreeze
+  labels:
+    app: linkbreeze
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: linkbreeze
+  template:
+    metadata:
+      labels:
+        app: linkbreeze
+    spec:
+      containers:
+        - name: linkbreeze
+          image: ghcr.io/manak-hash/linkbreeze:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: linkbreeze-config
+                  key: PORT
+            - name: DATABASE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: linkbreeze-config
+                  key: DATABASE_PATH
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: linkbreeze-secret
+                  key: SECRET_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          # Resource limits (adjust for your cluster)
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: linkbreeze-data
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: linkbreeze
+  namespace: linkbreeze
+  labels:
+    app: linkbreeze
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: linkbreeze
+
+---
+# Ingress (nginx-ingress example)
+# Adjust annotations for your ingress controller (Traefik, HAProxy, etc.)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: linkbreeze
+  namespace: linkbreeze
+  annotations:
+    # nginx-ingress annotations
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # For Traefik, use:
+    # traefik.ingress.kubernetes.io/router.tls: "true"
+    # traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+spec:
+  tls:
+    - hosts:
+        - links.example.com  # Replace with your domain
+      secretName: linkbreeze-tls  # Created by cert-manager or manually
+  rules:
+    - host: links.example.com  # Replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: linkbreeze
+                port:
+                  number: 80
+
+---
+# Horizontal Pod Autoscaler (optional — scale based on CPU)
+# NOTE: SQLite doesn't support concurrent writes. Only enable if you switch to a distributed database.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: linkbreeze
+  namespace: linkbreeze
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: linkbreeze
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

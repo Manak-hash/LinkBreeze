@@ -1,0 +1,72 @@
+# docker-compose.cloudflare-tunnel.yml
+#
+# SCENARIO: Expose LinkBreeze via Cloudflare Tunnel (no open ports, zero-trust).
+#
+# Cloudflare Tunnel connects your container to the Cloudflare edge over an
+# encrypted outbound connection. No port forwarding, no firewall changes,
+# no public IP required. Works behind NAT and on dynamic IPs.
+#
+# REQUIRED:
+#   - A Cloudflare account with Zero Trust enabled (free tier is sufficient)
+#   - A domain managed by Cloudflare (can be a subdomain)
+#
+# SETUP STEPS:
+#   1. Install cloudflared on your host: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+#   2. Authenticate: cloudflared tunnel login
+#   3. Create a tunnel: cloudflared tunnel create linkbreeze
+#   4. Note the tunnel ID (UUID) from the output
+#   5. Create a .cloudflared directory: mkdir -p .cloudflared
+#   6. Copy tunnel token to .cloudflared/tunnel-token.txt: cloudflared tunnel token <tunnel-id > .cloudflared/tunnel-token.txt
+#   7. Create DNS record: cloudflared tunnel route dns <tunnel-id> links.example.com
+#
+# ENV VARS:
+#   - SECRET_KEY (generated with: openssl rand -hex 32)
+#
+# PORTS:
+#   - No ports exposed — tunnel connects outbound to Cloudflare edge
+#
+# The container reads the tunnel token from a volume mount and establishes
+# the tunnel automatically. Cloudflare edge terminates TLS and proxies
+# traffic to localhost:3000.
+#
+# Upgrade: docker compose pull && docker compose up -d
+# Logs: docker compose logs -f cloudflared linkbreeze
+
+services:
+  linkbreeze:
+    image: ghcr.io/manak-hash/linkbreeze:latest
+    container_name: linkbreeze
+    restart: unless-stopped
+    volumes:
+      - linkbreeze-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/linkbreeze.db
+      - SECRET_KEY=${SECRET_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - cloudflared-net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./.cloudflared:/etc/cloudflared:ro
+    networks:
+      - cloudflared-net
+    depends_on:
+      linkbreeze:
+        condition: service_healthy
+
+networks:
+  cloudflared-net:
+    driver: bridge
+
+volumes:
+  linkbreeze-data:

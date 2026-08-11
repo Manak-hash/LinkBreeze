@@ -1,6 +1,12 @@
 services:
   linkbreeze-demo:
-    image: ghcr.io/manak-hash/linkbreeze:1.2.5
+    build:
+      context: .
+      args:
+        - DEMO_MODE=true
+        - DEMO_AUTO_LOGIN=true
+        - DEMO_FRAME_ORIGIN=https://linkbreeze.omnirise.dev
+        - NEXT_PUBLIC_DEMO_MODE=true
     ports:
       - "3010:3000"
     volumes:
@@ -9,6 +15,9 @@ services:
       - DATABASE_PATH=/app/data/linkbreeze.db
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - DEMO_MODE=true
+      - DEMO_AUTO_LOGIN=true
+      - DEMO_FRAME_ORIGIN=https://linkbreeze.omnirise.dev
+      - NEXT_PUBLIC_DEMO_MODE=true
     dns:
       - 8.8.8.8
       - 1.1.1.1
