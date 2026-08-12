@@ -4,14 +4,11 @@
  * ThemePreviewListener — listens for postMessage from the parent window
  * and applies ephemeral theme changes to the document.
  *
- * Receives a complete CSS string from the marketing site that includes:
- * 1. CSS variable overrides (--lb-accent, --lb-card-bg, etc.)
- * 2. Structural overrides per linkStyle (pixel clip-path, neon glow, etc.)
- * 3. Background override
- * 4. Font face overrides
+ * Receives:
+ * - css: complete CSS string (variables + structural overrides + background)
+ * - linkStyle: "pixel" to add lb-pixel-mode class, or null to remove it
  *
- * The parent computes ALL of this because it has the theme presets.
- * This listener just injects the CSS. Reload = back to normal.
+ * Reload = back to normal.
  */
 import * as React from "react";
 
@@ -28,8 +25,10 @@ export function ThemePreviewListener() {
       if (!data || typeof data !== "object") return;
 
       const el = document.getElementById(styleId);
+      const main = document.getElementById("lb-main");
 
       if (data.type === "lb-theme-preview" && data.css) {
+        // Inject CSS
         if (el) {
           el.textContent = data.css;
         } else {
@@ -38,8 +37,18 @@ export function ThemePreviewListener() {
           style.textContent = data.css;
           document.head.appendChild(style);
         }
+
+        // Toggle pixel mode class on <main>
+        if (main) {
+          if (data.linkStyle === "pixel") {
+            main.classList.add("lb-pixel-mode");
+          } else {
+            main.classList.remove("lb-pixel-mode");
+          }
+        }
       } else if (data.type === "lb-theme-reset") {
         if (el) el.remove();
+        if (main) main.classList.remove("lb-pixel-mode");
       }
     }
 
