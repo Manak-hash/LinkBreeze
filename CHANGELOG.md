@@ -5,10 +5,14 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.6] - Unreleased
+## [1.2.6] - 2026-08-12
 
 ### Added
 
+- **Featured links with distinct styling (#48)** — Links marked as "Featured" in the editor now render with visually distinct cards: star badge, accent-tinted background via `color-mix`, thicker accent border (+1px), bolder title (+100 font weight), larger title text (+2px font size), and taller card (extra vertical padding). Works across all link styles (glass, neon, pixel). The editor toggle has been renamed from "Highlight" to "Featured" to match the feature name.
+- **Onboarding wizard** — Multi-step setup wizard replacing the single-page form: Step 1 credentials, Step 2 profile (name/bio/slug), Step 3 theme picker with live previews, Step 4 completion screen with dashboard/import CTAs. Uses fetch-based API routes (`/api/setup`, `/api/onboarding`) instead of server actions to avoid RSC revalidation between steps.
+- **Onboarding checklist** — Dismissible dashboard widget showing 4 getting-started tasks (add first link, set name/bio, pick theme, share page) with a progress bar. Auto-hides when all tasks are complete. State persisted in localStorage.
+- **Empty state enhancements** — Dashboard shows a welcome hero with page URL and CTAs when 0 links and 0 views. Links page shows icon, description, and dual CTAs (add link / import from Linktree) instead of plain text.
 - **Examples directory (#42)** — New `examples/` directory at repo root containing battle-tested deployment configurations for common production scenarios. Each example is a single, self-contained file with a header comment explaining when to use it, required env vars, ports, and traffic flow. Includes:
   - `docker-compose.caddy.yml` — Behind Caddy reverse proxy with automatic TLS (Let's Encrypt handled automatically, no Certbot required)
   - `docker-compose.traefik.yml` — Behind Traefik with automatic TLS via Let's Encrypt, includes dashboard for monitoring
@@ -37,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 
+- **SQLite busy_timeout** — Database connection now sets a 5-second `busy_timeout` (both via `Database` constructor option and PRAGMA) to prevent "database is locked" errors when multiple workers access the same SQLite file during `next build` page data collection. Previously a missing timeout caused intermittent Lighthouse CI build failures.
+- **Lighthouse seed script cleanup** — `seed-lighthouse.ts` now calls `process.exit(0)` after seeding to immediately release the SQLite file handle, preventing WAL lock contention with the subsequent server start step.
 - **Demo env vars build-time evaluation** — `next.config.ts` now reads `DEMO_MODE` and `DEMO_FRAME_ORIGIN` at build time via `process.env`, not runtime. This is required because Next.js bakes CSP headers into the standalone build output. For demo builds, pass build args via `docker-compose.demo.yml` or set env vars before running `npx next build`.
 
 ## [1.2.5] - 2026-08-11

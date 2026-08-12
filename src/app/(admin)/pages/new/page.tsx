@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default function NewPageForm() {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();

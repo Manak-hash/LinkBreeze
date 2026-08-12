@@ -12,9 +12,13 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const sqlite = new Database(dbPath);
+// busy_timeout: wait up to 5s instead of immediately throwing "database is locked"
+// when another connection holds the WAL lock (common during `next build` page
+// data collection with multiple workers, or during migration).
+const sqlite = new Database(dbPath, { timeout: 5000 });
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
+sqlite.pragma("busy_timeout = 5000");
 
 export const db = drizzle(sqlite, { schema });
 export { schema };

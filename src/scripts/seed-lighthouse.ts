@@ -78,3 +78,8 @@ if (pages.length === 0) {
 }
 
 console.log("[lighthouse-seed] Database seeded successfully");
+
+// Force-exit to release the SQLite file handle immediately. Without this,
+// the better-sqlite3 connection can hold a WAL lock that causes the
+// subsequent `next build` to fail with "SqliteError: database is locked".
+process.exit(0);

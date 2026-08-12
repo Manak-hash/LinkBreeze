@@ -1,6 +1,6 @@
 {
-  "version": "1.2.5",
-  "releasedAt": "2026-08-11",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.5",
-  "notes": "Secure cookie over HTTP (#70), auto-generate SECRET_KEY on boot, full error system (ActionResult + error boundaries + UI components), CSP enforcement, axe-core a11y E2E tests, backup/restore integration tests, nanoid+js-yaml security overrides, dependency bumps (next 16.3)."
+  "version": "1.2.6",
+  "releasedAt": "2026-08-12",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.6",
+  "notes": "Featured links with distinct styling (#48), onboarding wizard + checklist + empty states, deployment examples (#42), demo mode (iframe embed, auto-login, theme preview), SQLite busy_timeout fix, CSP unsafe-eval in dev mode."
 }

@@ -14,6 +14,8 @@ import { PageSwitcher } from "@/components/admin/PageSwitcher";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PreviewProvider } from "@/components/admin/PreviewPane";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
