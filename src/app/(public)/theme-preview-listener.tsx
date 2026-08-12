@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * ThemePreviewListener — listens for postMessage events from a parent window
- * and applies ephemeral theme changes (CSS variable overrides) to the document.
+ * ThemePreviewListener — listens for postMessage from the parent window
+ * and applies ephemeral theme changes to the document.
  *
- * Used when the public page is embedded in an iframe on the marketing site.
- * The parent sends { type: "lb-theme-preview", cssVars, background, aurora }
- * to switch themes instantly without persisting to the database.
- * Reload = back to normal.
+ * Receives a complete CSS string from the marketing site that includes:
+ * 1. CSS variable overrides (--lb-accent, --lb-card-bg, etc.)
+ * 2. Structural overrides per linkStyle (pixel clip-path, neon glow, etc.)
+ * 3. Background override
+ * 4. Font face overrides
  *
- * Gated by DEMO_MODE — only active on demo instances.
+ * The parent computes ALL of this because it has the theme presets.
+ * This listener just injects the CSS. Reload = back to normal.
  */
 import * as React from "react";
 
@@ -20,7 +22,6 @@ export function ThemePreviewListener() {
     const styleId = "lb-theme-preview-overrides";
 
     function handleMessage(event: MessageEvent) {
-      // Only accept messages from parent (marketing site)
       if (event.source !== window.parent) return;
 
       const data = event.data;
@@ -28,42 +29,17 @@ export function ThemePreviewListener() {
 
       const el = document.getElementById(styleId);
 
-      if (data.type === "lb-theme-preview" && data.cssVars) {
-        // Build CSS variable declarations
-        const declarations = Object.entries(data.cssVars)
-          .map(([k, v]) => `${k}: ${v} !important;`)
-          .join("\n");
-
-        // Include keyframes if provided (animated backgrounds)
-        const keyframes = data.keyframes || "";
-
-        // Override the main element's background — inline styles can only be
-        // beaten by !important, which we apply above. But the background is
-        // set as a shorthand property on <main>, so we also need a targeted
-        // rule for #lb-main.
-        let backgroundOverride = "";
-        if (data.background) {
-          backgroundOverride += `\n#lb-main { background: ${data.background} !important; }`;
-        }
-        if (data.aurora === true) {
-          // Show aurora component by removing inline background override
-          backgroundOverride += `\n#lb-main { background: none !important; }`;
-        }
-
-        const css = `:root {\n${declarations}\n}${backgroundOverride}`;
-
+      if (data.type === "lb-theme-preview" && data.css) {
         if (el) {
-          el.textContent = css + keyframes;
+          el.textContent = data.css;
         } else {
           const style = document.createElement("style");
           style.id = styleId;
-          style.textContent = css + keyframes;
+          style.textContent = data.css;
           document.head.appendChild(style);
         }
       } else if (data.type === "lb-theme-reset") {
-        if (el) {
-          el.remove();
-        }
+        if (el) el.remove();
       }
     }
 
