@@ -5,8 +5,9 @@
  * and applies ephemeral theme changes (CSS variable overrides) to the document.
  *
  * Used when the public page is embedded in an iframe on the marketing site.
- * The parent sends { type: "lb-theme-preview", cssVars } to switch themes
- * instantly without persisting to the database. Reload = back to normal.
+ * The parent sends { type: "lb-theme-preview", cssVars, background, aurora }
+ * to switch themes instantly without persisting to the database.
+ * Reload = back to normal.
  *
  * Gated by DEMO_MODE — only active on demo instances.
  */
@@ -36,7 +37,20 @@ export function ThemePreviewListener() {
         // Include keyframes if provided (animated backgrounds)
         const keyframes = data.keyframes || "";
 
-        const css = `:root {\n${declarations}\n}`;
+        // Override the main element's background — inline styles can only be
+        // beaten by !important, which we apply above. But the background is
+        // set as a shorthand property on <main>, so we also need a targeted
+        // rule for #lb-main.
+        let backgroundOverride = "";
+        if (data.background) {
+          backgroundOverride += `\n#lb-main { background: ${data.background} !important; }`;
+        }
+        if (data.aurora === true) {
+          // Show aurora component by removing inline background override
+          backgroundOverride += `\n#lb-main { background: none !important; }`;
+        }
+
+        const css = `:root {\n${declarations}\n}${backgroundOverride}`;
 
         if (el) {
           el.textContent = css + keyframes;
