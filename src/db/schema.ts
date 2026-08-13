@@ -51,6 +51,7 @@ export const pages = sqliteTable("pages", {
   customCss: text("custom_css").notNull().default(""),
   emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
   faviconUrl: text("favicon_url"),
+  privacyPolicy: text("privacy_policy").notNull().default(""),
 });
 
 // ─── Links ────────────────────────────────────────────

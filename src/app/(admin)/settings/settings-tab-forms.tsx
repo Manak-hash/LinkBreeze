@@ -95,6 +95,7 @@ interface GeneralTabProps {
   description: string;
   footerText: string;
   analyticsScript: string;
+  privacyPolicy: string;
 }
 
 export function GeneralTab({
@@ -104,6 +105,7 @@ export function GeneralTab({
   description,
   footerText,
   analyticsScript,
+  privacyPolicy,
 }: GeneralTabProps) {
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
@@ -214,6 +216,22 @@ export function GeneralTab({
               maxLength={2000}
               placeholder={'<script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>'}
               className="min-h-[80px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+              spellCheck={false}
+            />
+          </FormField>
+
+          <FormField
+            label="Privacy policy (optional)"
+            htmlFor="privacyPolicy"
+            hint={<>Leave empty to auto-generate from your page settings. Visitors can always access it at <code>/{slug}/privacy</code>. Supports Markdown (headings, lists, <strong>bold</strong>, <em>italic</em>, <code>code</code>).</>}
+          >
+            <textarea
+              id="privacyPolicy"
+              name="privacyPolicy"
+              defaultValue={privacyPolicy}
+              maxLength={20000}
+              placeholder={"# Privacy Policy\n\nThis page uses privacy-respecting analytics..."}
+              className="min-h-[160px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
             />
           </FormField>

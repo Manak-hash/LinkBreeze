@@ -361,7 +361,7 @@ export default async function DashboardPage({
               href="/settings?tab=data"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
             >
-              <DownloadCloud className="size-4" /> Import from Linktree
+              <DownloadCloud className="size-4" /> Import your existing page
             </Link>
           </div>
         </div>

@@ -80,6 +80,7 @@ const updatePageSchema = z.object({
   customCss: z.string().max(10000).optional(),
   emailCapture: z.boolean().optional(),
   faviconUrl: z.string().max(500).optional().nullable(),
+  privacyPolicy: z.string().max(20000).optional(),
 });
 
 export async function updatePageAction(formData: FormData): Promise<ActionResult> {
@@ -105,6 +106,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     analyticsScript: formData.get("analyticsScript") || undefined,
     customCss: formData.get("customCss") || undefined,
     faviconUrl: formData.get("faviconUrl") || undefined,
+    privacyPolicy: formData.get("privacyPolicy") || undefined,
   };
 
   // Handle checkbox: present = on, absent = off
@@ -138,6 +140,9 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   revalidatePath("/theme");
   revalidatePath("/dashboard");
   revalidatePath("/");
+  if (updateData.slug) {
+    revalidatePath(`/${updateData.slug}/privacy`, "layout");
+  }
   return { success: true };
 }
 

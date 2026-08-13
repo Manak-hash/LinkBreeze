@@ -129,7 +129,7 @@ export function LinksManager({
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
               >
                 <DownloadCloud className="size-4" />
-                Import from Linktree
+                Import your existing page
               </a>
             </div>
           </CardContent>

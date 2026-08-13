@@ -184,6 +184,7 @@ export interface UpdatePageInput {
   customCss?: string;
   emailCapture?: boolean;
   faviconUrl?: string | null;
+  privacyPolicy?: string;
 }
 
 export async function updatePage(id: number, data: UpdatePageInput): Promise<void> {

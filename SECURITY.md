@@ -51,6 +51,7 @@ LinkBreeze implements the following security practices:
 - **Privacy-respecting analytics**: No raw IP storage — visitor hashes use SHA-256 (truncated to 64 bits) with a daily-rotating salt derived from the SECRET_KEY. The hash is one-way within the daily salt window. **Important**: hash reversal resistance depends on the SECRET_KEY remaining secret. Store the SECRET_KEY separately from the database (use an env var, not the auto-generated file in the data volume) for maximum protection. If an attacker obtains both the DB and SECRET_KEY, they could brute-force hashes for a specific day. The daily salt rotation means each day requires a separate brute-force pass. **k-anonymity trade-off**: the 64-bit truncation is deliberate — within a single day, multiple distinct IPs can map to the same hash, making it harder to isolate individual visitors at the cost of potential undercounting behind shared NATs with identical user-agents.
 - **No third-party requests on public pages**: Favicons are fetched server-side and cached locally. Links without a cached favicon show a letter avatar instead of loading from a third-party domain. No visitor-facing request touches google.com or any analytics provider unless the operator explicitly configures external analytics.
 - **Referrer privacy**: Only the origin of the Referer header is stored in analytics (e.g., `https://instagram.com` instead of the full path with query parameters).
+- **Privacy policy pages**: Every public page auto-generates a privacy policy at `/{slug}/privacy` from the page's actual configuration. Operators can customize it in Settings. Footer link is always visible.
 
 ## Known Limitations (v1.2.7)
 
@@ -145,6 +146,21 @@ privacy notice, or purpose disclosure (tracked in #75). Operators collecting
 emails from EU visitors must ensure they have a lawful basis under GDPR Article
 6 and meet the consent requirements of Article 7 until built-in consent tooling
 ships.
+
+### Privacy policy pages
+
+Every public page has an auto-generated privacy policy at `/{slug}/privacy`.
+The policy reflects the page's actual configuration (analytics, email capture,
+embeds, external scripts, retention window) so it stays accurate without
+manual maintenance. A "Privacy" link appears in the footer of every public
+page.
+
+Operators can override the auto-generated text with a custom privacy policy
+via Settings -> General -> Privacy policy. When set, the custom text replaces
+the generated template entirely. The privacy page inherits the page's theme
+(colors, fonts, background) so it looks consistent.
+
+The privacy policy route is `noindex` (not indexed by search engines).
 
 ### Third-party embeds
 

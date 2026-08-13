@@ -468,7 +468,7 @@ export function SetupWizard({
                   className="w-full"
                   onClick={() => router.push("/settings?tab=data")}
                 >
-                  <DownloadCloud className="size-4" /> Import from Linktree
+                  <DownloadCloud className="size-4" /> Import your existing page
                 </Button>
               </div>
             </CardContent>

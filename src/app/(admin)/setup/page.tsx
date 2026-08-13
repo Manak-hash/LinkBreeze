@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUserCount, getAllThemes, getActiveTheme } from "@/server/queries";
+import { getUserCount, getAllThemes, getActiveTheme, seedThemesIfEmpty } from "@/server/queries";
 import { getSession } from "@/lib/auth";
 import { SetupWizard } from "./setup-wizard";
 
@@ -16,7 +16,8 @@ export default async function SetupPage() {
     redirect(session ? "/dashboard" : "/login");
   }
 
-  // Preload themes so step 3 can render without a round-trip.
+  // Ensure theme presets exist before loading them for the picker.
+  await seedThemesIfEmpty();
   const themes = await getAllThemes();
   const activeTheme = await getActiveTheme();
 

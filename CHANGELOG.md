@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.7] - 2026-08-13
 
+### Added
+
+- **Built-in privacy policy pages** — Every public page now has a privacy policy at `/{slug}/privacy`, linked from a footer that is always visible. The policy auto-generates from the page's actual configuration (analytics, email capture, embeds, external analytics scripts, retention window) so it stays accurate without manual maintenance. Operators can write a custom policy in Settings → General → Privacy policy to override the auto-generated text. The privacy page inherits the page's theme (colors, fonts, background, Aurora animation) and is `noindex`.
+- **SECURITY.md GDPR/Data Protection section** — Comprehensive data controller clarification (operator = controller, not OmniRise), two data inventory tables (visitor data + operator data), cookie disclosure (one admin-only session cookie, zero on public pages), GDPR data subject rights mapping (access, erasure, portability), email capture compliance gap documented with #75 reference, third-party embed disclosure, breach notification guidance, and a 5-point operator hardening checklist.
+- **Privacy policy template generator** (`src/lib/privacy-template.ts`) — `generatePrivacyPolicy()` builds a markdown privacy policy reflecting the page's real feature set: analytics section (cookieless, SHA-256 hashed IPs, daily salt, retention), email section (conditional on email capture), third-party analytics section (conditional on external script), embedded content section (conditional on embeddable links), cookies, data subject rights, data controller, children's privacy, and changes sections.
+- **MarkdownLite renderer** (`src/components/public/MarkdownLite.tsx`) — Minimal zero-dependency markdown renderer for privacy policy text. Supports h1/h2, paragraphs, lists, bold, italic, inline code. Theme-aware via `--lb-*` CSS variables. No `dangerouslySetInnerHTML`.
+- **Privacy policy tests** — 13 tests covering all section combinations (analytics only, email only, embeds, external analytics, all features, no features, custom contact email fallback).
+
 ### Security
 
 - **Removed Google S2 favicon fallback from public pages (#72)** — The link card builder previously fell back to `google.com/s2/favicons` when a link had no locally cached icon. This leaked visitor IPs, cookies, and browser data to Google on every page load for those links. The fallback is removed entirely; links without cached favicons now show a first-letter avatar in the accent color. New links continue to auto-fetch and cache favicons server-side, so no visitor ever touches a Google domain.
@@ -16,10 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Visitor hash k-anonymity documentation** — The `getVisitorHash()` function comment now explains that the 64-bit SHA-256 truncation is deliberate, providing k-anonymity within the daily salt window. The trade-off (potential undercounting of unique visitors behind the same NAT with identical user-agents) is documented inline.
+- **"Import from Linktree" buttons reworded** — Changed to "Import your existing page" across setup wizard, dashboard empty state, and links manager empty state. The migration wizard supports Linktree, Bento, Lnk.bio, LittleLink, and more, so the CTA should not name a single competitor.
 
 ### Fixed
 
 - **README accuracy** — Changed "Privacy-First Analytics — no cookies, no tracking" to "Privacy-Respecting Analytics — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored." Changed "No tracking" to "No third-party trackers" in the self-hosted section.
+- **Setup wizard theme picker empty on fresh database** — `getAllThemes()` was called before `getActiveTheme()` (which internally seeds theme presets via `seedThemesIfEmpty()`), so on a fresh install the theme grid was empty. Fixed by calling `seedThemesIfEmpty()` before `getAllThemes()` in the setup page.
+- **Lighthouse CI build failure** — Turbopack (Next.js 16) intermittently gets 404s from `fonts.gstatic.com` during page data collection in CI. Fixed by using `npx next build --webpack` for the Lighthouse CI build only, with `NODE_OPTIONS: "--max-old-space-size=4096"` for memory safety. Main CI continues to use Turbopack.
 
 ## [1.2.6] - 2026-08-12
 

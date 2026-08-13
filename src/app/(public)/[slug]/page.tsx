@@ -281,14 +281,18 @@ export default async function PublicPage({ params }: PageProps) {
           <EmailCapture />
         ) : null}
 
-        {page.footerText ? (
-          <footer
-            className="mt-10 text-center text-xs"
-            style={{ color: "var(--lb-text-muted)" }}
+        <footer
+          className="mt-10 text-center text-xs"
+          style={{ color: "var(--lb-text-muted)" }}
+        >
+          {page.footerText ? <p className="mb-1">{page.footerText}</p> : null}
+          <a
+            href={`/${page.slug}/privacy`}
+            className="underline-offset-2 hover:underline"
           >
-            {page.footerText}
-          </footer>
-        ) : null}
+            Privacy
+          </a>
+        </footer>
       </div>
 
       <script

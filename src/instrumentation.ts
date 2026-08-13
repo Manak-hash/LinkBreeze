@@ -46,8 +46,6 @@ export async function register() {
     await migrate(db, { migrationsFolder });
     console.log("[migrate] database schema is up to date");
   } catch (err) {
-    // Fail fast. A server that boots with an un-migrated DB is worse than one
-    // that refuses to start — every request would 500 with a confusing code.
     console.error("[migrate] FAILED to run database migrations:", err);
     throw err;
   }

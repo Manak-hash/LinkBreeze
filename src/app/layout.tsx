@@ -174,11 +174,16 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       "Self-hosted link-in-bio platform with analytics, QR codes, and themes. The open-source Linktree alternative.",
     metadataBase: new URL(origin),
+    authors: [{ name: "LinkBreeze", url: "https://linkbreeze.omnirise.dev" }, { name: "OmniRise", url: "https://omnirise.dev" }],
+    creator: "LinkBreeze",
+    publisher: "LinkBreeze",
+    applicationName: "LinkBreeze",
     icons,
     manifest: "/site.webmanifest",
     openGraph: {
       title: "LinkBreeze — Self-hosted link-in-bio",
       description: "The open-source Linktree alternative you own.",
+      siteName: "LinkBreeze",
       images: ["/banner.png"],
     },
     twitter: {
@@ -186,6 +191,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "LinkBreeze — Self-hosted link-in-bio",
       description: "The open-source Linktree alternative you own.",
       images: ["/banner.png"],
+      site: "@OmniRise00",
+      creator: "@OmniRise00",
     },
   };
 }

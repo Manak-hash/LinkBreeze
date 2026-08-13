@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(async (): Promise<{ userId: number; username: string; exp: number; pv: number } | null> => ({ userId: 1, username: "admin", exp: Date.now() + 60000, pv: 1 })),
   revalidatePath: vi.fn(),
   updateSetting: vi.fn(async () => undefined),
-  getSettings: vi.fn(async () => ({ slug: "alex", title: "Test" })),
+  getSettings: vi.fn(async () => ({ slug: "linkbreeze", title: "Test" })),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));

@@ -73,6 +73,7 @@ export default async function SettingsPage({
               description={activePage?.seoDescription || ""}
               footerText={activePage?.footerText || ""}
               analyticsScript={activePage?.analyticsScript || ""}
+              privacyPolicy={activePage?.privacyPolicy || ""}
             />
           ),
           appearance: (
