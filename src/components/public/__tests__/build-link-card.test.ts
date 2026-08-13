@@ -107,4 +107,25 @@ describe("buildLinkCardHtml", () => {
     expect(html).toContain('alt="My Photography Portfolio"');
     expect(html).not.toContain('alt=""');
   });
+
+  it("never loads external resources for links without a cached favicon", () => {
+    const html = buildLinkCardHtml({
+      link: { ...baseLink, iconUrl: null } as LinkRow,
+      theme,
+      index: 0,
+    });
+    // Should use the first-letter avatar, not an external img src
+    expect(html).not.toContain("google.com");
+    expect(html).not.toContain("s2/favicons");
+    expect(html).not.toContain('src="http');
+  });
+
+  it("uses cached favicon when iconUrl is present", () => {
+    const html = buildLinkCardHtml({
+      link: { ...baseLink, iconUrl: "/api/uploads/favicon-abc.png" } as LinkRow,
+      theme,
+      index: 0,
+    });
+    expect(html).toContain('src="/api/uploads/favicon-abc.png"');
+  });
 });

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { getDailySalt, getVisitorHash, getDeviceType } from "@/lib/visitor";
+import { getDailySalt, getVisitorHash, getDeviceType, stripReferrer } from "@/lib/visitor";
 
 describe("getDailySalt", () => {
   it("returns a 64-char hex string", () => {
@@ -79,5 +79,41 @@ describe("getDeviceType", () => {
   it("returns desktop for null-like input", () => {
     // @ts-expect-error testing edge case
     expect(getDeviceType(undefined)).toBe("desktop");
+  });
+});
+
+describe("stripReferrer", () => {
+  it("extracts origin from a full URL", () => {
+    expect(stripReferrer("https://www.instagram.com/p/Cxyz123/")).toBe(
+      "https://www.instagram.com",
+    );
+  });
+
+  it("strips query parameters", () => {
+    expect(
+      stripReferrer("https://www.google.com/search?q=hello&source=lnms"),
+    ).toBe("https://www.google.com");
+  });
+
+  it("returns origin for already-origin-only input", () => {
+    expect(stripReferrer("https://t.co")).toBe("https://t.co");
+  });
+
+  it("returns null for empty string", () => {
+    expect(stripReferrer("")).toBeNull();
+  });
+
+  it("returns null for unparseable input", () => {
+    expect(stripReferrer("not a url")).toBeNull();
+  });
+
+  it("returns null for undefined", () => {
+    expect(stripReferrer(undefined as unknown as string)).toBeNull();
+  });
+
+  it("handles http origins", () => {
+    expect(stripReferrer("http://localhost:3000/page")).toBe(
+      "http://localhost:3000",
+    );
   });
 });

@@ -45,11 +45,21 @@ function buildCsp(): { key: string; value: string } {
   // React dev mode uses eval() for stack reconstruction. Production never does.
   const isDev = process.env.NODE_ENV === "development";
 
+  // External analytics domains (Plausible, Umami, Matomo, etc.).
+  // Space-separated list in EXTRA_SCRIPT_SRC. Each domain is added to
+  // script-src so the operator's analytics `<script src="...">` tags load
+  // without being blocked by CSP. Example:
+  //   EXTRA_SCRIPT_SRC=plausible.io umami.is matomo.example.com
+  const extraScriptSrc = (process.env.EXTRA_SCRIPT_SRC || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(" ");
+
   return {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${extraScriptSrc ? ` ${extraScriptSrc}` : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",

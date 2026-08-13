@@ -5,6 +5,22 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2026-08-13
+
+### Security
+
+- **Removed Google S2 favicon fallback from public pages (#72)** — The link card builder previously fell back to `google.com/s2/favicons` when a link had no locally cached icon. This leaked visitor IPs, cookies, and browser data to Google on every page load for those links. The fallback is removed entirely; links without cached favicons now show a first-letter avatar in the accent color. New links continue to auto-fetch and cache favicons server-side, so no visitor ever touches a Google domain.
+- **Referrer stripping in analytics (#73)** — Analytics recording (pageviews and clicks) now stores only the origin of the Referer header instead of the full raw value. `instagram.com/p/Cxyz123/?igshid=...` is reduced to `https://www.instagram.com`. A `stripReferrer()` utility in `src/lib/visitor.ts` handles this at all three recording paths. Existing stored referrers are unchanged.
+- **CSP support for external analytics scripts (#74)** — The analytics script injection feature (Settings → General) was broken by CSP enforcement shipped in 1.2.5: external `<script src>` tags for Plausible, Umami, Matomo, etc. were silently blocked. Operators can now allowlist analytics domains via the `EXTRA_SCRIPT_SRC` environment variable (space-separated), which injects them into the CSP `script-src` directive at build time. Documented in `.env.example`, README configuration section, and the analytics script field hint in the UI.
+
+### Changed
+
+- **Visitor hash k-anonymity documentation** — The `getVisitorHash()` function comment now explains that the 64-bit SHA-256 truncation is deliberate, providing k-anonymity within the daily salt window. The trade-off (potential undercounting of unique visitors behind the same NAT with identical user-agents) is documented inline.
+
+### Fixed
+
+- **README accuracy** — Changed "Privacy-First Analytics — no cookies, no tracking" to "Privacy-Respecting Analytics — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored." Changed "No tracking" to "No third-party trackers" in the self-hosted section.
+
 ## [1.2.6] - 2026-08-12
 
 ### Added

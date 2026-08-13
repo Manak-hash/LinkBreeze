@@ -8,6 +8,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/users/Manak-hash/packages/container/package/linkbreeze)
+[![Website](https://img.shields.io/badge/Website-linkbreeze.omnirise.dev-533fd6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://linkbreeze.omnirise.dev/)
 [![OmniRise](https://img.shields.io/badge/OmniRise-omnirise.dev-06B6D4?style=for-the-badge)](https://omnirise.dev)
 [![YouTube](https://img.shields.io/badge/Watch-YouTube-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=_Ipf-_1B4BY)
 
@@ -35,7 +36,7 @@
 - **🖼️ Link Thumbnails** — Add images to your links for visual preview cards
 - **🎵 Embed Widgets** — Embed YouTube, Spotify, SoundCloud, Vimeo, or Bandcamp directly on your page
 - **⏰ Link Scheduling** — Schedule links to appear/disappear automatically with date/time controls
-- **📊 Privacy-First Analytics** — Page views, click tracking, referrers — no cookies, no tracking
+- **📊 Privacy-Respecting Analytics** — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored.
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
 - **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
 - **🎨 Themes** — 10 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro) + full customizer with CSS token system (colors, 10 fonts, 8 background types, 7 card styles, layout controls, effects) + theme duplicate/import/export
@@ -43,7 +44,7 @@
 - **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
 - **📱 Mobile-First** — Gorgeous on every screen. Loads in under 300ms. Zero client-side JS bundles.
 - **🎯 QR Codes** — Auto-generated for your page. Download as SVG or PNG.
-- **🔒 Self-Hosted** — Your data, your server. No tracking. No ads. No subscription.
+- **🔒 Self-Hosted** — Your data, your server. No third-party trackers. No ads. No subscription.
 - **🐳 One-Command Deploy** — Docker compose and you're live
 
 ## 🚀 Quick Start
@@ -439,6 +440,17 @@ All configuration is via environment variables (`.env`):
 | `PORT` | `3000` | Server port |
 | `DATABASE_PATH` | `./data/linkbreeze.db` | SQLite database file path |
 | `SECRET_KEY` | Auto-generated | HMAC signing key for sessions |
+| `EXTRA_SCRIPT_SRC` | _(empty)_ | Space-separated analytics domains for CSP (e.g. `plausible.io umami.is`) |
+
+**Using external analytics (Plausible, Umami, Matomo, Google Analytics):**
+
+The built-in analytics covers views, clicks, referrers, and device type with no setup needed. If you want to add a third-party analytics provider, paste your `<script>` snippet into Settings -> General -> Analytics script, then add the provider's domain to `EXTRA_SCRIPT_SRC` so CSP allows it to load:
+
+```bash
+EXTRA_SCRIPT_SRC=plausible.io umami.is
+```
+
+Rebuild after changing this variable (CSP is baked into the build).
 
 Runtime settings (page slug, title, SEO, theme) are managed via the admin dashboard
 and stored in the database — no code changes needed.

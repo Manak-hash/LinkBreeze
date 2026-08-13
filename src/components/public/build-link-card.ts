@@ -43,31 +43,18 @@ function resolveLinkUrl(link: LinkRow): {
 
 /**
  * Build the icon element shown before the title.
- * Priority: cached favicon (iconUrl) → Google S2 live fallback → first-letter.
+ * Priority: cached favicon (iconUrl) → first-letter avatar.
  * Only shown for cards WITHOUT a thumbnail (thumbnail cards use the
  * full-bleed image at the top instead).
  *
- * The S2 fallback covers links created before auto-favicon shipped, seed
- * data, or cases where the initial fetch failed. It mirrors the same
- * fallback the admin uses, keeping public and admin icon behaviour
- * consistent.
+ * No external fallback — loading favicons from a third-party domain
+ * (previously Google S2) leaks the visitor's IP and browser data to that
+ * third party. Links without a cached favicon show a letter avatar instead.
  */
 function buildIcon(link: LinkRow): string {
   // Cached favicon from fetchAndCacheFavicon — always preferred when present.
   if (link.iconUrl) {
     return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
-  }
-
-  // Live fallback for http(s) links: Google S2 favicon service.
-  // Same approach as the admin sortable-link component.
-  if (link.type === "url" || link.type === "embed") {
-    try {
-      const u = new URL(link.url);
-      const s2 = `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
-      return `<img src="${esc(s2)}" alt="" loading="lazy" width="20" height="20" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
-    } catch {
-      // Not a valid URL — fall through to first-letter below.
-    }
   }
 
   // First-letter fallback using the title's initial.

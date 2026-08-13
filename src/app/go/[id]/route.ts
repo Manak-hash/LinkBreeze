@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getVisitorHash } from "@/lib/visitor";
+import { getVisitorHash, stripReferrer } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
 import { isBot } from "@/lib/bot-detect";
 import { getSession } from "@/lib/auth";
@@ -69,8 +69,10 @@ export async function GET(
       const isOwner = hasSessionCookie ? await getSession() : null;
       if (process.env.NODE_ENV === "production" && !isCrawler && !isOwner) {
         const visitorHash = getVisitorHash(ip, userAgent);
-        const referrer = (h.get("referer") || h.get("referrer") || "").toString();
-        await recordClick(linkId, visitorHash, referrer || null);
+        const referrer = stripReferrer(
+          (h.get("referer") || h.get("referrer") || "").toString(),
+        );
+        await recordClick(linkId, visitorHash, referrer);
       }
     }
     // If rate-limited, we still redirect the user to their destination —

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getVisitorHash } from "@/lib/visitor";
+import { getVisitorHash, stripReferrer } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
 import { isBot } from "@/lib/bot-detect";
 import { getSession } from "@/lib/auth";
@@ -75,14 +75,15 @@ export async function POST(request: NextRequest) {
     }
 
     const visitorHash = getVisitorHash(ip, userAgent);
-    const referrer =
-      body.referrer || (h.get("referer") || h.get("referrer") || "").toString();
+    const referrer = stripReferrer(
+      body.referrer || (h.get("referer") || h.get("referrer") || "").toString(),
+    );
 
     // Endpoint is click-only — view tracking moved to [slug]/page.tsx.
     if (typeof body.linkId !== "number" || Number.isNaN(body.linkId)) {
       return NextResponse.json({ ok: false, error: "Missing linkId" }, { status: 400 });
     }
-    await recordClick(body.linkId, visitorHash, referrer || null);
+    await recordClick(body.linkId, visitorHash, referrer);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

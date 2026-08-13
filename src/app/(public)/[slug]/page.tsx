@@ -10,7 +10,7 @@ import {
   recordPageview,
   type SocialLink,
 } from "@/server/queries";
-import { getVisitorHash, getDeviceType } from "@/lib/visitor";
+import { getVisitorHash, getDeviceType, stripReferrer } from "@/lib/visitor";
 import { rateLimit } from "@/lib/rate-limit";
 import { getCountry } from "@/lib/geo";
 import { isBot } from "@/lib/bot-detect";
@@ -130,7 +130,9 @@ export default async function PublicPage({ params }: PageProps) {
       (h.get("x-real-ip") || "").toString() ||
       "0.0.0.0";
     const userAgent = (h.get("user-agent") || "").toString();
-    const referrer = (h.get("referer") || h.get("referrer") || "").toString();
+    const referrer = stripReferrer(
+      (h.get("referer") || h.get("referrer") || "").toString(),
+    );
 
     // Skip analytics outside production — dev/preview traffic is the owner.
     // Issue #41: Skip known bots/crawlers.
@@ -144,7 +146,7 @@ export default async function PublicPage({ params }: PageProps) {
       const country = getCountry(h);
       const viewRl = rateLimit(`view:${ip}`, 1, 30_000);
       if (viewRl.ok) {
-        await recordPageview(visitorHash, referrer || null, deviceType, country, page.id);
+        await recordPageview(visitorHash, referrer, deviceType, country, page.id);
       }
     }
   } catch {

@@ -205,7 +205,7 @@ export function GeneralTab({
           <FormField
             label="Analytics script (optional)"
             htmlFor="analyticsScript"
-            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc.</>}
+            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.</>}
           >
             <textarea
               id="analyticsScript"

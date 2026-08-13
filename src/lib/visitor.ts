@@ -35,11 +35,33 @@ export function getDailySalt(date = new Date()): string {
 /**
  * Compute a stable, privacy-preserving visitor hash from the client IP and
  * user-agent. Returns the first 16 hex characters of the SHA-256 digest.
+ *
+ * Truncation to 64 bits is intentional — it provides k-anonymity: within
+ * the daily salt window, multiple distinct IPs can map to the same hash,
+ * making it harder to isolate individual visitors. The trade-off is
+ * potential undercounting of unique visitors behind the same NAT with
+ * identical user-agents. This is an acceptable privacy/accuracy trade-off
+ * for a single-instance self-hosted deploy.
  */
 export function getVisitorHash(ip: string, userAgent: string): string {
   const salt = getDailySalt();
   const raw = `${ip}|${userAgent}|${salt}`;
   return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16);
+}
+
+/**
+ * Strip a referrer URL down to its origin (scheme + host).
+ * Full referrer strings can carry query params, session tokens, or PII.
+ * For analytics, only the origin (instagram.com, t.co) is useful.
+ * Returns null for empty or unparseable input.
+ */
+export function stripReferrer(raw: string): string | null {
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
 }
 
 /**
