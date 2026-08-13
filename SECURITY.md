@@ -48,9 +48,11 @@ LinkBreeze implements the following security practices:
   are rejected automatically by the framework — no manual CSRF token needed.
 - **Rate limiting**: Login endpoint (5 attempts/min per IP), analytics tracking endpoint (60 req/min per IP), click redirect endpoint `/go/:id` (60 req/min per IP), QR generation endpoint (30 req/min per IP)
 - **SVG uploads blocked**: SVG files are no longer accepted as uploads. The uploads serving route also sends `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` headers as defense-in-depth.
-- **Privacy-first analytics**: No raw IP storage — visitor hashes use SHA-256 (truncated to 64 bits) with a daily-rotating salt. The hash is one-way and rotates daily, so it cannot be reversed to recover IPs and cannot be used to track visitors across days. **Known trade-off**: visitors behind the same NAT (office, home, carrier-grade NAT) with identical user-agents produce the same hash within a day, which can undercount unique visitors in shared-network scenarios. This is an acceptable privacy/accuracy trade-off for a single-instance self-hosted deploy.
+- **Privacy-respecting analytics**: No raw IP storage — visitor hashes use SHA-256 (truncated to 64 bits) with a daily-rotating salt derived from the SECRET_KEY. The hash is one-way within the daily salt window. **Important**: hash reversal resistance depends on the SECRET_KEY remaining secret. Store the SECRET_KEY separately from the database (use an env var, not the auto-generated file in the data volume) for maximum protection. If an attacker obtains both the DB and SECRET_KEY, they could brute-force hashes for a specific day. The daily salt rotation means each day requires a separate brute-force pass. **k-anonymity trade-off**: the 64-bit truncation is deliberate — within a single day, multiple distinct IPs can map to the same hash, making it harder to isolate individual visitors at the cost of potential undercounting behind shared NATs with identical user-agents.
+- **No third-party requests on public pages**: Favicons are fetched server-side and cached locally. Links without a cached favicon show a letter avatar instead of loading from a third-party domain. No visitor-facing request touches google.com or any analytics provider unless the operator explicitly configures external analytics.
+- **Referrer privacy**: Only the origin of the Referer header is stored in analytics (e.g., `https://instagram.com` instead of the full path with query parameters).
 
-## Known Limitations (v1.1.0)
+## Known Limitations (v1.2.7)
 
 The following are NOT yet implemented. If you need these, track the corresponding
 issue or contribute:
@@ -58,12 +60,122 @@ issue or contribute:
 - **Password recovery**: No self-service reset flow. If you lose your password,
   see the [Troubleshooting guide](TROUBLESHOOTING.md#forgot-admin-password)
   for three recovery methods (hash reset, full reset, or database deletion).
-- **2FA**: Not yet available.
+- **2FA / MFA** (#5): Not yet available. Single-admin model with rate limiting
+  (5/min/IP, 15/min global) is the current mitigation.
+- **Argon2id password hashing** (#76): Currently uses bcrypt (12 rounds). Argon2id
+  migration with transparent re-hash on login is planned.
+- **Email capture consent** (#75): The subscriber form has no consent checkbox or
+  privacy notice. Operators collecting emails from EU visitors should add their
+  own consent mechanism until this is built in.
+- **Analytics retention default**: Configurable via Settings -> Data, but defaults
+  to infinite (0). Operators should set a retention window (#77).
 
 ## Scope
 
 This policy covers the LinkBreeze application code in this repository.
 Third-party dependencies should be reported to their respective maintainers.
+
+## Data Protection & GDPR
+
+### Who is the data controller?
+
+LinkBreeze is self-hosted software. The **operator** (the person who deploys and
+runs the Docker container) is the data controller under GDPR, CCPA, and similar
+regulations. OmniRise (the developers of LinkBreeze) does **not** process, store,
+or have access to any data from your deployment. This is the same legal posture
+as WordPress, Ghost, or self-hosted Plausible.
+
+### What data does LinkBreeze process?
+
+**Visitor data (collected automatically on public pages):**
+
+| Data point | Storage | Pseudonymized? | Retention |
+|---|---|---|---|
+| Page views + clicks | SQLite DB | Yes (visitor hash) | Configurable, default infinite |
+| Visitor identifier | SHA-256 hash (64-bit, daily salt) | Yes | Rotates daily |
+| Device type | mobile / desktop / tablet | Yes (categorized) | Same as analytics |
+| Country | Derived from IP via local GeoIP DB | Yes (no city/region) | Same as analytics |
+| Referrer origin | Origin only (no path/query) | N/A | Same as analytics |
+
+The visitor hash is `SHA-256(ip | user-agent | daily-salt)`, truncated to 64
+bits. Raw IPs are never stored. User-agents are categorized to device type and
+not stored individually. Referrers are stripped to origin only.
+
+**Operator data (collected during setup):**
+
+| Data point | Storage | Encryption |
+|---|---|---|
+| Admin password | SQLite DB | bcrypt hash (12 rounds) |
+| Admin email | SQLite DB | Plaintext (for notifications) |
+| Page content (title, bio, links) | SQLite DB | N/A |
+| Subscriber emails (if email capture enabled) | SQLite DB | Plaintext |
+
+### Cookies
+
+LinkBreeze uses **one cookie**: the admin session cookie (`lb_session`). It is
+httpOnly, SameSite, and required for authentication. It is only set after login
+and is never placed on public pages.
+
+**Public pages use zero cookies.** The built-in analytics are cookieless. If an
+operator enables external analytics (Google Analytics, Plausible, etc.) via the
+analytics script injection feature, that provider may set its own cookies on
+public pages. This is the operator's responsibility.
+
+### Data subject rights (GDPR Articles 15-20)
+
+Operators may receive requests from visitors exercising their GDPR rights. Here
+is how LinkBreeze supports each:
+
+- **Right of access (Art. 15)**: The visitor hash is derived from the visitor's
+  IP and user-agent. The operator cannot look up a specific visitor's data
+  without knowing their IP and user-agent at the time of visit. The admin
+  dashboard shows aggregated analytics, not individual visitor records.
+- **Right to erasure (Art. 17)**: Analytics data can be bulk-deleted via the
+  Data settings (Settings -> Data -> Clear analytics). There is no per-visitor
+  deletion mechanism because individual visitors cannot be reliably identified
+  from the hash alone.
+- **Right to portability (Art. 20)**: Subscriber emails can be exported to CSV.
+  Analytics data is aggregated, not per-visitor, so portability does not apply
+  in the traditional sense.
+
+### Email capture compliance gap
+
+The built-in email capture form does not currently include a consent checkbox,
+privacy notice, or purpose disclosure (tracked in #75). Operators collecting
+emails from EU visitors must ensure they have a lawful basis under GDPR Article
+6 and meet the consent requirements of Article 7 until built-in consent tooling
+ships.
+
+### Third-party embeds
+
+When an operator adds a YouTube, Spotify, Vimeo, SoundCloud, or Bandcamp embed
+to their page, the embed provider loads its own scripts and may set cookies or
+collect visitor data. YouTube uses `youtube-nocookie.com` which limits but does
+not eliminate Google tracking. Operators should assess whether embeds require
+consent under the ePrivacy Directive and provide appropriate notices.
+
+### Data breach notification
+
+LinkBreeze does not transmit data to any external server. If the operator's
+deployment is compromised, the breach surface is limited to the operator's own
+server and database. Breach notification obligations fall on the operator under
+GDPR Article 33 (72 hours to the supervisory authority).
+
+### Recommended hardening for operators
+
+1. **Set SECRET_KEY as an env var** — do not rely on the auto-generated key in
+   the data volume. If the database volume is compromised, the SECRET_KEY should
+   not be on the same volume.
+2. **Set an analytics retention window** — Settings -> Data -> Analytics
+   retention. 90 days is a reasonable default. Infinite retention increases
+   your compliance surface.
+3. **Terminate TLS** — Use a reverse proxy (Caddy, Nginx, Cloudflare Tunnel)
+   for HTTPS. Without TLS, session cookies and admin credentials transit in
+   plaintext.
+4. **Regular database backups** — Use the backup/restore feature in Settings ->
+   Data. Store backups off-server.
+5. **Restrict network access** — Do not expose the SQLite port. Only expose the
+   LinkBreeze HTTP port through a reverse proxy.
 
 ## Accessibility
 

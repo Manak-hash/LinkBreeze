@@ -23,10 +23,16 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      # Use webpack (not Turbopack) for the Lighthouse build. Turbopack in
+      # Next.js 16 intermittently fails to fetch Google Font woff2 files from
+      # fonts.gstatic.com during page data collection in CI, producing
+      # "Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'".
+      # Lighthouse audits the output, not the bundler, so webpack is fine here.
+      - run: npx next build --webpack
         env:
           SECRET_KEY: "ci-lighthouse-secret-key-not-for-production"
           DATABASE_PATH: "/tmp/lighthouse-linkbreeze.db"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       # Seed a minimal DB so the app has a profile + public page.
       # Without this, the homepage redirects to /setup and Lighthouse audits a
