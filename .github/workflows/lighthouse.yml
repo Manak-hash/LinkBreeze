@@ -37,6 +37,10 @@ jobs:
         run: |
           for i in 1 2 3; do
             npx next build --webpack && break || {
+              if [ $i -eq 3 ]; then
+                echo "Build failed after 3 attempts"
+                exit 1
+              fi
               echo "Build attempt $i failed, retrying..."
               sleep 5
             }

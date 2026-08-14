@@ -3,4 +3,5 @@
 -- Adds consent tracking columns to the subscribers table.
 
 ALTER TABLE subscribers ADD COLUMN consent_at TEXT;
+--> statement-breakpoint
 ALTER TABLE subscribers ADD COLUMN consent_text TEXT;

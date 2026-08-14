@@ -1,6 +1,6 @@
 {
-  "version": "1.2.6",
-  "releasedAt": "2026-08-12",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.6",
-  "notes": "Featured links with distinct styling (#48), onboarding wizard + checklist + empty states, deployment examples (#42), demo mode (iframe embed, auto-login, theme preview), SQLite busy_timeout fix, CSP unsafe-eval in dev mode."
+  "version": "1.2.7",
+  "releasedAt": "2026-08-14",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.7",
+  "notes": "Built-in privacy policy pages, email capture consent (#75), Google S2 removal (#72), referrer stripping (#73), CSP external analytics (#74), rich preview link cards with OG fetcher, multi-strategy favicon fetcher, email subscribers panel in Data tab, subscribe button theme fixes (border radius + WCAG text contrast), onboarding checklist simplified to 3 steps."
 }
