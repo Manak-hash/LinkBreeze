@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   addSubscriber: vi.fn(async () => undefined),
+  getSetting: vi.fn(async (_key?: string): Promise<string | null> => null),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("@/server/queries", () => ({ addSubscriber: mocks.addSubscriber }));
+vi.mock("@/server/queries", () => ({
+  addSubscriber: mocks.addSubscriber,
+  getSetting: mocks.getSetting,
+}));
 
 // Mock next/headers for rate-limiting
 vi.mock("next/headers", () => ({
@@ -28,34 +32,65 @@ function fd(data: Record<string, string>): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.getSetting.mockResolvedValue(null);
 });
 
 describe("subscribe", () => {
-  it("accepts a valid email", async () => {
-    const res = await subscribe(fd({ email: "user@example.com" }));
+  it("accepts a valid email with consent", async () => {
+    const res = await subscribe(fd({ email: "user@example.com", consent: "on" }));
     expect(res.success).toBe(true);
-    expect(mocks.addSubscriber).toHaveBeenCalledWith("user@example.com");
+    expect(mocks.addSubscriber).toHaveBeenCalledWith(
+      "user@example.com",
+      expect.any(String),
+    );
   });
 
   it("lowercases uppercase email (valid without whitespace)", async () => {
-    await subscribe(fd({ email: "User@Example.COM" }));
-    expect(mocks.addSubscriber).toHaveBeenCalledWith("user@example.com");
+    await subscribe(fd({ email: "User@Example.COM", consent: "on" }));
+    expect(mocks.addSubscriber).toHaveBeenCalledWith(
+      "user@example.com",
+      expect.any(String),
+    );
+  });
+
+  it("rejects submission without consent checkbox", async () => {
+    const res = await subscribe(fd({ email: "user@example.com" }));
+    expect(res.success).toBe(false);
+    expect(mocks.addSubscriber).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid email", async () => {
-    const res = await subscribe(fd({ email: "not-an-email" }));
+    const res = await subscribe(fd({ email: "not-an-email", consent: "on" }));
     expect(res.success).toBe(false);
     expect(mocks.addSubscriber).not.toHaveBeenCalled();
   });
 
   it("rejects an empty email", async () => {
-    const res = await subscribe(fd({ email: "" }));
+    const res = await subscribe(fd({ email: "", consent: "on" }));
     expect(res.success).toBe(false);
   });
 
   it("returns success even on duplicate (no leak)", async () => {
     mocks.addSubscriber.mockRejectedValueOnce(new Error("UNIQUE constraint"));
-    const res = await subscribe(fd({ email: "dup@example.com" }));
+    const res = await subscribe(fd({ email: "dup@example.com", consent: "on" }));
     expect(res.success).toBe(true);
+  });
+
+  it("stores the consent text from settings", async () => {
+    mocks.getSetting.mockResolvedValueOnce("Custom consent text");
+    await subscribe(fd({ email: "user@example.com", consent: "on" }));
+    expect(mocks.addSubscriber).toHaveBeenCalledWith(
+      "user@example.com",
+      "Custom consent text",
+    );
+  });
+
+  it("falls back to default consent text when setting is empty", async () => {
+    mocks.getSetting.mockResolvedValueOnce(null);
+    await subscribe(fd({ email: "user@example.com", consent: "on" }));
+    expect(mocks.addSubscriber).toHaveBeenCalledWith(
+      "user@example.com",
+      expect.stringContaining("I agree to receive emails"),
+    );
   });
 });

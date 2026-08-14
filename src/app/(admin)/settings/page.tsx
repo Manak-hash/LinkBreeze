@@ -42,11 +42,12 @@ export default async function SettingsPage({
     activePage = defaultPage ?? allPages[0];
   }
 
-  const [themes, active, updateCheckEnabled, retentionDays] = await Promise.all([
+  const [themes, active, updateCheckEnabled, retentionDays, consentText] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
     isUpdateCheckEnabled(),
     getSetting("analyticsRetentionDays"),
+    getSetting("consentText"),
   ]);
 
   const slug = activePage?.slug || "u";
@@ -74,6 +75,7 @@ export default async function SettingsPage({
               footerText={activePage?.footerText || ""}
               analyticsScript={activePage?.analyticsScript || ""}
               privacyPolicy={activePage?.privacyPolicy || ""}
+              consentText={consentText}
             />
           ),
           appearance: (

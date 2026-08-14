@@ -26,6 +26,7 @@ const settingsSchema = z.object({
   emailCapture: z.string().optional().default(""),
   faviconUrl: z.string().max(500).optional().default(""),
   activeThemeId: z.string().optional().nullable(),
+  consentText: z.string().max(500).optional().default(""),
 });
 
 export async function updateSettings(formData: FormData): Promise<ActionResult> {
@@ -43,6 +44,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
     emailCapture: formData.get("emailCapture") === "on" ? "true" : "false",
     faviconUrl: formData.get("faviconUrl") || "",
     activeThemeId: formData.get("activeThemeId") || undefined,
+    consentText: formData.get("consentText") || "",
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -57,6 +59,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   await updateSettingQuery("customCss", d.customCss);
   await updateSettingQuery("emailCapture", d.emailCapture);
   await updateSettingQuery("faviconUrl", d.faviconUrl);
+  await updateSettingQuery("consentText", d.consentText);
 
   // Persist active theme if provided.
   if (d.activeThemeId) {

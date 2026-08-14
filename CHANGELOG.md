@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Email capture consent (#75)** — The subscriber form now requires a consent checkbox before submission. Consent timestamp (`consent_at`) and the exact consent text shown at signup (`consent_text`) are stored in the database for audit trail. The consent text is customizable in Settings → General → Email consent text, with a sensible default ("I agree to receive emails and understand I can unsubscribe at any time."). CSV export now includes consent columns. Server-side validation rejects submissions without the checkbox checked.
 - **Removed Google S2 favicon fallback from public pages (#72)** — The link card builder previously fell back to `google.com/s2/favicons` when a link had no locally cached icon. This leaked visitor IPs, cookies, and browser data to Google on every page load for those links. The fallback is removed entirely; links without cached favicons now show a first-letter avatar in the accent color. New links continue to auto-fetch and cache favicons server-side, so no visitor ever touches a Google domain.
 - **Referrer stripping in analytics (#73)** — Analytics recording (pageviews and clicks) now stores only the origin of the Referer header instead of the full raw value. `instagram.com/p/Cxyz123/?igshid=...` is reduced to `https://www.instagram.com`. A `stripReferrer()` utility in `src/lib/visitor.ts` handles this at all three recording paths. Existing stored referrers are unchanged.
 - **CSP support for external analytics scripts (#74)** — The analytics script injection feature (Settings → General) was broken by CSP enforcement shipped in 1.2.5: external `<script src>` tags for Plausible, Umami, Matomo, etc. were silently blocked. Operators can now allowlist analytics domains via the `EXTRA_SCRIPT_SRC` environment variable (space-separated), which injects them into the CSP `script-src` directive at build time. Documented in `.env.example`, README configuration section, and the analytics script field hint in the UI.
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Visitor hash k-anonymity documentation** — The `getVisitorHash()` function comment now explains that the 64-bit SHA-256 truncation is deliberate, providing k-anonymity within the daily salt window. The trade-off (potential undercounting of unique visitors behind the same NAT with identical user-agents) is documented inline.
 - **"Import from Linktree" buttons reworded** — Changed to "Import your existing page" across setup wizard, dashboard empty state, and links manager empty state. The migration wizard supports Linktree, Bento, Lnk.bio, LittleLink, and more, so the CTA should not name a single competitor.
+- **Default footer text for new pages** — New pages now default to "Powered by LinkBreeze" as their footer text instead of empty. Operators can change or remove it in Settings → General. Every new deployment is a billboard for the project. Existing pages keep whatever footer text they already have.
 
 ### Fixed
 

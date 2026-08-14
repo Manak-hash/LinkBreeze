@@ -46,7 +46,7 @@ export const pages = sqliteTable("pages", {
   // Page-specific settings (moved from global settings table in 0008)
   seoTitle: text("seo_title").notNull().default(""),
   seoDescription: text("seo_description").notNull().default(""),
-  footerText: text("footer_text").notNull().default(""),
+  footerText: text("footer_text").notNull().default("Powered by LinkBreeze"),
   analyticsScript: text("analytics_script").notNull().default(""),
   customCss: text("custom_css").notNull().default(""),
   emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
@@ -153,6 +153,8 @@ export const subscribers = sqliteTable("subscribers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  consentAt: text("consent_at"),
+  consentText: text("consent_text"),
 });
 
 // ─── Meta (internal) ──────────────────────────────────

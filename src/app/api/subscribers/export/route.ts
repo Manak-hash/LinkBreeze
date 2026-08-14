@@ -5,7 +5,7 @@ import { getAllSubscribers } from "@/server/queries";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CSV_HEADER = ["email", "subscribed_at"];
+const CSV_HEADER = ["email", "subscribed_at", "consent_at", "consent_text"];
 
 function csvCell(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -19,7 +19,11 @@ export async function GET() {
   }
 
   const rows = await getAllSubscribers();
-  const lines = rows.map((r) => [r.email, r.createdAt].map(csvCell).join(","));
+  const lines = rows.map((r) =>
+    [r.email, r.createdAt, r.consentAt ?? "", r.consentText ?? ""]
+      .map(csvCell)
+      .join(","),
+  );
 
   const csv = [CSV_HEADER.join(","), ...lines].join("\n");
   const today = new Date().toISOString().slice(0, 10);

@@ -3,6 +3,9 @@
 import * as React from "react";
 import { subscribe } from "@/server/actions/subscribers";
 
+const DEFAULT_CONSENT_TEXT =
+  "I agree to receive emails and understand I can unsubscribe at any time.";
+
 /**
  * Progressive-enhancement email capture form.
  *
@@ -14,7 +17,8 @@ import { subscribe } from "@/server/actions/subscribers";
  * Pixel classes (lb-pixel-clip, lb-pixel-shadow) apply 8-bit clip-paths
  * when --lb-pixel is "1".
  */
-export function EmailCapture() {
+export function EmailCapture({ consentText }: { consentText?: string | null }) {
+  const text = consentText || DEFAULT_CONSENT_TEXT;
   const [pending, startTransition] = React.useTransition();
   const [status, setStatus] = React.useState<"idle" | "success" | "error">("idle");
   const [error, setError] = React.useState("");
@@ -45,38 +49,53 @@ export function EmailCapture() {
   }
 
   return (
-    <form action={handleSubmit} className="mb-2 mt-6 flex flex-col gap-2 sm:flex-row">
-      <div className="lb-pixel-input-wrap relative flex-1">
-        <input
-          type="email"
-          name="email"
-          required
-          maxLength={320}
-          placeholder="your@email.com"
-          aria-label="Email address"
-          className="lb-pixel-input lb-pixel-clip w-full border bg-white/5 px-4 py-2.5 text-sm outline-none backdrop-blur-sm transition-colors focus:border-[var(--lb-accent)]"
+    <form action={handleSubmit} className="mb-2 mt-6 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="lb-pixel-input-wrap relative flex-1">
+          <input
+            type="email"
+            name="email"
+            required
+            maxLength={320}
+            placeholder="your@email.com"
+            aria-label="Email address"
+            className="lb-pixel-input lb-pixel-clip w-full border bg-white/5 px-4 py-2.5 text-sm outline-none backdrop-blur-sm transition-colors focus:border-[var(--lb-accent)]"
+            style={{
+              color: "var(--lb-text)",
+              borderRadius: "var(--lb-card-radius)",
+              borderColor: "var(--lb-card-border)",
+              borderWidth: "var(--lb-border-width)",
+            }}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={pending}
+          className="lb-pixel-clip lb-pixel-shadow px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
-            color: "var(--lb-text)",
-            borderRadius: "var(--lb-card-radius)",
-            borderColor: "var(--lb-card-border)",
-            borderWidth: "var(--lb-border-width)",
+            background: "var(--lb-accent)",
+            color: "var(--lb-card-bg)",
+            border: "var(--lb-border-width) solid var(--lb-card-border)",
           }}
-        />
+        >
+          {pending ? "..." : "Subscribe"}
+        </button>
       </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="lb-pixel-clip lb-pixel-shadow px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-        style={{
-          background: "var(--lb-accent)",
-          color: "var(--lb-card-bg)",
-          border: "var(--lb-border-width) solid var(--lb-card-border)",
-        }}
+      <label
+        className="flex items-start gap-2 text-xs"
+        style={{ color: "var(--lb-text-muted)" }}
       >
-        {pending ? "..." : "Subscribe"}
-      </button>
+        <input
+          type="checkbox"
+          name="consent"
+          required
+          className="mt-0.5 size-3.5 shrink-0"
+          style={{ accentColor: "var(--lb-accent)" }}
+        />
+        <span>{text}</span>
+      </label>
       {status === "error" && error ? (
-        <p className="text-xs text-destructive sm:absolute sm:mt-14">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       ) : null}
     </form>
   );

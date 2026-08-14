@@ -96,6 +96,7 @@ interface GeneralTabProps {
   footerText: string;
   analyticsScript: string;
   privacyPolicy: string;
+  consentText: string | null;
 }
 
 export function GeneralTab({
@@ -106,6 +107,7 @@ export function GeneralTab({
   footerText,
   analyticsScript,
   privacyPolicy,
+  consentText,
 }: GeneralTabProps) {
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
@@ -233,6 +235,20 @@ export function GeneralTab({
               placeholder={"# Privacy Policy\n\nThis page uses privacy-respecting analytics..."}
               className="min-h-[160px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
+            />
+          </FormField>
+
+          <FormField
+            label="Email consent text"
+            htmlFor="consentText"
+            hint={<>Shown next to the consent checkbox on your email signup form. Leave empty for the default: <em>I agree to receive emails and understand I can unsubscribe at any time.</em></>}
+          >
+            <Input
+              id="consentText"
+              name="consentText"
+              defaultValue={consentText || ""}
+              maxLength={500}
+              placeholder="I agree to receive emails and understand I can unsubscribe at any time."
             />
           </FormField>
         </CardContent>

@@ -135,6 +135,13 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
 
   await updatePageQuery(pageId, updateData);
 
+  // Save global consent text setting alongside page settings.
+  const consentText = formData.get("consentText");
+  if (consentText !== null) {
+    const { updateSetting } = await import("@/server/queries");
+    await updateSetting("consentText", (consentText as string) || "");
+  }
+
   revalidatePath("/links");
   revalidatePath("/profile");
   revalidatePath("/theme");

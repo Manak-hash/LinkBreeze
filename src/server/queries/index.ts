@@ -866,8 +866,16 @@ export async function getLink(id: number): Promise<LinkRow | null> {
 
 export type SubscriberRow = typeof subscribers.$inferSelect;
 
-export async function addSubscriber(email: string): Promise<void> {
-  await db.insert(subscribers).values({ email });
+export async function addSubscriber(
+  email: string,
+  consentText?: string,
+): Promise<void> {
+  const consentAt = new Date().toISOString();
+  await db.insert(subscribers).values({
+    email,
+    consentAt: consentText ? consentAt : null,
+    consentText: consentText ?? null,
+  });
 }
 
 export async function getSubscriberCount(): Promise<number> {

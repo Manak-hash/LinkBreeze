@@ -19,6 +19,7 @@ import { ProfileHeader } from "@/components/public/ProfileHeader";
 import { LinkCard } from "@/components/public/LinkCard";
 import { EmbedWidget } from "@/components/public/EmbedWidget";
 import { EmailCapture } from "@/components/public/EmailCapture";
+import { getSetting } from "@/server/queries";
 import { SocialIcons } from "@/components/public/SocialIcons";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import {
@@ -278,7 +279,7 @@ export default async function PublicPage({ params }: PageProps) {
         </div>
 
         {page.emailCapture ? (
-          <EmailCapture />
+          <EmailCapture consentText={await getSetting("consentText")} />
         ) : null}
 
         <footer

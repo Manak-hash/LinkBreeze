@@ -78,6 +78,13 @@
       "when": 1752854400000,
       "tag": "0010_privacy_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1752940800000,
+      "tag": "0011_email_consent",
+      "breakpoints": true
     }
   ]
 }
