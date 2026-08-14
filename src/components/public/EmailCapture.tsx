@@ -74,8 +74,9 @@ export function EmailCapture({ consentText }: { consentText?: string | null }) {
           className="lb-pixel-clip lb-pixel-shadow px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             background: "var(--lb-accent)",
-            color: "var(--lb-card-bg)",
+            color: "var(--lb-btn-text, #ffffff)",
             border: "var(--lb-border-width) solid var(--lb-card-border)",
+            borderRadius: "var(--lb-card-radius)",
           }}
         >
           {pending ? "..." : "Subscribe"}

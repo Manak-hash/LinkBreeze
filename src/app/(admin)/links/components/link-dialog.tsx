@@ -56,6 +56,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
   const [active, setActive] = React.useState(editing?.isActive ?? true);
   const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
   const [autoIcon, setAutoIcon] = React.useState(editing?.autoIcon ?? true);
+  const [cardStyle, setCardStyle] = React.useState<"compact" | "rich">(
+    editing?.cardStyle === "rich" ? "rich" : "compact",
+  );
 
   // UTM state — only relevant for type === "url"
   const isUrlType = type === "url";
@@ -76,6 +79,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
       setActive(editing?.isActive ?? true);
       setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
       setAutoIcon(editing?.autoIcon ?? true);
+      setCardStyle(editing?.cardStyle === "rich" ? "rich" : "compact");
 
       const had = editing?.type === "url" && hasUTM(editing?.url ?? "");
       setShowUTM(had);
@@ -131,6 +135,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
     formData.set("isHighlighted", highlighted ? "on" : "off");
     formData.set("isActive", active ? "on" : "off");
     formData.set("autoIcon", autoIcon ? "on" : "off");
+    formData.set("cardStyle", cardStyle);
 
     // If scheduling is toggled off, clear any stale schedule values.
     if (!scheduled) {
@@ -215,6 +220,35 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               </SelectContent>
             </Select>
           </FormField>
+
+          {isUrlType ? (
+            <FormField label="Card style" hint={cardStyle === "rich" ? "Thumbnail + auto preview from the link's Open Graph data. Falls back to compact if no image is found." : "Icon + title. Clean and simple."}>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCardStyle("compact")}
+                  className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "compact" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
+                >
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "compact" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />
+                    Compact
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Icon + title</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardStyle("rich")}
+                  className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "rich" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
+                >
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "rich" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />
+                    Rich preview
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Thumbnail + description</p>
+                </button>
+              </div>
+            </FormField>
+          ) : null}
 
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">

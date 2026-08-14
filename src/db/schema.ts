@@ -72,6 +72,7 @@ export const links = sqliteTable("links", {
   scheduleStart: text("schedule_start"),
   scheduleEnd: text("schedule_end"),
   clicksCount: integer("clicks_count").notNull().default(0),
+  cardStyle: text("card_style").notNull().default("compact"), // compact | rich
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

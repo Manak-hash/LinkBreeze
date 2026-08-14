@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   addSubscriber: vi.fn(async () => undefined),
-  getSetting: vi.fn(async (_key?: string): Promise<string | null> => null),
+  getSetting: vi.fn(async (): Promise<string | null> => null),
   revalidatePath: vi.fn(),
 }));
 

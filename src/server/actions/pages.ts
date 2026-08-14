@@ -146,6 +146,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   revalidatePath("/profile");
   revalidatePath("/theme");
   revalidatePath("/dashboard");
+  revalidatePath("/settings");
   revalidatePath("/");
   if (updateData.slug) {
     revalidatePath(`/${updateData.slug}/privacy`, "layout");

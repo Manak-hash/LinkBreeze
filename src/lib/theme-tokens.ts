@@ -128,11 +128,27 @@ export function resolveFont(fontFamily: string | null | undefined): string {
   return fontFamily;
 }
 
+/**
+ * Compute whether to use white or black text on a given accent color
+ * for maximum contrast. Uses WCAG relative luminance.
+ */
+function pickContrastText(hexColor: string): string {
+  const m = hexColor.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i);
+  if (!m) return "#ffffff";
+  const [, rs, gs, bs] = m;
+  const toLin = (h: string) => {
+    const v = parseInt(h, 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const lum = 0.2126 * toLin(rs) + 0.7152 * toLin(gs) + 0.0722 * toLin(bs);
+  return lum > 0.179 ? "#0a0a0a" : "#ffffff";
+}
+
 function resolveCardRadius(linkStyle: string, radius: string | null | undefined): string {
   // Explicit override wins
   if (radius && radius !== "auto" && radius.trim()) return radius;
   switch (linkStyle) {
-    case "sharp":
+     case "sharp":
       return "4px";
     case "pill":
       return "9999px";
@@ -315,6 +331,11 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
   // Noise overlay
   const noiseEnabled = truthy(theme.noise);
 
+  // Button text: pick black or white based on accent luminance.
+  // For glass/transparent themes where card-bg is see-through, this ensures
+  // the Subscribe button text is always readable on the accent background.
+  const btnText = pickContrastText(accent);
+
   const cssVars: Record<string, string> = {
     "--lb-accent": accent,
     "--lb-secondary": secondary,
@@ -323,6 +344,7 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-card-bg": cardBg,
     "--lb-card-border": cardBorder,
     "--lb-card-radius": cardRadius,
+    "--lb-btn-text": btnText,
     "--lb-font": font,
     "--lb-font-size": fontSize,
     "--lb-font-weight": fontWeight,

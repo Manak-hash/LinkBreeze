@@ -272,6 +272,7 @@ export async function createLink(
         | "isActive"
         | "scheduleStart"
         | "scheduleEnd"
+        | "cardStyle"
       >
     >,
 ): Promise<LinkRow> {
@@ -298,6 +299,7 @@ export async function createLink(
       isActive: data.isActive ?? true,
       scheduleStart: data.scheduleStart ?? null,
       scheduleEnd: data.scheduleEnd ?? null,
+      cardStyle: data.cardStyle ?? "compact",
       orderIndex: nextOrder,
     })
     .returning();
@@ -321,6 +323,7 @@ export async function updateLink(
       | "isActive"
       | "scheduleStart"
       | "scheduleEnd"
+      | "cardStyle"
     >
   >,
 ): Promise<void> {

@@ -85,6 +85,13 @@
       "when": 1752940800000,
       "tag": "0011_email_consent",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1753027200000,
+      "tag": "0012_link_card_style",
+      "breakpoints": true
     }
   ]
 }

@@ -4,23 +4,22 @@ import crypto from "node:crypto";
 import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
 
 /**
- * Auto-favicon: fetches a site's favicon via Google's S2 favicon service
- * and caches it locally in the uploads directory.
+ * Multi-strategy favicon fetcher.
  *
- * Flow: URL → extract domain → fetch s2 favicon → hash → save to disk →
- * return local /api/uploads/<hash>.png path.
+ * Tries several sources in order until one returns a real favicon:
+ *   1. Fetch the site's HTML <head> and extract <link rel="icon">,
+ *      <link rel="shortcut icon">, or <link rel="apple-touch-icon"> href.
+ *   2. Try common favicon paths: /favicon.ico, /favicon.png, /favicon.svg
+ *   3. Fall back to DuckDuckGo's favicon service (icons.duckduckgo.com),
+ *      which is more reliable than Google S2 for smaller/newer sites.
  *
- * Google's S2 service (https://www.google.com/s2/favicons?domain=X&sz=64)
- * is a reliable, rate-limit-free proxy that fetches favicons from any
- * domain and returns a PNG. We cache the result locally so we never
- * re-fetch the same domain.
+ * All fetched favicons are cached locally in the uploads directory so we
+ * never re-fetch the same domain. No third-party domain is ever contacted
+ * by the visitor's browser — the fetch happens server-side at link creation
+ * time, and the cached file is served from /api/uploads/.
  */
 
-const S2_URL = (domain: string, size: number) =>
-  `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
-
-const FAVICON_SIZE = 64;
-const FETCH_TIMEOUT_MS = 5_000;
+const FETCH_TIMEOUT_MS = 6_000;
 
 /**
  * Extract the hostname from a URL string.
@@ -37,39 +36,161 @@ export function extractDomain(url: string): string | null {
   }
 }
 
+interface CandidateResult {
+  buffer: Buffer;
+  ext: string;
+}
+
 /**
- * Fetch a favicon for a domain and cache it locally.
- * Returns the local URL path (/api/uploads/<hash>.png) or null if the
- * fetch failed.
- *
- * The file is stored with a content-hash filename so repeated fetches for
- * the same domain are a no-op (the file already exists).
+ * Fetch a favicon for a domain using a multi-strategy fallback chain.
+ * Returns the local URL path (/api/uploads/<hash>.png) or null.
  */
 export async function fetchAndCacheFavicon(url: string): Promise<string | null> {
   const domain = extractDomain(url);
   if (!domain) return null;
 
-  // Content-hash the domain for a stable filename.
+  // Stable filename from domain hash.
   const hash = crypto.createHash("sha256").update(domain).digest("hex").slice(0, 16);
-  const ext = ".png";
-  const filename = `favicon-${hash}${ext}`;
+  const filename = `favicon-${hash}.png`;
   const filepath = path.join(UPLOADS_DIR, filename);
 
-  // Cache hit: file already exists, no fetch needed.
+  // Cache hit: file already exists.
   try {
     await fs.access(filepath);
     return `/api/uploads/${filename}`;
   } catch {
-    // File doesn't exist — proceed to fetch.
+    // Not cached — proceed to fetch.
   }
 
   await ensureUploadsDir();
 
+  // Try each strategy until one works.
+  const result =
+    (await tryHtmlHeadLinks(url)) ??
+    (await tryCommonPaths(domain)) ??
+    (await tryDuckDuckGo(domain));
+
+  if (!result) return null;
+
+  // Validate: skip suspiciously small files (likely 1x1 placeholders).
+  if (result.buffer.length < 100) return null;
+
+  // Normalize extension in the filename for non-PNG formats.
+  const finalName = result.ext === ".png" ? filename : `favicon-${hash}${result.ext}`;
+  const finalPath = path.join(UPLOADS_DIR, finalName);
+
+  try {
+    await fs.writeFile(finalPath, result.buffer);
+    return `/api/uploads/${finalName}`;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Strategy 1: Parse the site's HTML <head> ───────────────────────────
+
+async function tryHtmlHeadLinks(url: string): Promise<CandidateResult | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const res = await fetch(S2_URL(domain, FAVICON_SIZE), {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent": "LinkBreeze/1.0 (link preview fetcher)",
+        Accept: "text/html",
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return null;
+
+    // Read up to 256KB (enough for <head>).
+    const text = await res.text();
+
+    // Find all <link rel="icon"> / shortcut icon / apple-touch-icon hrefs.
+    const hrefs = extractIconHrefs(text, url);
+    if (hrefs.length === 0) return null;
+
+    // Try each href until one returns a valid image.
+    for (const href of hrefs) {
+      const img = await fetchImage(href);
+      if (img && img.buffer.length >= 100) return img;
+    }
+  } catch {
+    // Network error, timeout — fall through to next strategy.
+  }
+  return null;
+}
+
+function extractIconHrefs(html: string, baseUrl: string): string[] {
+  const hrefs: string[] = [];
+
+  // Match <link ... rel="...icon..." ... href="...">
+  // Also handles rel before href and href before rel ordering.
+  const linkRegex = /<link\s[^>]*>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkRegex.exec(html)) !== null) {
+    const tag = match[0];
+    const relMatch = tag.match(/rel\s*=\s*["']([^"']*)["']/i);
+    if (!relMatch) continue;
+    const rel = relMatch[1].toLowerCase();
+    if (
+      !rel.includes("icon") &&
+      !rel.includes("shortcut") &&
+      !rel.includes("apple-touch")
+    ) {
+      continue;
+    }
+
+    const hrefMatch = tag.match(/href\s*=\s*["']([^"']*)["']/i);
+    if (!hrefMatch) continue;
+    const href = hrefMatch[1];
+    if (!href) continue;
+
+    // Resolve relative URLs.
+    try {
+      const absolute = new URL(href, baseUrl).href;
+      hrefs.push(absolute);
+    } catch {
+      // Invalid URL — skip.
+    }
+  }
+
+  return hrefs;
+}
+
+// ─── Strategy 2: Try common favicon paths ──────────────────────────────
+
+async function tryCommonPaths(domain: string): Promise<CandidateResult | null> {
+  const paths = ["/favicon.ico", "/favicon.png", "/favicon.svg", "/favicon-32x32.png", "/favicon-96x96.png"];
+  for (const p of paths) {
+    const fullUrl = `https://${domain}${p}`;
+    const img = await fetchImage(fullUrl);
+    if (img && img.buffer.length >= 100) return img;
+  }
+  return null;
+}
+
+// ─── Strategy 3: DuckDuckGo fallback ────────────────────────────────────
+
+async function tryDuckDuckGo(domain: string): Promise<CandidateResult | null> {
+  const ddgUrl = `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
+  return fetchImage(ddgUrl);
+}
+
+// ─── Shared: fetch + validate an image URL ──────────────────────────────
+
+async function fetchImage(imageUrl: string): Promise<CandidateResult | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    const res = await fetch(imageUrl, {
       signal: controller.signal,
       redirect: "follow",
     });
@@ -77,17 +198,40 @@ export async function fetchAndCacheFavicon(url: string): Promise<string | null> 
 
     if (!res.ok) return null;
 
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) return null;
-
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
     const buffer = Buffer.from(await res.arrayBuffer());
     if (buffer.length === 0) return null;
 
-    await fs.writeFile(filepath, buffer);
-    return `/api/uploads/${filename}`;
+    // Determine extension from content type or magic bytes.
+    const ext = detectExt(contentType, buffer);
+    if (!ext) return null;
+
+    return { buffer, ext };
   } catch {
-    // Network error, timeout, write failure — all silently fail.
-    // The caller falls back to the first-letter avatar.
     return null;
   }
+}
+
+function detectExt(contentType: string, buffer: Buffer): string | null {
+  // Content-type first
+  if (contentType.includes("svg")) return ".svg";
+  if (contentType.includes("png")) return ".png";
+  if (contentType.includes("jpeg") || contentType.includes("jpg")) return ".jpg";
+  if (contentType.includes("webp")) return ".webp";
+  if (contentType.includes("gif")) return ".gif";
+  if (contentType.includes("icon") || contentType.includes("x-ico")) return ".ico";
+
+  // Magic bytes fallback
+  if (buffer[0] === 0x89 && buffer[1] === 0x50) return ".png"; // PNG
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) return ".jpg"; // JPEG
+  if (buffer[0] === 0x47 && buffer[1] === 0x49) return ".gif"; // GIF
+  if (buffer[0] === 0x52 && buffer[1] === 0x49) return ".webp"; // RIFF = WebP
+  if (buffer[0] === 0x3c && buffer[1] === 0x3f) return ".svg"; // <?xml
+  if (buffer[0] === 0x3c && buffer[1] === 0x73) return ".svg"; // <svg
+  if (buffer[0] === 0x00 && buffer[1] === 0x00) return ".ico"; // ICO
+
+  // ICO files have varied signatures — check for the common one
+  if (buffer.length >= 4 && buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x01) return ".ico";
+
+  return null;
 }

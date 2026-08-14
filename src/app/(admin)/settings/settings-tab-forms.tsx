@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Save, ExternalLink } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { updateSettings } from "@/server/actions/settings";
 import { updatePageAction } from "@/server/actions/pages";
 import type { ThemeRow } from "@/server/queries";
@@ -97,6 +98,7 @@ interface GeneralTabProps {
   analyticsScript: string;
   privacyPolicy: string;
   consentText: string | null;
+  emailCapture: boolean;
 }
 
 export function GeneralTab({
@@ -108,9 +110,11 @@ export function GeneralTab({
   analyticsScript,
   privacyPolicy,
   consentText,
+  emailCapture,
 }: GeneralTabProps) {
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
+  const [emailEnabled, setEmailEnabled] = React.useState(emailCapture);
   const { reload: reloadPreview } = usePreview();
   const router = useRouter();
 
@@ -119,6 +123,7 @@ export function GeneralTab({
       formData.set("pageId", String(pageId));
       formData.set("seoTitle", formData.get("title") as string);
       formData.set("seoDescription", formData.get("description") as string);
+      formData.set("emailCapture", emailEnabled ? "on" : "off");
       startTransition(async () => {
         await updatePageAction(formData);
         router.refresh();
@@ -128,6 +133,7 @@ export function GeneralTab({
       });
       return;
     }
+    formData.set("emailCapture", emailEnabled ? "on" : "off");
     startTransition(async () => {
       await updateSettings(formData);
       router.refresh();
@@ -239,6 +245,17 @@ export function GeneralTab({
           </FormField>
 
           <FormField
+            label="Email subscription"
+            hint={<>Show an email signup form at the bottom of your public page. Subscribers are stored in your database and can be exported as CSV.</>}
+          >
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
+              {emailEnabled ? "Enabled" : "Disabled"}
+            </label>
+          </FormField>
+
+          {emailEnabled ? (
+          <FormField
             label="Email consent text"
             htmlFor="consentText"
             hint={<>Shown next to the consent checkbox on your email signup form. Leave empty for the default: <em>I agree to receive emails and understand I can unsubscribe at any time.</em></>}
@@ -251,6 +268,7 @@ export function GeneralTab({
               placeholder="I agree to receive emails and understand I can unsubscribe at any time."
             />
           </FormField>
+          ) : null}
         </CardContent>
         <CardFooter className="gap-3">
           <Button type="submit" disabled={pending}>

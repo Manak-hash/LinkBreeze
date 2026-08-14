@@ -324,7 +324,6 @@ export default async function DashboardPage({
         hasLinks={activeCount > 0}
         hasDisplayName={(profile?.displayName?.length ?? 0) > 0}
         hasTheme={activeTheme !== null}
-        pageSlug={slug ?? "u"}
       />
 
       {isEmptyState ? (

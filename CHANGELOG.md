@@ -5,7 +5,7 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.7] - 2026-08-13
+## [1.2.7] - 2026-08-14
 
 ### Added
 
@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Privacy policy template generator** (`src/lib/privacy-template.ts`) — `generatePrivacyPolicy()` builds a markdown privacy policy reflecting the page's real feature set: analytics section (cookieless, SHA-256 hashed IPs, daily salt, retention), email section (conditional on email capture), third-party analytics section (conditional on external script), embedded content section (conditional on embeddable links), cookies, data subject rights, data controller, children's privacy, and changes sections.
 - **MarkdownLite renderer** (`src/components/public/MarkdownLite.tsx`) — Minimal zero-dependency markdown renderer for privacy policy text. Supports h1/h2, paragraphs, lists, bold, italic, inline code. Theme-aware via `--lb-*` CSS variables. No `dangerouslySetInnerHTML`.
 - **Privacy policy tests** — 13 tests covering all section combinations (analytics only, email only, embeds, external analytics, all features, no features, custom contact email fallback).
+- **Rich preview link cards** — Per-link card style toggle (compact vs. rich preview) in the link editor for URL-type links. When set to "rich" and a thumbnail/OG image is available, the card renders with a full-bleed image on top and content row below — same visual style as the existing thumbnail card layout. Falls back to compact when no image is available. The card style selector uses radio-style buttons with clear visual state (border-violet highlight + filled circle for the selected option). Schema migration `0012_link_card_style.sql` adds a `card_style` column to the links table.
+- **Open Graph fetcher** (`src/lib/og-fetcher.ts`) — Fetches `og:title`, `og:description`, `og:image`, and `og:site_name` meta tags from URL targets. Falls back to Twitter Card meta tags, then standard `<title>` and meta description. Downloads and caches OG images locally (visitor browsers never contact third-party CDNs). Handles relative/protocol-relative URLs, HTML entity decoding, 7s timeout, 512KB HTML cap, 5MB image cap. 10 unit tests covering all fallback paths and edge cases.
+- **Email subscribers panel in Data tab** — When email capture is enabled, Settings → Data tab now shows an "Email subscribers" card with a table of all subscribers (email, subscription date, consent status), Export CSV button, and Clear All with confirmation dialog. Includes a new `DELETE /api/subscribers/clear` endpoint. The card only appears when email capture is toggled on for the active page.
+- **Email capture toggle in Settings UI** — The email capture feature existed in the database and public page renderer but had no UI to enable it. Settings → General now has an "Email subscription" Switch toggle. When enabled, the consent text field appears below it. Saves through both the page-specific and global settings paths.
+- **Multi-strategy favicon fetcher** — Replaced the single-source Google S2 favicon fetcher with a 3-strategy fallback chain: (1) fetch the site's HTML `<head>` and parse `<link rel="icon">`, `<link rel="shortcut icon">`, and `<link rel="apple-touch-icon">` hrefs; (2) try common favicon paths (`/favicon.ico`, `/favicon.png`, `/favicon.svg`, `/favicon-32x32.png`, `/favicon-96x96.png`); (3) fall back to DuckDuckGo's icon service (`icons.duckduckgo.com`). Rejects files under 100 bytes (filters out 1x1 transparent placeholders). Detects format from content-type and magic bytes (PNG, JPEG, GIF, SVG, WebP, ICO). Solves the previous issue where S2 returned generic 16x16 globe placeholders for newer/less-indexed domains.
 
 ### Security
 
@@ -27,12 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visitor hash k-anonymity documentation** — The `getVisitorHash()` function comment now explains that the 64-bit SHA-256 truncation is deliberate, providing k-anonymity within the daily salt window. The trade-off (potential undercounting of unique visitors behind the same NAT with identical user-agents) is documented inline.
 - **"Import from Linktree" buttons reworded** — Changed to "Import your existing page" across setup wizard, dashboard empty state, and links manager empty state. The migration wizard supports Linktree, Bento, Lnk.bio, LittleLink, and more, so the CTA should not name a single competitor.
 - **Default footer text for new pages** — New pages now default to "Powered by LinkBreeze" as their footer text instead of empty. Operators can change or remove it in Settings → General. Every new deployment is a billboard for the project. Existing pages keep whatever footer text they already have.
+- **Onboarding checklist simplified to 3 steps** — Removed the "Share your page" step (it was never fully implemented and clicking it left the checklist visible). The checklist now auto-dismisses when all 3 steps (set name and bio, pick a theme, add your first link) are complete. Removed the unused `pageSlug` prop.
+- **Button text contrast token** — New `--lb-btn-text` CSS variable computed from each theme's accent color using WCAG relative luminance. Returns `#0a0a0a` for bright accents (Terminal Mono's green, Pastel Soft's pink) and `#ffffff` for dark accents (Minimal Light's blue). Fixes invisible Subscribe button text on Glassmorphism (card-bg was `rgba(255,255,255,0.12)` — nearly transparent) and Terminal Mono (card-bg was `rgba(0,255,65,0.04)` — nearly invisible). Applied to both the Subscribe button and the first-letter avatar fallback.
+- **Subscribe button border radius** — The Subscribe button was missing `borderRadius: var(--lb-card-radius)`, causing it to render as a square on 5 themes (Aurora, Glassmorphism, Pastel Soft, Retro Sunset, Minimal Light). Now inherits the theme's radius automatically, matching the email input and all other UI elements.
 
 ### Fixed
 
 - **README accuracy** — Changed "Privacy-First Analytics — no cookies, no tracking" to "Privacy-Respecting Analytics — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored." Changed "No tracking" to "No third-party trackers" in the self-hosted section.
 - **Setup wizard theme picker empty on fresh database** — `getAllThemes()` was called before `getActiveTheme()` (which internally seeds theme presets via `seedThemesIfEmpty()`), so on a fresh install the theme grid was empty. Fixed by calling `seedThemesIfEmpty()` before `getAllThemes()` in the setup page.
-- **Lighthouse CI build failure** — Turbopack (Next.js 16) intermittently gets 404s from `fonts.gstatic.com` during page data collection in CI. Fixed by using `npx next build --webpack` for the Lighthouse CI build only, with `NODE_OPTIONS: "--max-old-space-size=4096"` for memory safety. Main CI continues to use Turbopack.
+- **Email capture toggle not persisting** — `updatePageAction` did not call `revalidatePath("/settings")`. After saving, Next.js served the stale cached version of the settings page, so the email subscription toggle appeared to flip back to off. Added the missing revalidation call.
+- **Lighthouse CI build failure** — Turbopack (Next.js 16) intermittently gets 404s from `fonts.gstatic.com` during page data collection in CI. Fixed by using `npx next build --webpack` for the Lighthouse CI build only, with a 3-retry loop and `NODE_OPTIONS: "--max-old-space-size=4096"` for memory safety. Main CI continues to use Turbopack.
 
 ## [1.2.6] - 2026-08-12
 

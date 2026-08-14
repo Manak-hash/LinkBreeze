@@ -59,7 +59,7 @@ function buildIcon(link: LinkRow): string {
 
   // First-letter fallback using the title's initial.
   const letter = (link.title || "?").trim().charAt(0).toUpperCase();
-  return `<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-card-bg)">${esc(letter)}</span>`;
+  return `<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-btn-text, #fff)">${esc(letter)}</span>`;
 }
 
 /**
@@ -216,6 +216,11 @@ export function buildLinkCardHtml(options: {
   </a>
 </div>`;
   }
+
+  // Rich preview cards (cardStyle="rich") with an image use the same
+  // full-bleed image rendering as thumbnail cards — the existing hasImage
+  // path below handles it. Rich cards without an image fall through to the
+  // standard compact card path. No special-casing needed.
 
   return `<a
   href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}

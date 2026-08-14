@@ -6,11 +6,13 @@ import {
   getAllThemes,
   getActiveTheme,
   getSetting,
+  getAllSubscribers,
 } from "@/server/queries";
 import { isUpdateCheckEnabled } from "@/lib/update-check";
 import { GeneralTab, AppearanceTab } from "./settings-tab-forms";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
+import { SubscribersCard } from "./subscribers-card";
 import { MigrationWizard } from "@/components/admin/MigrationWizard";
 import { SettingsTabs } from "./settings-tabs";
 import {
@@ -42,12 +44,13 @@ export default async function SettingsPage({
     activePage = defaultPage ?? allPages[0];
   }
 
-  const [themes, active, updateCheckEnabled, retentionDays, consentText] = await Promise.all([
+  const [themes, active, updateCheckEnabled, retentionDays, consentText, subscribers] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
     isUpdateCheckEnabled(),
     getSetting("analyticsRetentionDays"),
     getSetting("consentText"),
+    getAllSubscribers(),
   ]);
 
   const slug = activePage?.slug || "u";
@@ -76,6 +79,7 @@ export default async function SettingsPage({
               analyticsScript={activePage?.analyticsScript || ""}
               privacyPolicy={activePage?.privacyPolicy || ""}
               consentText={consentText}
+              emailCapture={activePage?.emailCapture ?? false}
             />
           ),
           appearance: (
@@ -132,6 +136,10 @@ export default async function SettingsPage({
           data: (
             <div className="flex flex-col gap-4">
               <MigrationWizard pageId={activePage?.id ?? 0} />
+              <SubscribersCard
+                subscribers={subscribers}
+                emailCaptureEnabled={activePage?.emailCapture ?? false}
+              />
               <DataManager
                 retentionDays={retentionDays ?? ""}
                 updateCheckEnabled={updateCheckEnabled}

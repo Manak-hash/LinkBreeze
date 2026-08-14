@@ -7,6 +7,7 @@ import { demoGuard } from "@/lib/demo-guard";
 import { isAllowedLinkUrl } from "@/lib/link-url";
 import { truthy } from "@/lib/utils";
 import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
+import { fetchOgData } from "@/lib/og-fetcher";
 import {
   createLink as createLinkQuery,
   updateLink as updateLinkQuery,
@@ -51,6 +52,7 @@ const linkSchema = z
       .union([z.string(), z.boolean()])
       .transform(truthy)
       .default(true),
+    cardStyle: z.enum(["compact", "rich"]).default("compact"),
   })
   .refine((link) => isAllowedLinkUrl(link.type, link.url), {
     path: ["url"],
@@ -74,6 +76,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     scheduleStart: formData.get("scheduleStart") || undefined,
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
+    cardStyle: formData.get("cardStyle") || undefined,
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -88,17 +91,28 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
       iconUrl = await fetchAndCacheFavicon(d.url);
     }
 
+    // For rich cards, auto-fetch OG data to pre-fill description and image
+    // if the operator hasn't provided them manually.
+    let description = d.description || null;
+    let imageUrl = d.imageUrl || null;
+    if (d.cardStyle === "rich" && d.type === "url" && extractDomain(d.url)) {
+      const og = await fetchOgData(d.url);
+      if (!description && og.description) description = og.description;
+      if (!imageUrl && og.imageUrl) imageUrl = og.imageUrl;
+    }
+
     await createLinkQuery({
       title: d.title,
       url: d.url,
       pageId: d.pageId,
-      description: d.description || null,
-      imageUrl: d.imageUrl || null,
+      description,
+      imageUrl,
       type: d.type,
       isHighlighted: d.isHighlighted,
       isActive: d.isActive,
       autoIcon: d.autoIcon,
       iconUrl,
+      cardStyle: d.cardStyle,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
     });
@@ -133,6 +147,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     scheduleStart: formData.get("scheduleStart") || undefined,
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
+    cardStyle: formData.get("cardStyle") || undefined,
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -150,16 +165,27 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
       iconUrl = await fetchAndCacheFavicon(d.url);
     }
 
+    // For rich cards, auto-fetch OG data to pre-fill description and image
+    // if the operator hasn't provided them manually.
+    let description = d.description || null;
+    let imageUrl = d.imageUrl || null;
+    if (d.cardStyle === "rich" && d.type === "url" && extractDomain(d.url)) {
+      const og = await fetchOgData(d.url);
+      if (!description && og.description) description = og.description;
+      if (!imageUrl && og.imageUrl) imageUrl = og.imageUrl;
+    }
+
     await updateLinkQuery(Number(d.id), {
       title: d.title,
       url: d.url,
-      description: d.description || null,
-      imageUrl: d.imageUrl || null,
+      description,
+      imageUrl,
       type: d.type,
       isHighlighted: d.isHighlighted,
       isActive: d.isActive,
       autoIcon: d.autoIcon,
       iconUrl,
+      cardStyle: d.cardStyle,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
     });

@@ -2,13 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, Link2, User, Palette, Share2, X } from "lucide-react";
+import { Check, Link2, User, Palette, X } from "lucide-react";
 
 interface OnboardingChecklistProps {
   hasLinks: boolean;
   hasDisplayName: boolean;
   hasTheme: boolean;
-  pageSlug: string;
 }
 
 interface ChecklistItem {
@@ -23,7 +22,6 @@ export function OnboardingChecklist({
   hasLinks,
   hasDisplayName,
   hasTheme,
-  pageSlug,
 }: OnboardingChecklistProps) {
   // Lazy initializer — reads localStorage once on first render without
   // triggering a setState-in-effect. Falls back to false during SSR.
@@ -32,19 +30,16 @@ export function OnboardingChecklist({
     return localStorage.getItem("lb-onboarding-dismissed") === "true";
   });
 
+  // Auto-dismiss when all steps are complete. We use a ref to ensure
+  // localStorage is written only once (not on every re-render).
+  const autoDismissedRef = React.useRef(false);
+
   const handleDismiss = () => {
     setDismissed(true);
     localStorage.setItem("lb-onboarding-dismissed", "true");
   };
 
   const items: ChecklistItem[] = [
-    {
-      id: "links",
-      label: "Add your first link",
-      href: "/links",
-      icon: Link2,
-      done: hasLinks,
-    },
     {
       id: "profile",
       label: "Set your name and bio",
@@ -60,19 +55,28 @@ export function OnboardingChecklist({
       done: hasTheme,
     },
     {
-      id: "share",
-      label: "Share your page",
-      href: `/${pageSlug}`,
-      icon: Share2,
-      done: false,
+      id: "links",
+      label: "Add your first link",
+      href: "/links",
+      icon: Link2,
+      done: hasLinks,
     },
   ];
 
   const completedCount = items.filter((i) => i.done).length;
   const allDone = completedCount === items.length;
 
-  // Hide if dismissed or all done.
-  if (dismissed || allDone) return null;
+  // Auto-dismiss when all 3 steps are done.
+  React.useEffect(() => {
+    if (allDone && !dismissed && !autoDismissedRef.current) {
+      autoDismissedRef.current = true;
+      setDismissed(true);
+      localStorage.setItem("lb-onboarding-dismissed", "true");
+    }
+  }, [allDone, dismissed]);
+
+  // Hide if dismissed.
+  if (dismissed) return null;
 
   const pct = Math.round((completedCount / items.length) * 100);
 
@@ -114,8 +118,6 @@ export function OnboardingChecklist({
             <Link
               key={item.id}
               href={item.href}
-              target={item.id === "share" ? "_blank" : undefined}
-              rel={item.id === "share" ? "noopener noreferrer" : undefined}
               className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted/50"
             >
               <span
