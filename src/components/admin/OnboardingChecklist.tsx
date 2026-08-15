@@ -23,12 +23,28 @@ export function OnboardingChecklist({
   hasDisplayName,
   hasTheme,
 }: OnboardingChecklistProps) {
-  // Lazy initializer — reads localStorage once on first render without
-  // triggering a setState-in-effect. Falls back to false during SSR.
-  const [dismissed, setDismissed] = React.useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("lb-onboarding-dismissed") === "true";
-  });
+  // Hydration-safe localStorage read: useSyncExternalStore renders the
+  // server snapshot (false) during hydration, then re-renders with the real
+  // client value — no hydration mismatch and no setState-in-effect.
+  const subscribe = React.useCallback((onChange: () => void) => {
+    window.addEventListener("lb-onboarding-dismissed", onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener("lb-onboarding-dismissed", onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  }, []);
+
+  const dismissed = React.useSyncExternalStore(
+    subscribe,
+    () => localStorage.getItem("lb-onboarding-dismissed") === "true",
+    () => false,
+  );
+
+  const setDismissed = (value: boolean) => {
+    localStorage.setItem("lb-onboarding-dismissed", String(value));
+    window.dispatchEvent(new Event("lb-onboarding-dismissed"));
+  };
 
   // Auto-dismiss when all steps are complete. We use a ref to ensure
   // localStorage is written only once (not on every re-render).

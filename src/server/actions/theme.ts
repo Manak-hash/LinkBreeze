@@ -8,6 +8,8 @@ import {
   setActiveTheme,
   updateTheme,
   getActiveTheme,
+  getThemeById,
+  getPagesUsingTheme,
   duplicateTheme,
   deleteTheme,
 } from "@/server/queries";
@@ -20,6 +22,19 @@ import {
   logError,
 } from "@/lib/errors";
 
+/** Revalidate the public paths of every page rendering this theme. */
+async function revalidateThemePages(themeId: number): Promise<void> {
+  try {
+    const using = await getPagesUsingTheme(themeId);
+    for (const page of using) {
+      revalidatePath(`/${page.slug}`);
+    }
+  } catch (err) {
+    // Revalidation is best-effort: a failure here must not fail the save.
+    logError("revalidateThemePages", err, { themeId });
+  }
+}
+
 export async function activateTheme(id: number): Promise<ActionResult> {
   const blocked = demoGuard();
   if (blocked) return blocked;
@@ -31,6 +46,7 @@ export async function activateTheme(id: number): Promise<ActionResult> {
     await setActiveTheme(id);
     revalidatePath("/theme");
     revalidatePath("/");
+    await revalidateThemePages(id);
     return { success: true };
   } catch (err) {
     logError("activateTheme", err, { id });
@@ -46,6 +62,17 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
   const blocked = demoGuard();
   if (blocked) return blocked;
   if (!(await getSession())) return unauthorizedError();
+
+  // Theme to edit: explicit id (page-specific theme or customizer target),
+  // falling back to the globally active theme. Editing the global theme when
+  // the caller meant a page's own theme was Bug 1 — the public page renders
+  // page.themeId first, so the edit silently had no visible effect.
+  const themeIdRaw = formData.get("themeId");
+  const themeId = themeIdRaw ? Number(themeIdRaw) : null;
+  const target = themeId && Number.isFinite(themeId)
+    ? await getThemeById(themeId)
+    : await getActiveTheme();
+  if (!target) return notFoundError("No theme to customise");
 
   const parsed = customSchema.safeParse({
     backgroundType: formData.get("backgroundType") || undefined,
@@ -79,12 +106,17 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     glowColor: formData.get("glowColor") || undefined,
     blur: formData.get("blur") || undefined,
     noise: formData.get("noise") || undefined,
+    avatarShape: formData.get("avatarShape") || undefined,
+    avatarBorder: formData.get("avatarBorder") || undefined,
+    avatarFloat: formData.get("avatarFloat") || undefined,
+    profileLayout: formData.get("profileLayout") || undefined,
+    textAnimation: formData.get("textAnimation") || undefined,
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const active = await getActiveTheme();
+  const active = target;
   if (!active) return notFoundError("No active theme");
 
   const updates: Record<string, string> = {};
@@ -106,16 +138,26 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
 
   revalidatePath("/theme");
   revalidatePath("/");
+  // Revalidate every public page rendering this theme so edits appear
+  // immediately instead of waiting out the ISR window.
+  await revalidateThemePages(active.id);
   return { success: true };
 }
 
-export async function duplicateActiveTheme(name: string): Promise<ActionResult> {
+export async function duplicateActiveTheme(
+  name: string,
+  themeId?: number,
+): Promise<ActionResult> {
   const blocked = demoGuard();
   if (blocked) return blocked;
   if (!(await getSession())) return unauthorizedError();
 
-  const active = await getActiveTheme();
-  if (!active) return notFoundError("No active theme");
+  // Bug 2 fix: duplicate the theme shown in the customizer (page theme or
+  // explicit id), not always the globally active one.
+  const source = themeId && Number.isFinite(themeId)
+    ? await getThemeById(themeId)
+    : await getActiveTheme();
+  if (!source) return notFoundError("No theme to duplicate");
 
   const trimmed = (name || "").trim().slice(0, 100);
   if (!trimmed) return validationError("Name is required");
@@ -126,11 +168,11 @@ export async function duplicateActiveTheme(name: string): Promise<ActionResult> 
   }
 
   try {
-    await duplicateTheme(active.id, trimmed);
+    await duplicateTheme(source.id, trimmed);
     revalidatePath("/theme");
     return { success: true };
   } catch (err) {
-    logError("duplicateActiveTheme", err, { themeId: active.id, name: trimmed });
+    logError("duplicateActiveTheme", err, { themeId: source.id, name: trimmed });
     return {
       success: false,
       error: "Something went wrong. Please try again.",

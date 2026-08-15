@@ -1,5 +1,5 @@
 import type { LinkRow } from "@/server/queries";
-import type { ThemeInput } from "@/lib/theme-tokens";
+import { revealAnimation, type ThemeInput } from "@/lib/theme-tokens";
 
 export type LinkCardTheme = ThemeInput;
 
@@ -110,8 +110,10 @@ export function buildLinkCardHtml(options: {
   theme: LinkCardTheme;
   index: number;
   staggerMs?: number;
+  /** Extra delay added to index*staggerMs (e.g. section header position). */
+  baseDelayMs?: number;
 }): string {
-  const { link, theme, index, staggerMs = 60 } = options;
+  const { link, theme, index, staggerMs = 60, baseDelayMs = 0 } = options;
 
   const linkStyle = theme.linkStyle || "glass";
   const hoverEffect = theme.hoverEffect || theme.animationType || "lift";
@@ -142,7 +144,7 @@ export function buildLinkCardHtml(options: {
   const reveal =
     theme.animationType === "none"
       ? ""
-      : `animation: aurora-rise 0.5s cubic-bezier(0.16,1,0.3,1) both; animation-delay:${index * staggerMs}ms;`;
+      : revealAnimation(theme.animationType, baseDelayMs + index * staggerMs);
 
   const { href, targetAttr, onclickAttr } = resolveLinkUrl(link);
 

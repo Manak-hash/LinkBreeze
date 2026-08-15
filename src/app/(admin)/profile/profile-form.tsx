@@ -46,6 +46,7 @@ interface ProfileFormProps {
     bio: string;
     badgeText: string;
     avatarUrl: string;
+    bannerUrl?: string | null;
     socialLinks: SocialLink[];
   } | null;
   pageId?: number;
@@ -59,8 +60,11 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState(profile?.avatarUrl ?? "");
+  const [bannerUrl, setBannerUrl] = React.useState(profile?.bannerUrl ?? "");
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [bannerUploading, setBannerUploading] = React.useState(false);
+  const [bannerError, setBannerError] = React.useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,6 +85,29 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
       setUploadError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerUploading(true);
+    setBannerError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadAvatar(fd);
+      if (res.success) {
+        setBannerUrl(res.url);
+        reloadPreview();
+      } else {
+        setBannerError(res.error);
+      }
+    } catch {
+      setBannerError("Upload failed. Please try again.");
+    } finally {
+      setBannerUploading(false);
       e.target.value = "";
     }
   };
@@ -187,6 +214,37 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                   ) : null}
                 </div>
               </div>
+            </div>
+
+            <FormField label="Banner image (optional)" htmlFor="bannerUrl">
+              <Input
+                id="bannerUrl"
+                name="bannerUrl"
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+                placeholder="https://…/banner.jpg — shown in Hero / Banner layouts (Theme page)"
+              />
+            </FormField>
+            <div className="-mt-2 flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
+                <Upload className="size-4" />
+                {bannerUploading ? "Uploading…" : "Upload banner"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBannerUpload}
+                  disabled={bannerUploading}
+                />
+              </label>
+              {bannerUrl ? (
+                <span className="text-xs text-muted-foreground">
+                  {bannerUrl.startsWith("/api/uploads/") ? "Uploaded ✓" : "Custom URL"}
+                </span>
+              ) : null}
+              {bannerError ? (
+                <span className="text-xs text-destructive">{bannerError}</span>
+              ) : null}
             </div>
 
             <FormField label="Display name" htmlFor="displayName" required>

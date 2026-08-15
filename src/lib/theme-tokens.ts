@@ -77,6 +77,13 @@ export interface ThemeInput {
   blur?: string | null;
   noise?: boolean | string | number | null;
 
+  // Profile styling (1.3)
+  avatarShape?: string | null;
+  avatarBorder?: string | null;
+  avatarFloat?: boolean | string | number | null;
+  profileLayout?: string | null;
+  textAnimation?: string | null;
+
   // Meta
   mode?: string | null;
 }
@@ -292,6 +299,61 @@ function resolveAlignment(align: string | null | undefined): "left" | "center" |
   }
 }
 
+/** Avatar shape → border-radius (1.3). */
+function resolveAvatarRadius(shape: string): string {
+  switch (shape) {
+    case "square":
+      return "0px";
+    case "rounded":
+      return "12px";
+    case "squircle":
+      return "24%";
+    default:
+      return "9999px";
+  }
+}
+
+// ─── Reveal animation resolver ──────────────────────────────────────────────
+
+/** Keyframe name for each reveal animation type. */
+const REVEAL_KEYFRAMES: Record<string, string> = {
+  lift: "aurora-rise",
+  scale: "lb-zoom-in",
+  "zoom-in": "lb-zoom-in",
+  "fade-up": "lb-fade-up",
+  "slide-in": "lb-slide-in",
+  "blur-in": "lb-blur-in",
+};
+
+/**
+ * Build the reveal animation style for React components.
+ * Returns undefined when animations are disabled (animationType "none").
+ */
+export function revealAnimationStyle(
+  animationType: string | null | undefined,
+  delayMs: number,
+): { animation: string; animationDelay: string } | undefined {
+  if (animationType === "none") return undefined;
+  const keyframe = REVEAL_KEYFRAMES[str(animationType, "lift")] ?? "aurora-rise";
+  return {
+    animation: `${keyframe} 0.5s cubic-bezier(0.16,1,0.3,1) both`,
+    animationDelay: `${delayMs}ms`,
+  };
+}
+
+/**
+ * Build the inline `animation` declaration string for raw-HTML builders.
+ * Returns "" when animations are disabled (animationType "none").
+ */
+export function revealAnimation(
+  animationType: string | null | undefined,
+  delayMs: number,
+): string {
+  const style = revealAnimationStyle(animationType, delayMs);
+  if (!style) return "";
+  return `animation: ${style.animation}; animation-delay:${delayMs}ms;`;
+}
+
 // ─── Main resolver ──────────────────────────────────────────────────────────
 
 /**
@@ -359,10 +421,11 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-container-width": containerWidth,
     "--lb-alignment": alignment,
     "--lb-noise": noiseEnabled ? "1" : "0",
-    // Avatar border: solid accent ring (matches each theme's identity color)
+    // Avatar styling (1.3): shape → radius, border → ring/glow/gradient
+    "--lb-avatar-radius": resolveAvatarRadius(str(theme.avatarShape, "circle")),
     "--lb-avatar-border": accent,
-    // Avatar glow (same as card glow but may differ)
     "--lb-avatar-glow": glowValue,
+    "--lb-avatar-gradient": `linear-gradient(135deg, ${accent}, ${secondary})`,
     // Pixel mode flag: "1" when linkStyle is pixel, used for global clip-paths
     "--lb-pixel": linkStyle === "pixel" ? "1" : "0",
   };
@@ -402,7 +465,7 @@ export function buildThemeStyleBlock(theme: ThemeInput): string {
 
 const NIGHT_BASE = "#0a0820";
 
-interface ThemeBackgroundInput {
+export interface ThemeBackgroundInput {
   backgroundType?: string | null;
   backgroundValue?: string | null;
   backgroundAngle?: string | null;
@@ -487,6 +550,13 @@ export function resolveBackground(theme: ThemeBackgroundInput): string {
 
     case "animatedGradient":
       return `linear-gradient(${angle}, ${parts.join(", ")}, ${parts[0]})`;
+
+    case "gif":
+      // Animated GIF: same treatment as a static image (browser animates it).
+      if (theme.backgroundImageUrl) {
+        return `url('${theme.backgroundImageUrl}')`;
+      }
+      return parts[0];
 
     case "pattern":
       return parts[0];

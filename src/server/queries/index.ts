@@ -6,6 +6,7 @@ import {
   profile,
   pages,
   links,
+  linkSections,
   themes,
   analyticsPageviews,
   analyticsClicks,
@@ -204,11 +205,12 @@ export async function deletePage(id: number): Promise<void> {
   if (!target) return;
   if (target.isDefault) throw new Error("Cannot delete the default page");
 
-  // Move links to the default page before deleting.
+  // Move links to the default page before deleting (sections don't transfer).
   const def = await getDefaultPage();
-  await db.update(links).set({ pageId: def.id }).where(eq(links.pageId, id));
+  await db.update(links).set({ pageId: def.id, sectionId: null }).where(eq(links.pageId, id));
   // Clear pageId on analytics rows (keep historical data, disassociate page).
   await db.update(analyticsPageviews).set({ pageId: null }).where(eq(analyticsPageviews.pageId, id));
+  await db.delete(linkSections).where(eq(linkSections.pageId, id));
   await db.delete(pages).where(eq(pages.id, id));
 }
 
@@ -273,6 +275,7 @@ export async function createLink(
         | "scheduleStart"
         | "scheduleEnd"
         | "cardStyle"
+        | "sectionId"
       >
     >,
 ): Promise<LinkRow> {
@@ -300,6 +303,7 @@ export async function createLink(
       scheduleStart: data.scheduleStart ?? null,
       scheduleEnd: data.scheduleEnd ?? null,
       cardStyle: data.cardStyle ?? "compact",
+      sectionId: data.sectionId ?? null,
       orderIndex: nextOrder,
     })
     .returning();
@@ -324,6 +328,7 @@ export async function updateLink(
       | "scheduleStart"
       | "scheduleEnd"
       | "cardStyle"
+      | "sectionId"
     >
   >,
 ): Promise<void> {
@@ -343,6 +348,101 @@ export async function reorderLinks(orderedIds: number[]): Promise<void> {
   db.transaction((tx) => {
     for (let i = 0; i < orderedIds.length; i++) {
       tx.update(links).set({ orderIndex: i }).where(eq(links.id, orderedIds[i])).run();
+    }
+  });
+}
+
+// ─── Link sections ────────────────────────────────────────────────────────────
+
+export type LinkSectionRow = typeof linkSections.$inferSelect;
+
+export async function getSectionsByPage(pageId: number): Promise<LinkSectionRow[]> {
+  return db
+    .select()
+    .from(linkSections)
+    .where(eq(linkSections.pageId, pageId))
+    .orderBy(asc(linkSections.orderIndex), asc(linkSections.id));
+}
+
+export async function createSection(
+  data: Pick<typeof linkSections.$inferInsert, "pageId" | "title"> &
+    Partial<Pick<typeof linkSections.$inferInsert, "icon">>,
+): Promise<LinkSectionRow> {
+  const maxOrder = await db
+    .select({ m: sql<number>`max(${linkSections.orderIndex})` })
+    .from(linkSections)
+    .where(eq(linkSections.pageId, data.pageId));
+  const nextOrder = (maxOrder[0]?.m ?? -1) + 1;
+
+  const created = await db
+    .insert(linkSections)
+    .values({
+      pageId: data.pageId,
+      title: data.title,
+      icon: data.icon ?? null,
+      orderIndex: nextOrder,
+    })
+    .returning();
+  return created[0];
+}
+
+export async function updateSection(
+  id: number,
+  data: Partial<Pick<LinkSectionRow, "title" | "icon" | "orderIndex">>,
+): Promise<void> {
+  await db.update(linkSections).set(data).where(eq(linkSections.id, id));
+}
+
+/**
+ * Delete a section. Its links fall back to uncategorized (sectionId → NULL)
+ * — they are never lost. Links are nulled explicitly because SQLite does not
+ * enforce foreign keys unless PRAGMA foreign_keys=ON.
+ */
+export async function deleteSection(id: number): Promise<void> {
+  db.transaction((tx) => {
+    tx.update(links).set({ sectionId: null }).where(eq(links.sectionId, id)).run();
+    tx.delete(linkSections).where(eq(linkSections.id, id)).run();
+  });
+}
+
+export async function reorderSections(orderedIds: number[]): Promise<void> {
+  if (orderedIds.length === 0) return;
+  db.transaction((tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      tx.update(linkSections)
+        .set({ orderIndex: i })
+        .where(eq(linkSections.id, orderedIds[i]))
+        .run();
+    }
+  });
+}
+
+/**
+ * Full content reorder for the links manager: persists link order within
+ * every group and section order, in one transaction.
+ *
+ * @param linkOrder  Flat array of {id, sectionId} in visual order — the
+ *                   orderIndex is derived from position, sectionId from the
+ *                   group the link was dropped into.
+ * @param sectionOrder Section ids in visual order.
+ */
+export async function reorderPageContent(
+  linkOrder: Array<{ id: number; sectionId: number | null }>,
+  sectionOrder: number[],
+): Promise<void> {
+  if (linkOrder.length === 0 && sectionOrder.length === 0) return;
+  db.transaction((tx) => {
+    for (let i = 0; i < sectionOrder.length; i++) {
+      tx.update(linkSections)
+        .set({ orderIndex: i })
+        .where(eq(linkSections.id, sectionOrder[i]))
+        .run();
+    }
+    for (let i = 0; i < linkOrder.length; i++) {
+      tx.update(links)
+        .set({ orderIndex: i, sectionId: linkOrder[i].sectionId })
+        .where(eq(links.id, linkOrder[i].id))
+        .run();
     }
   });
 }
@@ -381,6 +481,23 @@ export async function getAllThemes(): Promise<ThemeRow[]> {
 export async function getThemeById(id: number): Promise<ThemeRow | null> {
   const rows = await db.select().from(themes).where(eq(themes.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+/** Pages rendering the given theme: pages with themeId set, plus every page when the theme is globally active. */
+export async function getPagesUsingTheme(themeId: number): Promise<{ id: number; slug: string }[]> {
+  const [active] = await db
+    .select({ id: themes.id })
+    .from(themes)
+    .where(eq(themes.isActive, true))
+    .limit(1);
+  // Globally active theme renders on every page without its own themeId.
+  if (active?.id === themeId) {
+    return db.select({ id: pages.id, slug: pages.slug }).from(pages);
+  }
+  return db
+    .select({ id: pages.id, slug: pages.slug })
+    .from(pages)
+    .where(eq(pages.themeId, themeId));
 }
 
 export async function setActiveTheme(id: number): Promise<void> {

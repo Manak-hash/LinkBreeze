@@ -1,6 +1,7 @@
 import {
   getAllThemes,
   getActiveTheme,
+  getThemeById,
   seedThemesIfEmpty,
   getAllPages,
   getDefaultPage,
@@ -35,12 +36,20 @@ export default async function ThemePage({
 
   const [themes, active] = await Promise.all([getAllThemes(), getActiveTheme()]);
 
+  // The theme the customizer edits: the page's own theme when set, else the
+  // globally active theme. This is what the public page renders for this
+  // page, so this is what "Customise" and "Duplicate" must target.
+  const pageTheme = activePage?.themeId
+    ? await getThemeById(activePage.themeId)
+    : null;
+  const effective = pageTheme ?? active;
+
   return (
     <div className="flex flex-col gap-6">
       <ThemeManager
         themes={themes}
         activeId={active?.id ?? null}
-        active={active}
+        active={effective}
         pageId={activePage?.id}
         pageThemeId={activePage?.themeId ?? null}
       />

@@ -1,4 +1,4 @@
-import { getAllLinks, getAllPages, getDefaultPage } from "@/server/queries";
+import { getAllLinks, getAllPages, getDefaultPage, getSectionsByPage } from "@/server/queries";
 import { LinksManager } from "./links-manager";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +23,9 @@ export default async function LinksPage({
     activePageId = defaultPage.id;
   }
 
-  const links = await getAllLinks(activePageId);
-  return <LinksManager initialLinks={links} pageId={activePageId} />;
+  const [links, sections] = await Promise.all([
+    getAllLinks(activePageId),
+    getSectionsByPage(activePageId),
+  ]);
+  return <LinksManager initialLinks={links} sections={sections} pageId={activePageId} />;
 }

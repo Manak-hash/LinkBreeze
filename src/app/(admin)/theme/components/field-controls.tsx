@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { uploadBackgroundMedia } from "@/server/actions/uploads";
 import {
   Select,
   SelectContent,
@@ -153,6 +155,81 @@ export function SliderField({
         onChange={(e) => setVal(parseInt(e.target.value, 10))}
         className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
       />
+    </div>
+  );
+}
+
+/**
+ * URL field with an inline upload button (background images / videos / GIFs).
+ * Uploads go through uploadBackgroundMedia (2 MB image / 5 MB video caps).
+ */
+export function MediaUrlField({
+  label,
+  name,
+  defaultValue,
+  accept = "image/*",
+  hint,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  accept?: string;
+  hint?: string;
+}) {
+  const [val, setVal] = React.useState(defaultValue ?? "");
+  const [uploading, setUploading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadBackgroundMedia(fd);
+      if (res.success) {
+        setVal(res.url);
+      } else {
+        setError(res.error);
+      }
+    } catch {
+      setError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={name} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={name}
+          name={name}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="https://… or upload"
+          className="flex-1 font-mono text-xs"
+        />
+        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
+          <Upload className="size-3.5" />
+          {uploading ? "Uploading…" : "Upload"}
+          <input
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+      {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+      {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
     </div>
   );
 }

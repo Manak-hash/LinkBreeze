@@ -6,7 +6,7 @@ import {
   createLink,
   updateLink,
 } from "@/server/actions/links";
-import type { LinkRow } from "@/server/queries";
+import type { LinkRow, LinkSectionRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
@@ -32,6 +32,7 @@ import {
   getUrlPlaceholder,
   prefixLinkUrl,
 } from "../link-helpers";
+import { LucideIcon, isLucideIconName } from "@/components/public/LucideIcon";
 import {
   parseUTM,
   stripUTM,
@@ -46,9 +47,44 @@ export interface LinkDialogProps {
   onOpenChange: (open: boolean) => void;
   editing?: LinkRow | null;
   pageId?: number;
+  sections?: LinkSectionRow[];
 }
 
-export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogProps) {
+function SectionSelect({
+  editing,
+  sections,
+}: {
+  editing?: LinkRow | null;
+  sections: LinkSectionRow[];
+}) {
+  // Initial value from `editing`; resets via key remount in the parent.
+  const [value, setValue] = React.useState(String(editing?.sectionId ?? "none"));
+
+  return (
+    <FormField label="Section" hint="Links without a section appear above all sections.">
+      <Select value={value} onValueChange={(v) => setValue(v ?? "none")}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No section</SelectItem>
+          {sections.map((s) => (
+            <SelectItem key={s.id} value={String(s.id)}>
+              {isLucideIconName(s.icon) ? (
+                <LucideIcon name={s.icon as string} size={14} className="mr-1 inline-block align-[-2px] text-muted-foreground" />
+              ) : null}
+              {s.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* "none" → empty string so the server action stores NULL. */}
+      <input type="hidden" name="sectionId" value={value === "none" ? "" : value} />
+    </FormField>
+  );
+}
+
+export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] }: LinkDialogProps) {
   const [pending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
   const [type, setType] = React.useState(editing?.type ?? "url");
@@ -162,7 +198,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
         </DialogHeader>
         <form ref={formRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
-          {pageId && !editing ? <input type="hidden" name="pageId" value={pageId} /> : null}
+          {pageId ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
           <FormField label="Title" htmlFor="title" required>
             <Input
@@ -220,6 +256,10 @@ export function LinkDialog({ open, onOpenChange, editing, pageId }: LinkDialogPr
               </SelectContent>
             </Select>
           </FormField>
+
+          {sections.length > 0 ? (
+            <SectionSelect key={editing?.id ?? "new"} editing={editing} sections={sections} />
+          ) : null}
 
           {isUrlType ? (
             <FormField label="Card style" hint={cardStyle === "rich" ? "Thumbnail + auto preview from the link's Open Graph data. Falls back to compact if no image is found." : "Icon + title. Clean and simple."}>

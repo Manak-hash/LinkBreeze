@@ -1,5 +1,5 @@
 
-import type { ThemeInput } from "@/lib/theme-tokens";
+import { revealAnimationStyle, type ThemeInput } from "@/lib/theme-tokens";
 
 interface EmbedWidgetProps {
   url: string;
@@ -7,6 +7,8 @@ interface EmbedWidgetProps {
   index: number;
   animationType: string;
   theme?: ThemeInput;
+  /** Extra entrance delay (ms) — used to continue the stagger across sections. */
+  baseDelayMs?: number;
 }
 
 /**
@@ -99,17 +101,15 @@ function buildEmbedUrl(url: string): { src: string; aspect: string; provider: st
   }
 }
 
-export function EmbedWidget({ url, title, index, animationType, theme }: EmbedWidgetProps) {
+export function EmbedWidget({ url, title, index, animationType, theme, baseDelayMs = 0 }: EmbedWidgetProps) {
   const embed = buildEmbedUrl(url);
   if (!embed) return null;
 
   const isPixel = theme?.linkStyle === "pixel";
 
-  const reveal =
-    animationType === "none"
-      ? ""
-      : `aurora-rise 0.5s cubic-bezier(0.16,1,0.3,1) both`;
-  const delay = animationType === "none" ? undefined : `${index * 60}ms`;
+  const revealStyle = revealAnimationStyle(animationType, baseDelayMs + index * 60);
+  const reveal = revealStyle?.animation ?? "";
+  const delay = revealStyle ? revealStyle.animationDelay : undefined;
 
   const isFixed = embed.aspect !== "auto";
 

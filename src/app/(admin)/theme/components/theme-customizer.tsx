@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ColorField, SelectField, ToggleField, SliderField } from "./field-controls";
+import { ColorField, SelectField, ToggleField, SliderField, MediaUrlField } from "./field-controls";
 import {
   FONT_OPTIONS,
   BG_TYPES,
@@ -29,6 +29,10 @@ import {
   DENSITIES,
   REVEAL_ANIMATIONS,
   MODE_OPTIONS,
+  AVATAR_SHAPES,
+  AVATAR_BORDERS,
+  PROFILE_LAYOUTS,
+  TEXT_ANIMATIONS,
 } from "../theme-constants";
 
 // ─── Section sub-components ────────────────────────────────────────────────
@@ -63,18 +67,31 @@ function BackgroundSection({ active }: { active: ThemeRow }) {
           options={BACKGROUND_ANGLES}
         />
         {active.backgroundType === "image" ? (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="backgroundImageUrl" className="text-xs text-muted-foreground">
-              Image URL
-            </Label>
-            <Input
-              id="backgroundImageUrl"
-              name="backgroundImageUrl"
-              defaultValue={active.backgroundImageUrl ?? ""}
-              placeholder="https://…"
-              className="font-mono text-xs"
-            />
-          </div>
+          <MediaUrlField
+            label="Image URL"
+            name="backgroundImageUrl"
+            defaultValue={active.backgroundImageUrl ?? ""}
+            accept="image/*"
+            hint="Max 2 MB. Cover-fit across the whole page."
+          />
+        ) : null}
+        {active.backgroundType === "gif" ? (
+          <MediaUrlField
+            label="Animated GIF URL"
+            name="backgroundImageUrl"
+            defaultValue={active.backgroundImageUrl ?? ""}
+            accept="image/gif"
+            hint="Max 2 MB. Keep loops short — big GIFs are heavy for mobile visitors."
+          />
+        ) : null}
+        {active.backgroundType === "video" ? (
+          <MediaUrlField
+            label="Video URL (.mp4 / .webm)"
+            name="backgroundImageUrl"
+            defaultValue={active.backgroundImageUrl ?? ""}
+            accept="video/mp4,video/webm"
+            hint="Max 5 MB, muted autoplay loop. Visitors on slow connections see a still frame."
+          />
         ) : null}
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -167,6 +184,12 @@ function TypographySection({ active }: { active: ThemeRow }) {
           step={0.5}
         />
       </div>
+      <SelectField
+        label="Display name animation"
+        name="textAnimation"
+        defaultValue={active.textAnimation ?? "none"}
+        options={TEXT_ANIMATIONS}
+      />
     </section>
   );
 }
@@ -259,6 +282,18 @@ function LayoutSection({ active }: { active: ThemeRow }) {
           options={DENSITIES}
         />
       </div>
+      <SelectField
+        label="Profile layout"
+        name="profileLayout"
+        defaultValue={active.profileLayout ?? "classic"}
+        options={PROFILE_LAYOUTS}
+      />
+      {active.profileLayout === "hero" || active.profileLayout === "banner" ? (
+        <p className="text-[11px] text-muted-foreground">
+          Set the banner image on the Profile page (Banner image field). Hero and
+          Banner layouts use it as the cover.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -290,6 +325,27 @@ function EffectsSection({ active }: { active: ThemeRow }) {
         defaultValue={active.animationType ?? "lift"}
         options={REVEAL_ANIMATIONS}
       />
+      <Separator className="my-1" />
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avatar</h4>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <SelectField
+          label="Shape"
+          name="avatarShape"
+          defaultValue={active.avatarShape ?? "circle"}
+          options={AVATAR_SHAPES}
+        />
+        <SelectField
+          label="Border"
+          name="avatarBorder"
+          defaultValue={active.avatarBorder ?? "solid"}
+          options={AVATAR_BORDERS}
+        />
+        <ToggleField
+          label="Floating avatar"
+          name="avatarFloat"
+          defaultValue={active.avatarFloat ?? "false"}
+        />
+      </div>
     </section>
   );
 }
@@ -322,7 +378,11 @@ export function ThemeCustomizer({
           </CardDescription>
         </CardHeader>
         <form action={onCustomize}>
-          <CardContent>
+          {/* themeId targets the save at the theme this page renders
+              (page-specific or global). Remounts fields on theme switch so
+              controlled state re-initialises (Bug 3). */}
+          <input type="hidden" name="themeId" value={active.id} />
+          <CardContent key={active.id}>
             <Tabs defaultValue="background" className="gap-4">
               <TabsList>
                 <TabsTrigger value="background">Background</TabsTrigger>

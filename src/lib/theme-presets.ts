@@ -58,6 +58,13 @@ export interface ThemePreset {
   blur: string;
   noise: string;
 
+  // Profile styling (1.3) — defaults live in `base`.
+  avatarShape: string;
+  avatarBorder: string;
+  avatarFloat: string;
+  profileLayout: string;
+  textAnimation: string;
+
   // Optional — not set by presets, relies on the DB column default ("").
   backgroundImageUrl?: string;
 }
@@ -90,6 +97,11 @@ export const base: Omit<ThemePreset, "name" | "backgroundType" | "backgroundValu
   glowColor: "#533fd6",
   blur: "12px",
   noise: "false",
+  avatarShape: "circle",
+  avatarBorder: "solid",
+  avatarFloat: "false",
+  profileLayout: "classic",
+  textAnimation: "none",
 };
 
 export const PRESETS: ThemePreset[] = [
@@ -107,7 +119,8 @@ export const PRESETS: ThemePreset[] = [
     textColor: "#eceafe",
     mutedTextColor: "#a39ec9",
     linkStyle: "glass",
-    animationType: "lift",
+    animationType: "fade-up",
+    avatarBorder: "gradient",
     isActive: true,
   },
   // ── 2. Glassmorphism ────────────────────────────────────────────────
@@ -143,7 +156,7 @@ export const PRESETS: ThemePreset[] = [
     textColor: "#e0e0ff",
     mutedTextColor: "#8585a3",
     linkStyle: "neon",
-    animationType: "scale",
+    animationType: "zoom-in",
     radius: "4px",
     glow: "true",
     glowColor: "#00f0ff",

@@ -5,6 +5,44 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - Unreleased
+
+### Added
+
+- **Link sections (#78)** — Group links under titled headers on the public page. Sections have a title and an optional Lucide icon, and are managed alongside links in the Links tab.
+  - Public page: links render grouped under their section headers, with uncategorized links (no section) kept above all sections to preserve the pre-1.3 layout for existing pages. Empty sections never render a header. Section headers continue the page's existing entrance stagger (60ms steps across headers and cards alike) and respect `prefers-reduced-motion` and the animation-off theme setting.
+  - Links manager: grouped view with drag-and-drop within and across sections (dnd-kit multi-container pattern). Drag a link onto a section to move it; drag section headers to reorder sections. Empty sections stay visible in the manager as drop targets. "Add section" button in the header; per-section edit/delete.
+  - Deleting a section never deletes its links — they move to Uncategorized. A delete confirmation dialog says exactly that.
+  - Link editor: new Section selector (only shown when the page has at least one section).
+  - Schema migration `0013_link_sections.sql` adds the `link_sections` table and a nullable `section_id` on links (`ON DELETE SET NULL` in SQL; the delete path also nulls explicitly since SQLite does not enforce FKs without `PRAGMA foreign_keys=ON`).
+  - Backup/restore: exports include sections; restore accepts both new and pre-1.3 backup files (no sections array → all links uncategorized).
+  - Demo seed: the LinkBreeze showcase page now demonstrates sections (Featured with the GitHub star link, Resources with OmniRise).
+  - Tests: 16 new — grouping helper unit tests (order, empty-section dropping, unknown-section fallback, stagger delays) and DB integration tests (CRUD, page isolation, section delete nulls links, atomic reorder of links+sections, page-delete cleanup).
+
+- **Lucide icon picker for section headers** — The section icon field is now a searchable, category-filtered picker over the full Lucide set (~1700 icons) instead of free-text emoji. Replaces the emoji input entirely ("hard remove": emoji input is gone; existing emoji values keep rendering as text on the public page so nothing breaks for current users, but the field only accepts Lucide names from now on).
+  - Shared resolver (`src/lib/icon-registry.ts`) converts between Lucide's PascalCase export keys and the dashed names stored in the DB, with acronym-aware handling (`ArrowDownAZ` ↔ `arrow-down-az`) where naive regex conversion breaks.
+  - Public page renders picked icons as inline SVG (stroke inherits the theme text color, size follows the theme font scale) — zero client JS, zero external requests, works across all 10 themes with no per-theme work.
+  - Admin picker renders a windowed grid (120 icons at a time + "Show more") so 1700 icons never hit the DOM at once; search by name, filter by 7 categories.
+- **Section header redesign** — Section headers on the public page got a real design treatment: small-caps label voice (uppercase, 600 weight, widened tracking, sized at `max(0.72 × theme base font, 11px)` so it stays legible on small-base themes like 8-Bit), an optional Lucide icon before the title, and a hairline rule in the theme accent color stretching from the title to the container edge (linear gradient fading to transparent). Headers keep their place in the entrance stagger and respect `prefers-reduced-motion`.
+
+- **Theme customizer rework** — The theme page's customizer now targets the exact theme the selected page renders (page-specific theme when set, otherwise the globally active one) instead of always editing the global theme. Duplicating a theme clones the one you're looking at, not the global one. Customizer fields resync when switching themes (sections remount with a key). Theme edits revalidate the public paths of every page using that theme, so changes appear immediately instead of after the 60s ISR window.
+  - Fixed the same class of bug in the theme gallery's customizer panel that the gallery highlight already avoided (`effectiveActiveId`); the customizer and duplicate actions now follow the same resolution.
+- **New entrance animations** — Four new reveal animation types in the theme customizer (Effects → Reveal animation): Fade up, Slide in, Zoom in, and Blur in, joining Lift, Scale, and None. The display name, bio, and social icons now join the entrance stagger (avatar 0ms → name 80ms → bio 160ms → socials 240ms → sections and links continue the existing sequence). All animations are disabled under `prefers-reduced-motion` and respect the animation-off theme setting. The Aurora preset now ships with Fade up.
+- **Avatar styling** — Three new theme tokens (Effects → Avatar): Shape (circle, squircle, rounded square, square), Border (solid accent, gradient from accent to secondary, glow, ring), and Floating (gentle 3s hover loop). Defaults preserve the current look exactly.
+- **Profile layouts** — New theme token (Layout → Profile layout): Classic (current centered stack), Hero (banner image with the display name overlaid on a readability scrim), and Banner (wide image strip above the classic stack, X/Twitter style). The banner image is set per page on the Profile page (URL or upload). Hero and Banner fall back to Classic when no banner is set.
+- **Video and animated GIF backgrounds** — Two new background types: Video (`.mp4`/`.webm`, muted autoplay loop, cover-fit, content z-indexed above) and Animated GIF (treated as an image background; the browser animates it). Both upload through the theme customizer's Background tab with size caps (5MB video, 2MB image/GIF). Visitors on slow connections (2g/slow-2g or data-saver) get the theme's static background instead of the video via a tiny inline check — the only inline script on public pages. Overlay color/opacity applies to video like it does to image backgrounds.
+- **Display name animations** — New theme token (Typography → Display name animation): Typewriter (character-by-character with a blinking caret), Gradient flow (accent-to-secondary shimmer flowing through the letters), or None. Both respect `prefers-reduced-motion`.
+- **Schema migration `0014_theme_visuals.sql`** — Adds `avatar_shape`, `avatar_border`, `avatar_float`, `profile_layout`, `text_animation` to themes and `banner_url` to pages. All columns default to the pre-1.3 look, so existing installs are unchanged.
+- **Backup, restore, and theme export/import** — All five new theme fields and the page banner round-trip through backup/restore and the theme JSON export/import. Pre-1.3 backup files and theme exports import cleanly (new fields default).
+- **Tests: 21 new** — Reveal animation resolver (all keyframe mappings, none, fallbacks, delays), avatar tokens (shape radii, gradient build), gif/video background resolution, and DB integration (migration 0014 columns and defaults, updateTheme persistence, duplicateTheme cloning all new fields, getPagesUsingTheme).
+
+### Fixed
+
+- **Migration bookkeeping repair (#79)** — On databases upgraded from older LinkBreeze versions, migration records could end up out of chronological order, which made newer schema changes look already applied. The affected migrations were silently skipped and the first query touching a missing column crashed (reported on 1.2.7 Docker installs as `SqliteError: no such column: privacy_policy`). Fixed in three layers:
+  - Migration journal timestamps are now strictly ascending, so the migrator never mistakes a pending migration for an applied one.
+  - On startup, LinkBreeze cross-checks recorded migrations against the journal (matched by content hash) and repairs out-of-order records before migrating. Databases that already hit the bug heal themselves on the next start with no manual steps, and no already-applied migration is ever re-run.
+  - A new test suite guards the journal's ordering invariants so future migrations cannot reintroduce the bug.
+
 ## [1.2.7] - 2026-08-14
 
 ### Added

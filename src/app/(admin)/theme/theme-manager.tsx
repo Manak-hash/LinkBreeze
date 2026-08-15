@@ -81,7 +81,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
     if (!name) return;
     setDupPending(true);
     try {
-      const res = await duplicateActiveTheme(name);
+      const res = await duplicateActiveTheme(name, active?.id);
       if (res.success) {
         setDupName("");
         router.refresh();

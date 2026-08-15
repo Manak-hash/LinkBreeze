@@ -89,6 +89,22 @@ async function seed() {
   const linkbreezePageId = linkbreezePage.id;
   console.log(`✓ Page 1 created: LinkBreeze (id=${linkbreezePageId}, Aurora theme, 3 social links)`);
 
+  // ─── Sections for PAGE 1: LinkBreeze ────────────
+  // Demonstrates the 1.3 sections feature on the showcase page.
+  const lbSectionFeatured = db.insert(schema.linkSections).values({
+    pageId: linkbreezePageId,
+    title: "Featured",
+    icon: "star",
+    orderIndex: 0,
+  }).returning({ id: schema.linkSections.id }).get();
+  const lbSectionResources = db.insert(schema.linkSections).values({
+    pageId: linkbreezePageId,
+    title: "Resources",
+    icon: "wrench",
+    orderIndex: 1,
+  }).returning({ id: schema.linkSections.id }).get();
+  console.log(`✓ 2 sections created for LinkBreeze (Featured, Resources)`);
+
   // ─── PAGE 2: Manak (Developer/Founder) ──────────
   const manakSocialLinks = JSON.stringify([
     { platform: "github", url: "https://github.com/Manak-hash" },
@@ -119,7 +135,7 @@ async function seed() {
   // ─── Links for PAGE 1: LinkBreeze ───────────────
   // Matches the live demo at linkbreeze-demo.omnirise.dev/linkbreeze
   const linkbreezeLinks = [
-    // YouTube embed
+    // YouTube embed — uncategorized (top of page, above sections)
     {
       title: "LinkBreeze Demo — See It In Action",
       url: "https://www.youtube.com/embed/_Ipf-_1B4BY",
@@ -128,8 +144,9 @@ async function seed() {
       isHighlighted: false,
       orderIndex: 0,
       imageUrl: null,
+      sectionId: null as number | null,
     },
-    // Try it live
+    // Featured section
     {
       title: "LinkBreeze — Try It Live",
       url: "https://linkbreeze.omnirise.dev",
@@ -138,26 +155,28 @@ async function seed() {
       isHighlighted: false,
       orderIndex: 1,
       imageUrl: null,
+      sectionId: lbSectionFeatured?.id ?? null,
     },
-    // OmniRise
-    {
-      title: "OmniRise — My Studio",
-      url: "https://omnirise.dev",
-      description: "Web development, automation, and open-source projects",
-      type: "url",
-      isHighlighted: false,
-      orderIndex: 2,
-      imageUrl: null,
-    },
-    // GitHub star (highlighted)
     {
       title: "Star LinkBreeze on GitHub",
       url: "https://github.com/Manak-hash/LinkBreeze",
       description: "Open-source · MIT licensed · Self-hosted",
       type: "url",
       isHighlighted: true,
+      orderIndex: 2,
+      imageUrl: null,
+      sectionId: lbSectionFeatured?.id ?? null,
+    },
+    // Resources section
+    {
+      title: "OmniRise — My Studio",
+      url: "https://omnirise.dev",
+      description: "Web development, automation, and open-source projects",
+      type: "url",
+      isHighlighted: false,
       orderIndex: 3,
       imageUrl: null,
+      sectionId: lbSectionResources?.id ?? null,
     },
   ];
 

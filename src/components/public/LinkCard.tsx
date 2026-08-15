@@ -5,6 +5,8 @@ interface LinkCardProps {
   link: LinkRow;
   index: number;
   theme: LinkCardTheme;
+  /** Extra entrance delay (ms) — used to continue the stagger across sections. */
+  baseDelayMs?: number;
 }
 
 /**
@@ -15,8 +17,8 @@ interface LinkCardProps {
  * static HTML untouched. This keeps the public page 100% client-JS-free while
  * still tracking outbound clicks.
  */
-export function LinkCard({ link, index, theme }: LinkCardProps) {
-  const html = buildLinkCardHtml({ link, theme, index });
+export function LinkCard({ link, index, theme, baseDelayMs = 0 }: LinkCardProps) {
+  const html = buildLinkCardHtml({ link, theme, index, baseDelayMs });
 
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }

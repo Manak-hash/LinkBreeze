@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
   profile,
   links,
+  linkSections,
   settings,
   themes,
   analyticsPageviews,
@@ -57,12 +58,24 @@ const linkRowSchema = z.object({
   scheduleStart: z.string().nullable().optional(),
   scheduleEnd: z.string().nullable().optional(),
   clicksCount: z.number().optional(),
+  sectionId: z.number().nullable().optional(),
   createdAt: z.string().optional(),
 });
 
 const settingRowSchema = z.object({
   key: z.string(),
   value: z.string(),
+});
+
+// v1.3: link sections. Optional so backups from before 1.3 (which have no
+// sections) still restore cleanly — links fall back to uncategorized.
+const sectionRowSchema = z.object({
+  id: z.number().optional(),
+  pageId: z.number(),
+  title: z.string(),
+  icon: z.string().nullable().optional(),
+  orderIndex: z.number().optional(),
+  createdAt: z.string().optional(),
 });
 
 const themeRowSchema = z.object({
@@ -105,6 +118,12 @@ const themeRowSchema = z.object({
   glowColor: z.string().optional(),
   blur: z.string().optional(),
   noise: z.string().optional(),
+  // Profile styling (1.3)
+  avatarShape: z.string().optional(),
+  avatarBorder: z.string().optional(),
+  avatarFloat: z.string().optional(),
+  profileLayout: z.string().optional(),
+  textAnimation: z.string().optional(),
   // Meta
   isActive: z.boolean().optional(),
   isPreset: z.boolean().optional(),
@@ -153,6 +172,12 @@ const exportableThemeSchema = z.object({
   glowColor: z.string().max(60).optional().default("#a78bfa"),
   blur: z.string().max(20).optional().default("8px"),
   noise: z.string().max(10).optional().default("false"),
+  // Profile styling (1.3) — optional with defaults so pre-1.3 exports import cleanly
+  avatarShape: z.string().max(20).optional().default("circle"),
+  avatarBorder: z.string().max(20).optional().default("solid"),
+  avatarFloat: z.string().max(10).optional().default("false"),
+  profileLayout: z.string().max(20).optional().default("classic"),
+  textAnimation: z.string().max(20).optional().default("none"),
   exportedAt: z.string(),
 });
 
@@ -163,15 +188,17 @@ interface BackupPayload {
   exportedAt: string;
   profile: ProfileRow[];
   links: LinkRow[];
+  sections?: Array<{ id?: number; pageId: number; title: string; icon: string | null; orderIndex: number; createdAt?: string }>;
   settings: Array<{ key: string; value: string }>;
   themes: ThemeRow[];
 }
 
 /** Snapshot of all regenerable config (not analytics — that's CSV-exportable). */
 export async function exportBackupPayload(): Promise<BackupPayload> {
-  const [p, l, s, t] = await Promise.all([
+  const [p, l, sec, s, t] = await Promise.all([
     db.select().from(profile),
     db.select().from(links),
+    db.select().from(linkSections),
     db.select().from(settings),
     db.select().from(themes),
   ]);
@@ -180,6 +207,7 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
     exportedAt: new Date().toISOString(),
     profile: p,
     links: l,
+    sections: sec,
     settings: s,
     themes: t,
   };
@@ -233,6 +261,24 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
   parsed.settings = validatedSettings.data as Array<{ key: string; value: string }>;
   parsed.themes = validatedThemes.data as ThemeRow[];
 
+  // Sections are optional (v1 backups have none). Validate when present.
+  let sections: z.infer<typeof sectionRowSchema>[] = [];
+  if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
+    const validatedSections = z.array(sectionRowSchema).safeParse(parsed.sections);
+    if (!validatedSections.success) {
+      return validationError("Backup contains malformed sections");
+    }
+    sections = validatedSections.data;
+    // Drop link section references to sections that don't exist in the backup
+    // (e.g. hand-edited file) so the FK doesn't reject the restore.
+    const sectionIds = new Set(sections.map((s) => s.id));
+    parsed.links = parsed.links.map((l) =>
+      l.sectionId != null && !sectionIds.has(l.sectionId)
+        ? { ...l, sectionId: null }
+        : l,
+    );
+  }
+
   // Re-validate link URLs against the scheme allowlist. A backup file could
   // carry javascript: or data: URLs that bypass the create/update validators
   // — these would be stored XSS on the public page. Drop offending rows.
@@ -244,9 +290,11 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
     db.transaction((tx) => {
       tx.delete(profile).run();
       tx.delete(links).run();
+      tx.delete(linkSections).run();
       tx.delete(settings).run();
       tx.delete(themes).run();
       if (parsed.profile.length) tx.insert(profile).values(parsed.profile).run();
+      if (sections.length) tx.insert(linkSections).values(sections).run();
       if (parsed.links.length) tx.insert(links).values(parsed.links).run();
       if (parsed.settings.length) tx.insert(settings).values(parsed.settings).run();
       if (parsed.themes.length) tx.insert(themes).values(parsed.themes).run();
@@ -341,6 +389,11 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     glowColor: theme.glowColor,
     blur: theme.blur,
     noise: theme.noise,
+    avatarShape: theme.avatarShape,
+    avatarBorder: theme.avatarBorder,
+    avatarFloat: theme.avatarFloat,
+    profileLayout: theme.profileLayout,
+    textAnimation: theme.textAnimation,
     exportedAt: new Date().toISOString(),
   };
 }
@@ -402,6 +455,11 @@ export async function importTheme(json: string): Promise<ActionResult> {
     glowColor: t.glowColor,
     blur: t.blur,
     noise: t.noise,
+    avatarShape: t.avatarShape,
+    avatarBorder: t.avatarBorder,
+    avatarFloat: t.avatarFloat,
+    profileLayout: t.profileLayout,
+    textAnimation: t.textAnimation,
     isActive: false,
     isPreset: false,
   });

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import {
   getPageBySlug,
   getActiveLinks,
+  getSectionsByPage,
   getActiveTheme,
   getThemeById,
   recordPageview,
@@ -19,13 +20,17 @@ import { ProfileHeader } from "@/components/public/ProfileHeader";
 import { LinkCard } from "@/components/public/LinkCard";
 import { EmbedWidget } from "@/components/public/EmbedWidget";
 import { EmailCapture } from "@/components/public/EmailCapture";
+import { SectionHeader } from "@/components/public/SectionHeader";
 import { getSetting } from "@/server/queries";
 import { SocialIcons } from "@/components/public/SocialIcons";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
+import { VideoBackground } from "@/components/public/VideoBackground";
+import { groupLinksBySection, sectionStaggerDelays } from "@/lib/link-sections";
 import {
   resolveBackground,
   isAnimatedAurora,
   buildThemeStyleBlock,
+  revealAnimationStyle,
   type ThemeInput,
 } from "@/lib/theme-tokens";
 
@@ -160,6 +165,16 @@ export default async function PublicPage({ params }: PageProps) {
   const theme = pageTheme ?? fallbackTheme;
 
   const activeLinks = await getActiveLinks(page.id);
+  const sections = await getSectionsByPage(page.id);
+
+  // Group links: uncategorized first, then each section in order. Empty
+  // sections are dropped so no orphan headers render.
+  const groups = groupLinksBySection(activeLinks, sections);
+  const delays = sectionStaggerDelays(groups);
+  const animate = theme?.animationType !== "none";
+  // Socials enter at 240ms, continuing the profile stagger
+  // (avatar 0 → name 80 → bio 160 → socials 240 → sections 300+).
+  const socialsReveal = revealAnimationStyle(animate ? theme?.animationType : "none", 240);
 
   // Parse social links from page JSON.
   let socialLinks: SocialLink[] = [];
@@ -172,6 +187,7 @@ export default async function PublicPage({ params }: PageProps) {
   const themeInput: ThemeInput = theme ?? {};
 
   const useAurora = isAnimatedAurora(themeInput);
+  const useVideo = themeInput.backgroundType === "video" && !!themeInput.backgroundImageUrl;
   const background = resolveBackground(themeInput);
 
   const themeStyleBlock = buildThemeStyleBlock(themeInput);
@@ -181,6 +197,7 @@ export default async function PublicPage({ params }: PageProps) {
     displayName: page.title,
     bio: page.bio,
     avatarUrl: page.avatarUrl,
+    bannerUrl: page.bannerUrl,
     badgeText: page.badgeText,
     socialLinks: page.socialLinks,
   };
@@ -206,6 +223,7 @@ export default async function PublicPage({ params }: PageProps) {
   return (
     <>
       {useAurora ? <AuroraBackground /> : null}
+      {useVideo ? <VideoBackground theme={themeInput} /> : null}
       {page.analyticsScript ? (
         <div dangerouslySetInnerHTML={{ __html: page.analyticsScript }} />
       ) : null}
@@ -222,7 +240,7 @@ export default async function PublicPage({ params }: PageProps) {
       <main
         id="lb-main"
         style={{
-          background: useAurora ? undefined : background,
+          background: useAurora || useVideo ? undefined : background,
           color: "var(--lb-text)",
           fontFamily: "var(--lb-font)",
           minHeight: "100vh",
@@ -239,35 +257,49 @@ export default async function PublicPage({ params }: PageProps) {
           textAlign: "var(--lb-alignment)" as React.CSSProperties["textAlign"],
         }}
       >
-        <ProfileHeader profile={profileCompat as never} />
+        <ProfileHeader profile={profileCompat as never} theme={themeInput} />
 
         {socialLinks.length > 0 ? (
-          <div className="mb-8 mt-6">
+          <div className="mb-8 mt-6" style={socialsReveal as React.CSSProperties}>
             <SocialIcons socialLinks={socialLinks} theme={themeInput} />
           </div>
         ) : null}
 
         <div style={{ marginTop: "var(--lb-spacing)" }}>
           {activeLinks.length > 0 ? (
-            activeLinks.map((link, i) =>
-              link.type === "embed" ? (
-                <EmbedWidget
-                  key={link.id}
-                  url={link.url}
-                  title={link.title}
-                  index={i}
-                  animationType={theme?.animationType || "lift"}
-                  theme={themeInput}
-                />
-              ) : (
-                <LinkCard
-                  key={link.id}
-                  link={link}
-                  index={i}
-                  theme={themeInput}
-                />
-              ),
-            )
+            groups.map((group, gi) => (
+              <section key={group.section?.id ?? "uncategorized"} style={{ marginBottom: "calc(var(--lb-spacing) * 1.5)" }}>
+                {group.section ? (
+                  <SectionHeader
+                    section={group.section}
+                    delayMs={delays[gi]?.header ?? 0}
+                    animationType={animate ? (theme?.animationType || "lift") : "none"}
+                    alignment={themeInput.alignment as "left" | "center" | "right" | undefined}
+                  />
+                ) : null}
+                {group.links.map((link, li) =>
+                  link.type === "embed" ? (
+                    <EmbedWidget
+                      key={link.id}
+                      url={link.url}
+                      title={link.title}
+                      index={0}
+                      baseDelayMs={delays[gi]?.links[li] ?? 0}
+                      animationType={theme?.animationType || "lift"}
+                      theme={themeInput}
+                    />
+                  ) : (
+                    <LinkCard
+                      key={link.id}
+                      link={link}
+                      index={0}
+                      baseDelayMs={delays[gi]?.links[li] ?? 0}
+                      theme={themeInput}
+                    />
+                  ),
+                )}
+              </section>
+            ))
           ) : (
             <p
               className="text-center text-sm"

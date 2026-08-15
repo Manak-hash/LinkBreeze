@@ -37,6 +37,8 @@ export const customSchema = z.object({
       "mesh",
       "image",
       "animatedGradient",
+      "video",
+      "gif",
     ])
     .optional(),
   backgroundValue: z.string().max(500).optional(),
@@ -61,7 +63,7 @@ export const customSchema = z.object({
   linkStyle: z
     .enum(["pill", "rounded", "sharp", "glass", "outline", "neon", "pixel"])
     .optional(),
-  animationType: z.enum(["lift", "scale", "none"]).optional(),
+  animationType: z.enum(["lift", "scale", "none", "fade-up", "slide-in", "zoom-in", "blur-in"]).optional(),
   radius: z.string().max(20).optional(),
   buttonSize: z.enum(["sm", "md", "lg"]).optional(),
   borderWidth: z.string().max(20).optional(),
@@ -78,4 +80,10 @@ export const customSchema = z.object({
   glowColor: cssColor.optional(),
   blur: z.string().max(20).optional(),
   noise: z.enum(["true", "false"]).optional(),
+  // Profile styling (1.3)
+  avatarShape: z.enum(["circle", "squircle", "rounded", "square"]).optional(),
+  avatarBorder: z.enum(["solid", "gradient", "glow", "ring", "none"]).optional(),
+  avatarFloat: z.enum(["true", "false"]).optional(),
+  profileLayout: z.enum(["classic", "hero", "banner"]).optional(),
+  textAnimation: z.enum(["none", "typewriter", "gradient-flow"]).optional(),
 });

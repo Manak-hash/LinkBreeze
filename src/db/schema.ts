@@ -35,6 +35,7 @@ export const pages = sqliteTable("pages", {
   title: text("title").notNull().default(""),        // display name
   bio: text("bio").notNull().default(""),
   avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"), // hero/banner profile layouts (1.3)
   badgeText: text("badge_text"),
   socialLinks: text("social_links").notNull().default("[]"), // JSON array
   themeId: integer("theme_id"),
@@ -54,10 +55,23 @@ export const pages = sqliteTable("pages", {
   privacyPolicy: text("privacy_policy").notNull().default(""),
 });
 
+// ─── Link sections (1.3) ──────────────────────────────
+// Groups links under headers on the public page. Links with a null
+// section_id render in the uncategorized group at the top.
+export const linkSections = sqliteTable("link_sections", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id").notNull().references(() => pages.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  icon: text("icon"), // optional emoji shown before the title
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
 // ─── Links ────────────────────────────────────────────
 export const links = sqliteTable("links", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   pageId: integer("page_id").notNull().default(1),
+  sectionId: integer("section_id"), // FK to link_sections.id (enforced in 0013 migration SQL)
   orderIndex: integer("order_index").notNull().default(0),
   type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file
   title: text("title").notNull(),
@@ -123,6 +137,13 @@ export const themes = sqliteTable("themes", {
   glowColor: text("glow_color").notNull().default("#a78bfa"),
   blur: text("blur").notNull().default("8px"),
   noise: text("noise").notNull().default("false"),
+
+  // Profile styling (1.3)
+  avatarShape: text("avatar_shape").notNull().default("circle"), // circle, squircle, rounded, square
+  avatarBorder: text("avatar_border").notNull().default("solid"), // solid, gradient, glow, ring, none
+  avatarFloat: text("avatar_float").notNull().default("false"),
+  profileLayout: text("profile_layout").notNull().default("classic"), // classic, hero, banner
+  textAnimation: text("text_animation").notNull().default("none"), // none, typewriter, gradient-flow
 
   // Meta
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(false),

@@ -146,6 +146,42 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Reveal animation variants (theme.animationType) ────────────────────── */
+@keyframes lb-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lb-slide-in {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes lb-zoom-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes lb-blur-in {
+  from { opacity: 0; filter: blur(8px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@keyframes lb-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes lb-gradient-text-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes lb-caret-blink {
+  0%, 45%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes lb-typewriter {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+.lb-float { animation: lb-float 3s ease-in-out infinite; }
+
 .aurora-root       { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; }
 .aurora-base       { position: absolute; inset: 0; background: #0a0820; }
 .aurora-blob       { position: absolute; border-radius: 9999px; filter: blur(110px); will-change: transform; }
@@ -168,6 +204,9 @@
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob { animation: none !important; }
   .aurora-rise { animation: none !important; opacity: 1; transform: none; }
+  .lb-reveal { animation: none !important; opacity: 1; transform: none; filter: none; }
+  .lb-float { animation: none !important; }
+  .lb-text-anim { animation: none !important; }
 }
 
 /* ── Link card hover (CSS-based so prefers-reduced-motion can gate it) ──── */

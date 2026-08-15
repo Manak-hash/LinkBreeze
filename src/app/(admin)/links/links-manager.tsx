@@ -3,42 +3,166 @@
 import * as React from "react";
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
+  useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, DownloadCloud } from "lucide-react";
-import { reorderLinks } from "@/server/actions/links";
-import type { LinkRow } from "@/server/queries";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus, DownloadCloud, FolderOpen, Pencil, Trash2 } from "lucide-react";
+import { reorderContent } from "@/server/actions/sections";
+import type { LinkRow, LinkSectionRow } from "@/server/queries";
+import { groupLinksBySection } from "@/lib/link-sections";
+import { LucideIcon, isLucideIconName } from "@/components/public/LucideIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePreview } from "@/components/admin/PreviewPane";
 import { SortableLink } from "./components/sortable-link";
 import { LinkDialog } from "./components/link-dialog";
 import { DeleteLinkDialog } from "./components/delete-link-dialog";
+import { SectionDialog } from "./components/section-dialog";
+import { DeleteSectionDialog } from "./components/delete-section-dialog";
+
+/** Sections are droppable containers identified by `section:<id>` / `section:null`. */
+function sectionDndId(sectionId: number | null): string {
+  return `section:${sectionId ?? "none"}`;
+}
+
+/** A drop zone for one group (links + section header). */
+function SectionGroup({
+  section,
+  links,
+  onEditSection,
+  onDeleteSection,
+  children,
+}: {
+  section: LinkSectionRow | null;
+  links: LinkRow[];
+  onEditSection: (s: LinkSectionRow) => void;
+  onDeleteSection: (s: LinkSectionRow) => void;
+  children: React.ReactNode;
+}) {
+  const dndId = sectionDndId(section?.id ?? null);
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: dndId });
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setHeaderRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: `section-header-${section?.id ?? "none"}`,
+    data: { type: "section-header" },
+  });
+
+  return (
+    <div
+      ref={setDropRef}
+      className={`flex flex-col gap-2 rounded-xl border p-3 transition-colors ${
+        isOver ? "border-violet/60 bg-violet/5" : "border-border"
+      }`}
+    >
+      <div
+        ref={setHeaderRef}
+        className="flex items-center justify-between gap-2"
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0.5 : 1,
+        }}
+      >
+        <div className="flex min-w-0 items-center gap-1">
+          {section ? (
+            <button
+              className="flex cursor-grab items-center px-1 text-muted-foreground active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+              aria-label="Drag to reorder section"
+              type="button"
+            >
+              <FolderOpen className="size-4 shrink-0" />
+            </button>
+          ) : null}
+          <span className="truncate text-sm font-semibold">
+            {section ? (
+              <>
+                {isLucideIconName(section.icon) ? (
+                  <LucideIcon name={section.icon as string} size={14} className="mr-1 inline-block align-[-2px] text-muted-foreground" />
+                ) : null}
+                {section.title}
+              </>
+            ) : (
+              "Uncategorized"
+            )}
+          </span>
+          <span className="ml-1 shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {links.length}
+          </span>
+        </div>
+        {section ? (
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onEditSection(section)}
+              aria-label="Edit section"
+            >
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onDeleteSection(section)}
+              aria-label="Delete section"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2">
+        {children}
+        {links.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-center text-xs text-muted-foreground">
+            Drop links here
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function LinksManager({
   initialLinks,
+  sections,
   pageId,
 }: {
   initialLinks: LinkRow[];
+  sections: LinkSectionRow[];
   pageId?: number;
 }) {
   const { reload: reloadPreview } = usePreview();
   const [items, setItems] = React.useState<LinkRow[]>(initialLinks);
+  const [sectionList, setSectionList] = React.useState<LinkSectionRow[]>(sections);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<LinkRow | null>(null);
   const [deleting, setDeleting] = React.useState<LinkRow | null>(null);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [sectionDialogOpen, setSectionDialogOpen] = React.useState(false);
+  const [editingSection, setEditingSection] = React.useState<LinkSectionRow | null>(null);
+  const [deletingSection, setDeletingSection] = React.useState<LinkSectionRow | null>(null);
+  const [deleteSectionOpen, setDeleteSectionOpen] = React.useState(false);
 
   // Sync local state when the server passes fresh data (after router.refresh()).
   // Adjusting state during render avoids the setState-in-effect anti-pattern.
@@ -47,27 +171,90 @@ export function LinksManager({
     setLastInitial(initialLinks);
     setItems(initialLinks);
   }
+  const [lastSections, setLastSections] = React.useState(sections);
+  if (sections !== lastSections) {
+    setLastSections(sections);
+    setSectionList(sections);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Current visual order, flattened across groups in render order.
+  // dropEmpty=false keeps empty sections visible as drop targets.
+  const groups = React.useMemo(
+    () => groupLinksBySection(items, sectionList, false),
+    [items, sectionList],
+  );
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    // Compute the reordered array from the current `items` closure value,
-    // outside the setState updater. React may double-invoke updater functions
-    // (Strict Mode), so side effects must not live inside setItems().
-    const oldIndex = items.findIndex((l) => l.id === active.id);
-    const newIndex = items.findIndex((l) => l.id === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
-    const reordered = arrayMove(items, oldIndex, newIndex);
-    setItems(reordered);
+    // Section headers are sortable among themselves.
+    if (activeId.startsWith("section-header-")) {
+      if (!overId.startsWith("section-header-")) return;
+      const a = Number(activeId.replace("section-header-", ""));
+      const b = Number(overId.replace("section-header-", ""));
+      const oldIndex = sectionList.findIndex((s) => s.id === a);
+      const newIndex = sectionList.findIndex((s) => s.id === b);
+      if (oldIndex < 0 || newIndex < 0) return;
+      const reordered = [...sectionList];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      setSectionList(reordered);
+      await reorderContent({
+        linkOrder: items.map((l) => ({ id: l.id, sectionId: l.sectionId })),
+        sectionOrder: reordered.map((s) => s.id),
+      });
+      reloadPreview();
+      return;
+    }
 
-    await reorderLinks(reordered.map((l) => l.id));
+    // Link drag. Determine target section from the drop target:
+    // a section container id, or the section of the link we dropped on.
+    const linkId = Number(activeId);
+    const link = items.find((l) => l.id === linkId);
+    if (!link) return;
+
+    let targetSectionId: number | null;
+    if (overId.startsWith("section:")) {
+      const raw = overId.replace("section:", "");
+      targetSectionId = raw === "none" ? null : Number(raw);
+    } else {
+      const overLink = items.find((l) => l.id === Number(overId));
+      if (!overLink) return;
+      targetSectionId = overLink.sectionId;
+    }
+
+    // Rebuild the flat order: remove, then insert at the over-link's position
+    // (or at the end of the target group when dropped on the container).
+    const without = items.filter((l) => l.id !== linkId).map((l) => ({ ...l }));
+    let insertAt = without.length;
+    if (!overId.startsWith("section:")) {
+      const overIdx = without.findIndex((l) => l.id === Number(overId));
+      const overLink = items.find((l) => l.id === Number(overId));
+      if (overIdx >= 0) {
+        // Insert before/after based on where the dragged link came from.
+        const fromIdx = items.findIndex((l) => l.id === linkId);
+        insertAt = fromIdx < overIdx ? overIdx : overIdx + 1;
+      }
+      void overLink;
+    }
+
+    const updated: LinkRow = { ...link, sectionId: targetSectionId };
+    without.splice(insertAt, 0, updated);
+    setItems(without);
+
+    await reorderContent({
+      linkOrder: without.map((l) => ({ id: l.id, sectionId: l.sectionId })),
+      sectionOrder: sectionList.map((s) => s.id),
+    });
     reloadPreview();
   };
 
@@ -86,6 +273,23 @@ export function LinksManager({
     setDialogOpen(true);
   };
 
+  const openCreateSection = () => {
+    setEditingSection(null);
+    setSectionDialogOpen(true);
+  };
+
+  const openEditSection = (section: LinkSectionRow) => {
+    setEditingSection(section);
+    setSectionDialogOpen(true);
+  };
+
+  const openDeleteSection = (section: LinkSectionRow) => {
+    setDeletingSection(section);
+    setDeleteSectionOpen(true);
+  };
+
+  const hasAnyContent = items.length > 0 || sectionList.length > 0;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -94,16 +298,22 @@ export function LinksManager({
             Links
           </h1>
           <p className="text-sm text-muted-foreground">
-            Add, edit, and reorder the links on your page.
+            Add, edit, and reorder the links on your page. Group them under section headers.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="size-4" />
-          Add link
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openCreateSection}>
+            <FolderOpen className="size-4" />
+            Add section
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="size-4" />
+            Add link
+          </Button>
+        </div>
       </div>
 
-      {items.length === 0 ? (
+      {!hasAnyContent ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-violet/15">
@@ -138,24 +348,37 @@ export function LinksManager({
         <DndContext
           id="links-dnd"
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={closestCorners}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext
-            items={items.map((l) => l.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="flex flex-col gap-2">
-              {items.map((link) => (
-                <SortableLink
-                  key={link.id}
-                  link={link}
-                  onEdit={openEdit}
-                  onDelete={openDelete}
-                />
-              ))}
-            </div>
-          </SortableContext>
+          <div className="flex flex-col gap-4">
+            {groups.map((group) => {
+              const sectionId = group.section?.id ?? null;
+              return (
+                <SectionGroup
+                  key={sectionId ?? "none"}
+                  section={group.section}
+                  links={group.links}
+                  onEditSection={openEditSection}
+                  onDeleteSection={openDeleteSection}
+                >
+                  <SortableContext
+                    items={group.links.map((l) => l.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {group.links.map((link) => (
+                      <SortableLink
+                        key={link.id}
+                        link={link}
+                        onEdit={openEdit}
+                        onDelete={openDelete}
+                      />
+                    ))}
+                  </SortableContext>
+                </SectionGroup>
+              );
+            })}
+          </div>
         </DndContext>
       )}
 
@@ -167,12 +390,30 @@ export function LinksManager({
         }}
         editing={editing}
         pageId={pageId}
+        sections={sectionList}
       />
       <DeleteLinkDialog
         link={deleting}
         open={deleteOpen}
         onOpenChange={(v) => {
           setDeleteOpen(v);
+          if (!v) reloadPreview();
+        }}
+      />
+      <SectionDialog
+        open={sectionDialogOpen}
+        onOpenChange={(v) => {
+          setSectionDialogOpen(v);
+          if (!v) reloadPreview();
+        }}
+        editing={editingSection}
+        pageId={pageId}
+      />
+      <DeleteSectionDialog
+        section={deletingSection}
+        open={deleteSectionOpen}
+        onOpenChange={(v) => {
+          setDeleteSectionOpen(v);
           if (!v) reloadPreview();
         }}
       />

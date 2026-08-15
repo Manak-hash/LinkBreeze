@@ -53,6 +53,11 @@ const linkSchema = z
       .transform(truthy)
       .default(true),
     cardStyle: z.enum(["compact", "rich"]).default("compact"),
+    sectionId: z
+      .union([z.coerce.number(), z.literal(""), z.null()])
+      .transform((v) => (v === "" || v === null ? null : v))
+      .nullable()
+      .optional(),
   })
   .refine((link) => isAllowedLinkUrl(link.type, link.url), {
     path: ["url"],
@@ -77,6 +82,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
     cardStyle: formData.get("cardStyle") || undefined,
+    sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -113,6 +119,7 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
       autoIcon: d.autoIcon,
       iconUrl,
       cardStyle: d.cardStyle,
+      sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
     });
@@ -148,6 +155,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
     cardStyle: formData.get("cardStyle") || undefined,
+    sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -186,6 +194,7 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
       autoIcon: d.autoIcon,
       iconUrl,
       cardStyle: d.cardStyle,
+      sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
     });

@@ -40,6 +40,7 @@ export default async function ProfilePage({
               bio: activePage.bio,
               badgeText: activePage.badgeText ?? "",
               avatarUrl: activePage.avatarUrl ?? "",
+              bannerUrl: activePage.bannerUrl ?? "",
               socialLinks,
             }
           : null

@@ -40,57 +40,71 @@
     {
       "idx": 5,
       "version": "6",
-      "when": 1752105600000,
+      "when": 1783360000000,
       "tag": "0005_subscribers_email_unique",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "6",
-      "when": 1752249600000,
+      "when": 1783360010000,
       "tag": "0006_fix_theme_density_and_seeding",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "6",
-      "when": 1752595200000,
+      "when": 1783360020000,
       "tag": "0007_multi_page_support",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "6",
-      "when": 1752681600000,
+      "when": 1783360030000,
       "tag": "0008_page_settings",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "6",
-      "when": 1752768000000,
+      "when": 1783360040000,
       "tag": "0009_auto_favicon",
       "breakpoints": true
     },
     {
       "idx": 10,
       "version": "6",
-      "when": 1752854400000,
+      "when": 1783360050000,
       "tag": "0010_privacy_policy",
       "breakpoints": true
     },
     {
       "idx": 11,
       "version": "6",
-      "when": 1752940800000,
+      "when": 1783360060000,
       "tag": "0011_email_consent",
       "breakpoints": true
     },
     {
       "idx": 12,
       "version": "6",
-      "when": 1753027200000,
+      "when": 1783360070000,
       "tag": "0012_link_card_style",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1966777000000,
+      "tag": "0013_link_sections",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1966777100000,
+      "tag": "0014_theme_visuals",
       "breakpoints": true
     }
   ]

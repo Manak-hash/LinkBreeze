@@ -43,11 +43,88 @@ export async function register() {
   );
 
   try {
+    await repairMigrationTimestamps(migrationsFolder);
     await migrate(db, { migrationsFolder });
     console.log("[migrate] database schema is up to date");
   } catch (err) {
     console.error("[migrate] FAILED to run database migrations:", err);
     throw err;
+  }
+}
+
+/**
+ * Self-healing migration-bookkeeping repair (guard against issue #79).
+ *
+ * Drizzle's migrator decides which journal entries to apply by comparing
+ * each entry's `when` timestamp against ONLY the newest row in
+ * __drizzle_migrations (`ORDER BY created_at DESC LIMIT 1`). If a journal
+ * entry ever carries a `when` older than that row, the migrator silently
+ * treats it as already-applied and skips it — the app then crashes on the
+ * first query that touches the missing column.
+ *
+ * This happened in the wild: migrations 0005-0012 were hand-written with
+ * 2025 dates while 0000-0004 were drizzle-kit-generated with real 2026
+ * dates, so every upgraded install silently skipped 0010-0012 (#79).
+ *
+ * Repair strategy: BEFORE migrating, re-write each existing row's
+ * created_at with the journal `when` of the entry whose sha256(sql-file)
+ * matches the row's stored hash. Rows whose hash matches no journal entry
+ * (e.g. a migration file edited after being applied) are left untouched.
+ * After normalization the row sequence is strictly ascending, so:
+ *   - nothing that already ran gets re-run (re-running would crash on
+ *     CREATE UNIQUE INDEX), and
+ *   - nothing that should run gets skipped.
+ */
+async function repairMigrationTimestamps(migrationsFolder: string): Promise<void> {
+  const [{ createHash }, { readFileSync }, { sqlite }] = await Promise.all([
+    import("crypto"),
+    import("fs"),
+    import("@/db"),
+  ]);
+  const { join } = await import("path");
+
+  type Journal = { entries: { idx: number; tag: string; when: number }[] };
+  const journal = JSON.parse(
+    readFileSync(join(migrationsFolder, "meta", "_journal.json"), "utf8"),
+  ) as Journal;
+
+  // hash(journal .sql file) → journal when
+  const hashToWhen = new Map<string, number>();
+  for (const entry of journal.entries) {
+    const sql = readFileSync(join(migrationsFolder, `${entry.tag}.sql`), "utf8");
+    hashToWhen.set(
+      createHash("sha256").update(sql).digest("hex"),
+      entry.when,
+    );
+  }
+
+  // Direct SQL on the raw handle — the migrations table may not exist yet on
+  // fresh installs (migrate() creates it moments later). Probe quietly.
+  let rows: { hash: string; created_at: number }[];
+  try {
+    rows = sqlite.prepare("SELECT hash, created_at FROM __drizzle_migrations").all() as {
+      hash: string;
+      created_at: number;
+    }[];
+  } catch {
+    return; // fresh install — nothing to repair
+  }
+
+  let repaired = 0;
+  for (const row of rows) {
+    const when = hashToWhen.get(row.hash);
+    if (when !== undefined && Number(row.created_at) !== when) {
+      sqlite
+        .prepare("UPDATE __drizzle_migrations SET created_at = ? WHERE hash = ?")
+        .run(when, row.hash);
+      repaired++;
+    }
+  }
+  if (repaired > 0) {
+    console.log(
+      `[migrate] repaired ${repaired} migration row timestamp(s) — normalized ` +
+        "to journal order (issue #79 guard)",
+    );
   }
 }
 

@@ -23,6 +23,8 @@ export const BG_TYPES = [
   { value: "animatedGradient", label: "Animated Gradient" },
   { value: "image", label: "Image" },
   { value: "pattern", label: "Pattern" },
+  { value: "video", label: "Video" },
+  { value: "gif", label: "Animated GIF" },
 ];
 
 export const LINK_STYLES = [
@@ -87,7 +89,38 @@ export const DENSITIES = [
 export const REVEAL_ANIMATIONS = [
   { value: "lift", label: "Lift (rise up)" },
   { value: "scale", label: "Scale (grow in)" },
+  { value: "fade-up", label: "Fade up" },
+  { value: "slide-in", label: "Slide in" },
+  { value: "zoom-in", label: "Zoom in" },
+  { value: "blur-in", label: "Blur in" },
   { value: "none", label: "None" },
+];
+
+export const AVATAR_SHAPES = [
+  { value: "circle", label: "Circle" },
+  { value: "squircle", label: "Squircle" },
+  { value: "rounded", label: "Rounded square" },
+  { value: "square", label: "Square" },
+];
+
+export const AVATAR_BORDERS = [
+  { value: "solid", label: "Solid accent" },
+  { value: "gradient", label: "Gradient" },
+  { value: "glow", label: "Glow" },
+  { value: "ring", label: "Ring (offset)" },
+  { value: "none", label: "None" },
+];
+
+export const PROFILE_LAYOUTS = [
+  { value: "classic", label: "Classic (avatar + name + bio)" },
+  { value: "hero", label: "Hero (image banner, name overlaid)" },
+  { value: "banner", label: "Banner (wide image above classic)" },
+];
+
+export const TEXT_ANIMATIONS = [
+  { value: "none", label: "None" },
+  { value: "typewriter", label: "Typewriter (display name)" },
+  { value: "gradient-flow", label: "Gradient flow (display name)" },
 ];
 
 export const MODE_OPTIONS = [

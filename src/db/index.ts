@@ -21,4 +21,5 @@ sqlite.pragma("foreign_keys = ON");
 sqlite.pragma("busy_timeout = 5000");
 
 export const db = drizzle(sqlite, { schema });
+export { sqlite };
 export { schema };
