@@ -150,12 +150,23 @@ function extractTag(html: string, tag: string): string | null {
 }
 
 function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+  // Single pass: chained .replace() calls would double-unescape sequences
+  // like "&amp;lt;" (→ "&lt;" → "<"). One regex sweep over the original
+  // string avoids re-matching produced output.
+  return s.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => {
+    switch (e) {
+      case "amp":
+        return "&";
+      case "lt":
+        return "<";
+      case "gt":
+        return ">";
+      case "quot":
+        return '"';
+      default:
+        return "'";
+    }
+  });
 }
 
 /**

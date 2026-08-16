@@ -1,18 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
-import {
-  Poppins,
-  Playfair_Display,
-  JetBrains_Mono,
-  Space_Grotesk,
-  DM_Sans,
-  Lora,
-  Bebas_Neue,
-  Sora,
-  Outfit,
-  Press_Start_2P,
-  Nunito,
-} from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -36,116 +22,379 @@ const satoshi = localFont({
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 // ─── Theme fonts (public page) ───────────────────────────────────────────────
 // Curated font picker. Each maps to a --lb-font-* CSS variable that the
-// theme-tokens resolver references. Loaded server-side via next/font/google.
+// theme-tokens resolver references. All families are SELF-HOSTED under
+// ./fonts/google/ (latin subset, weights pinned by the picker) so builds
+// never touch Google's servers — CI and Docker builds work offline, and
+// the product keeps its no-third-party-requests stance (#72).
 //
-// preload: false — critical for public page performance. With preload on
-// (the next/font default), the browser downloads ALL 9 font families × all
-// their weights on EVERY page (21 woff2 files ≈ 483KB) even though the
-// active theme only uses ONE. With preload off, the @font-face rules still
-// exist in the CSS (so the admin theme picker works), but the browser only
-// downloads a font when an element actually renders with that font-family.
-// Net effect on the public page: 1 font downloads instead of 9. The admin
-// theme preview still works (fonts swap in on-demand, a ~100ms FOUT).
-const inter = Inter({
+// preload: false — critical for public page performance. With preload on,
+// the browser would download ALL font families × all weights on EVERY page
+// even though the active theme only uses ONE. With preload off, the
+// @font-face rules still exist in the CSS (so the admin theme picker
+// works), but the browser only downloads a font when an element actually
+// renders with that font-family. Geist Mono (admin UI) stays preloaded.
+
+const geistMono = localFont({
+  src: [
+    {
+      path: "./fonts/google/geistmono-100900-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
+
+const inter = localFont({
+  src: [
+    {
+      path: "./fonts/google/inter-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/inter-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/inter-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/inter-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
-const poppins = Poppins({
+
+const poppins = localFont({
+  src: [
+    {
+      path: "./fonts/google/poppins-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/poppins-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/poppins-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/poppins-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const playfair = Playfair_Display({
+const playfair = localFont({
+  src: [
+    {
+      path: "./fonts/google/playfairdisplay-400-italic.woff2",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-500-italic.woff2",
+      weight: "500",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-600-italic.woff2",
+      weight: "600",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-700-italic.woff2",
+      weight: "700",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/playfairdisplay-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
   display: "swap",
   preload: false,
 });
 
-const jetbrains = JetBrains_Mono({
+const jetbrains = localFont({
+  src: [
+    {
+      path: "./fonts/google/jetbrainsmono-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/jetbrainsmono-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/jetbrainsmono-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/jetbrainsmono-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = localFont({
+  src: [
+    {
+      path: "./fonts/google/spacegrotesk-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/spacegrotesk-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/spacegrotesk-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/spacegrotesk-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
+  src: [
+    {
+      path: "./fonts/google/dmsans-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/dmsans-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/dmsans-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/dmsans-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const lora = Lora({
+const lora = localFont({
+  src: [
+    {
+      path: "./fonts/google/lora-400-italic.woff2",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/lora-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/lora-500-italic.woff2",
+      weight: "500",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/lora-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/lora-600-italic.woff2",
+      weight: "600",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/lora-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/lora-700-italic.woff2",
+      weight: "700",
+      style: "italic",
+    },
+    {
+      path: "./fonts/google/lora-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-lora",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
   display: "swap",
   preload: false,
 });
 
-const bebas = Bebas_Neue({
+const bebas = localFont({
+  src: [
+    {
+      path: "./fonts/google/bebasneue-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-bebas",
-  subsets: ["latin"],
-  weight: ["400"],
   display: "swap",
   preload: false,
 });
 
-const sora = Sora({
+const sora = localFont({
+  src: [
+    {
+      path: "./fonts/google/sora-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/sora-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/sora-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/sora-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-sora",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const outfit = Outfit({
+const outfit = localFont({
+  src: [
+    {
+      path: "./fonts/google/outfit-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/outfit-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/outfit-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/outfit-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-outfit",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
   preload: false,
 });
 
-const pressStart2P = Press_Start_2P({
+const pressStart2P = localFont({
+  src: [
+    {
+      path: "./fonts/google/pressstart2p-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-press-start",
-  subsets: ["latin"],
-  weight: "400",
   display: "swap",
   preload: false,
 });
 
-const nunito = Nunito({
+const nunito = localFont({
+  src: [
+    {
+      path: "./fonts/google/nunito-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/nunito-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/nunito-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/nunito-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/nunito-800-normal.woff2",
+      weight: "800",
+      style: "normal",
+    },
+  ],
   variable: "--lb-font-nunito",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   preload: false,
 });

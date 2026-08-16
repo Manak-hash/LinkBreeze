@@ -1,0 +1,288 @@
+{
+ "Geist Mono": [
+  {
+   "file": "geistmono-100900-normal.woff2",
+   "weight": "100 900",
+   "style": "normal"
+  }
+ ],
+ "Inter": [
+  {
+   "file": "inter-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "inter-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "inter-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "inter-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Poppins": [
+  {
+   "file": "poppins-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "poppins-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "poppins-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "poppins-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Playfair Display": [
+  {
+   "file": "playfairdisplay-400-italic.woff2",
+   "weight": "400",
+   "style": "italic"
+  },
+  {
+   "file": "playfairdisplay-500-italic.woff2",
+   "weight": "500",
+   "style": "italic"
+  },
+  {
+   "file": "playfairdisplay-600-italic.woff2",
+   "weight": "600",
+   "style": "italic"
+  },
+  {
+   "file": "playfairdisplay-700-italic.woff2",
+   "weight": "700",
+   "style": "italic"
+  },
+  {
+   "file": "playfairdisplay-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "playfairdisplay-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "playfairdisplay-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "playfairdisplay-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "JetBrains Mono": [
+  {
+   "file": "jetbrainsmono-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "jetbrainsmono-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "jetbrainsmono-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "jetbrainsmono-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Space Grotesk": [
+  {
+   "file": "spacegrotesk-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "spacegrotesk-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "spacegrotesk-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "spacegrotesk-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "DM Sans": [
+  {
+   "file": "dmsans-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "dmsans-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "dmsans-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "dmsans-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Lora": [
+  {
+   "file": "lora-400-italic.woff2",
+   "weight": "400",
+   "style": "italic"
+  },
+  {
+   "file": "lora-500-italic.woff2",
+   "weight": "500",
+   "style": "italic"
+  },
+  {
+   "file": "lora-600-italic.woff2",
+   "weight": "600",
+   "style": "italic"
+  },
+  {
+   "file": "lora-700-italic.woff2",
+   "weight": "700",
+   "style": "italic"
+  },
+  {
+   "file": "lora-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "lora-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "lora-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "lora-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Bebas Neue": [
+  {
+   "file": "bebasneue-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  }
+ ],
+ "Sora": [
+  {
+   "file": "sora-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "sora-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "sora-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "sora-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Outfit": [
+  {
+   "file": "outfit-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "outfit-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "outfit-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "outfit-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Press Start 2P": [
+  {
+   "file": "pressstart2p-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  }
+ ],
+ "Nunito": [
+  {
+   "file": "nunito-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "nunito-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "nunito-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "nunito-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  },
+  {
+   "file": "nunito-800-normal.woff2",
+   "weight": "800",
+   "style": "normal"
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 {
-  "version": "1.2.7",
-  "releasedAt": "2026-08-14",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.2.7",
-  "notes": "Built-in privacy policy pages, email capture consent (#75), Google S2 removal (#72), referrer stripping (#73), CSP external analytics (#74), rich preview link cards with OG fetcher, multi-strategy favicon fetcher, email subscribers panel in Data tab, subscribe button theme fixes (border radius + WCAG text contrast), onboarding checklist simplified to 3 steps."
+  "version": "1.3.0",
+  "releasedAt": "2026-08-16",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.3.0",
+  "notes": "Frutiger Aero theme (#79) with gel bubble link style, frosted cards, bubbles video background and Nunito; theme customizer accuracy rework with live phone visualizer; focal-point background controls; QR customizer with logo embedding; link sections (#78); video backgrounds hardened (CSP media-src, gradient fallback); media-card radius clamp for pill themes; login dev-overlay crash fix; Google fonts self-hosted (builds work offline, zero third-party font requests); analytics retention defaults to 90 days (#77); migration self-heal (#79)."
 }
