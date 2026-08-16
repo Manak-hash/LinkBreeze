@@ -39,7 +39,7 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
-          <Image src="/logo-mark.svg" alt="LinkBreeze" width={48} height={48} className="mx-auto mb-2" />
+          <Image src="/logo-mark.svg" alt="LinkBreeze" width={48} height={48} unoptimized className="mx-auto mb-2" />
           <CardTitle className="text-xl">Welcome back</CardTitle>
           <CardDescription>Sign in to manage your LinkBreeze page</CardDescription>
         </CardHeader>

@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Settings, Palette, Shield, Database, type LucideIcon } from "lucide-react";
+import {
+  Settings,
+  Palette,
+  Shield,
+  Database,
+  Plug,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Tab {
@@ -12,6 +19,7 @@ interface Tab {
 
 const TABS: Tab[] = [
   { id: "general", label: "General", icon: Settings },
+  { id: "integration", label: "Integration", icon: Plug },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
   { id: "data", label: "Data", icon: Database },

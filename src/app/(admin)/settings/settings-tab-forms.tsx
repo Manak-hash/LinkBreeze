@@ -95,10 +95,7 @@ interface GeneralTabProps {
   title: string;
   description: string;
   footerText: string;
-  analyticsScript: string;
   privacyPolicy: string;
-  consentText: string | null;
-  emailCapture: boolean;
 }
 
 export function GeneralTab({
@@ -107,14 +104,10 @@ export function GeneralTab({
   title,
   description,
   footerText,
-  analyticsScript,
   privacyPolicy,
-  consentText,
-  emailCapture,
 }: GeneralTabProps) {
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
-  const [emailEnabled, setEmailEnabled] = React.useState(emailCapture);
   const { reload: reloadPreview } = usePreview();
   const router = useRouter();
 
@@ -123,7 +116,6 @@ export function GeneralTab({
       formData.set("pageId", String(pageId));
       formData.set("seoTitle", formData.get("title") as string);
       formData.set("seoDescription", formData.get("description") as string);
-      formData.set("emailCapture", emailEnabled ? "on" : "off");
       startTransition(async () => {
         await updatePageAction(formData);
         router.refresh();
@@ -133,7 +125,6 @@ export function GeneralTab({
       });
       return;
     }
-    formData.set("emailCapture", emailEnabled ? "on" : "off");
     startTransition(async () => {
       await updateSettings(formData);
       router.refresh();
@@ -148,7 +139,7 @@ export function GeneralTab({
       <CardHeader>
         <CardTitle>General</CardTitle>
         <CardDescription>
-          Page slug, SEO metadata and analytics configuration.
+          Page slug, title, SEO metadata, footer and privacy policy.
         </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
@@ -213,22 +204,6 @@ export function GeneralTab({
           </FormField>
 
           <FormField
-            label="Analytics script (optional)"
-            htmlFor="analyticsScript"
-            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.</>}
-          >
-            <textarea
-              id="analyticsScript"
-              name="analyticsScript"
-              defaultValue={analyticsScript}
-              maxLength={2000}
-              placeholder={'<script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>'}
-              className="min-h-[80px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-              spellCheck={false}
-            />
-          </FormField>
-
-          <FormField
             label="Privacy policy (optional)"
             htmlFor="privacyPolicy"
             hint={<>Leave empty to auto-generate from your page settings. Visitors can always access it at <code>/{slug}/privacy</code>. Supports Markdown (headings, lists, <strong>bold</strong>, <em>italic</em>, <code>code</code>).</>}
@@ -240,6 +215,93 @@ export function GeneralTab({
               maxLength={20000}
               placeholder={"# Privacy Policy\n\nThis page uses privacy-respecting analytics..."}
               className="min-h-[160px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+              spellCheck={false}
+            />
+          </FormField>
+        </CardContent>
+        <CardFooter className="gap-3">
+          <Button type="submit" disabled={pending}>
+            <Save className="size-4" />
+            {pending ? "Saving…" : "Save general settings"}
+          </Button>
+          {saved ? <span className="text-sm text-muted-foreground">Saved!</span> : null}
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
+// ── Integration Tab ──────────────────────────────────────────────────────
+
+interface IntegrationTabProps {
+  pageId?: number;
+  slug: string;
+  analyticsScript: string;
+  consentText: string | null;
+  emailCapture: boolean;
+}
+
+export function IntegrationTab({
+  pageId,
+  slug,
+  analyticsScript,
+  consentText,
+  emailCapture,
+}: IntegrationTabProps) {
+  const [pending, startTransition] = React.useTransition();
+  const [saved, setSaved] = React.useState(false);
+  const [emailEnabled, setEmailEnabled] = React.useState(emailCapture);
+  const { reload: reloadPreview } = usePreview();
+  const router = useRouter();
+
+  const handleSubmit = (formData: FormData) => {
+    formData.set("emailCapture", emailEnabled ? "on" : "off");
+    if (pageId) {
+      formData.set("pageId", String(pageId));
+      startTransition(async () => {
+        await updatePageAction(formData);
+        router.refresh();
+        reloadPreview();
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      });
+      return;
+    }
+    startTransition(async () => {
+      await updateSettings(formData);
+      router.refresh();
+      reloadPreview();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Integration</CardTitle>
+        <CardDescription>
+          Analytics scripts, email subscription and consent text.
+        </CardDescription>
+      </CardHeader>
+      <form action={handleSubmit}>
+        <CardContent className="flex flex-col gap-4">
+          {pageId ? null : (
+            <input type="hidden" name="slug" value={slug} />
+          )}
+
+          <FormField
+            label="Analytics script (optional)"
+            htmlFor="analyticsScript"
+            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.</>}
+          >
+            <textarea
+              id="analyticsScript"
+              name="analyticsScript"
+              defaultValue={analyticsScript}
+              maxLength={2000}
+              placeholder={'<script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>'}
+              className="min-h-[80px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
             />
           </FormField>
@@ -273,7 +335,7 @@ export function GeneralTab({
         <CardFooter className="gap-3">
           <Button type="submit" disabled={pending}>
             <Save className="size-4" />
-            {pending ? "Saving…" : "Save general settings"}
+            {pending ? "Saving…" : "Save integration settings"}
           </Button>
           {saved ? <span className="text-sm text-muted-foreground">Saved!</span> : null}
         </CardFooter>

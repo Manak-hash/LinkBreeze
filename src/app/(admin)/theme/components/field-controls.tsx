@@ -16,15 +16,16 @@ import {
 export function ColorField({
   label,
   name,
-  defaultValue,
+  value,
+  onChange,
   allowRgba = false,
 }: {
   label: string;
   name: string;
-  defaultValue?: string | null;
+  value: string;
+  onChange: (v: string) => void;
   allowRgba?: boolean;
 }) {
-  const [val, setVal] = React.useState(defaultValue || "");
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name} className="text-xs text-muted-foreground">
@@ -34,16 +35,16 @@ export function ColorField({
         <input
           type="color"
           aria-label={label}
-          value={allowRgba ? "#000000" : (val?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000")}
-          onChange={(e) => setVal(e.target.value)}
+          value={value?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000"}
+          onChange={(e) => onChange(e.target.value)}
           className="size-9 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent"
           disabled={allowRgba}
         />
         <Input
           id={name}
           name={name}
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={allowRgba ? "rgba(20,17,46,0.55)" : "#533fd6"}
           className="flex-1 font-mono text-xs"
         />
@@ -55,18 +56,20 @@ export function ColorField({
 export function SelectField({
   label,
   name,
-  defaultValue,
+  value,
+  onChange,
   options,
 }: {
   label: string;
   name: string;
-  defaultValue?: string | null;
+  value: string;
+  onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Select name={name} defaultValue={defaultValue || undefined}>
+      <Select name={name} value={value} onValueChange={(v) => v !== null && onChange(v)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select…" />
         </SelectTrigger>
@@ -85,30 +88,31 @@ export function SelectField({
 export function ToggleField({
   label,
   name,
-  defaultValue,
+  checked,
+  onChange,
 }: {
   label: string;
   name: string;
-  defaultValue?: string | null;
+  checked: boolean;
+  onChange: (v: boolean) => void;
 }) {
-  const [on, setOn] = React.useState(defaultValue === "true");
   return (
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <input type="hidden" name={name} value={on ? "true" : "false"} />
+      <input type="hidden" name={name} value={checked ? "true" : "false"} />
       <button
         type="button"
         role="switch"
-        aria-checked={on}
+        aria-checked={checked}
         aria-label={label}
-        onClick={() => setOn(!on)}
+        onClick={() => onChange(!checked)}
         className={`relative h-6 w-11 rounded-full transition-colors ${
-          on ? "bg-primary" : "bg-muted"
+          checked ? "bg-primary" : "bg-muted"
         }`}
       >
         <span
           className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${
-            on ? "translate-x-5" : ""
+            checked ? "translate-x-5" : ""
           }`}
         />
       </button>
@@ -116,45 +120,73 @@ export function ToggleField({
   );
 }
 
+/**
+ * Slider + numeric readout that emits a CSS value ("12px") while the state
+ * stays numeric. Optional `auto` mode emits the sentinel "auto" (radius).
+ */
 export function SliderField({
   label,
   name,
-  defaultValue,
+  value,
+  onChange,
   min,
   max,
   step = 1,
   unit = "",
+  autoValue,
 }: {
   label: string;
   name: string;
-  defaultValue?: string | null;
+  value: number | "auto";
+  onChange: (v: number | "auto") => void;
   min: number;
   max: number;
   step?: number;
   unit?: string;
+  /** When set, an extra "Auto" chip emits this sentinel value. */
+  autoValue?: string;
 }) {
-  const numVal = parseInt(defaultValue || "100", 10);
-  const [val, setVal] = React.useState(numVal);
+  const isAuto = autoValue !== undefined && value === autoValue;
+  const numVal = typeof value === "number" ? value : min;
+  const emit = (n: number) => onChange(n);
+
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground">{label}</Label>
         <span className="text-xs tabular-nums text-muted-foreground">
-          {val}
-          {unit}
+          {isAuto ? "Auto" : `${numVal}${unit}`}
         </span>
       </div>
-      <input
-        type="range"
-        aria-label={label}
-        name={name}
-        value={val}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => setVal(parseInt(e.target.value, 10))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-      />
+      <div className="flex items-center gap-2">
+        {autoValue !== undefined ? (
+          <button
+            type="button"
+            onClick={() => onChange(isAuto ? min : (autoValue as never))}
+            className={
+              "shrink-0 rounded-md border px-2 py-1 text-[11px] transition-colors " +
+              (isAuto
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:bg-muted")
+            }
+          >
+            Auto
+          </button>
+        ) : null}
+        <input
+          type="range"
+          aria-label={label}
+          name={name}
+          value={isAuto ? min : numVal}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(e) => emit(parseInt(e.target.value, 10))}
+          disabled={isAuto}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary data-[disabled]:opacity-40"
+        />
+        <input type="hidden" name={name} value={isAuto ? autoValue : `${numVal}${unit}`} />
+      </div>
     </div>
   );
 }
@@ -166,23 +198,32 @@ export function SliderField({
 export function MediaUrlField({
   label,
   name,
-  defaultValue,
+  value,
+  onChange,
   accept = "image/*",
   hint,
+  maxSizeMb = 2,
 }: {
   label: string;
   name: string;
-  defaultValue?: string | null;
+  value: string;
+  onChange: (v: string) => void;
   accept?: string;
   hint?: string;
+  /** Client-side pre-check; the server re-validates regardless. */
+  maxSizeMb?: number;
 }) {
-  const [val, setVal] = React.useState(defaultValue ?? "");
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      setError(`File too large (max ${maxSizeMb} MB)`);
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     setError(null);
     try {
@@ -190,7 +231,7 @@ export function MediaUrlField({
       fd.append("file", file);
       const res = await uploadBackgroundMedia(fd);
       if (res.success) {
-        setVal(res.url);
+        onChange(res.url);
       } else {
         setError(res.error);
       }
@@ -211,8 +252,8 @@ export function MediaUrlField({
         <Input
           id={name}
           name={name}
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="https://… or upload"
           className="flex-1 font-mono text-xs"
         />

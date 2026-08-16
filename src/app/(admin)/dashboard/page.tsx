@@ -13,6 +13,7 @@ import {
   Plus,
   DownloadCloud,
   Sparkles,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -23,13 +24,16 @@ import {
   getAllLinks,
   getAllPages,
   getAnalyticsBreakdown,
+  getAnalyticsRetentionDays,
   getActiveTheme,
   getProfile,
   getSetting,
+  getSubscriberCount,
   type AnalyticsRange,
   type BreakdownEntry,
 } from "@/server/queries";
 import { checkForUpdates } from "@/lib/update-check";
+import { getCachedFaviconUrl } from "@/lib/favicon";
 import { UpdateChecker } from "@/components/admin/UpdateChecker";
 import { OnboardingChecklist } from "@/components/admin/OnboardingChecklist";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
@@ -40,7 +44,7 @@ import { ExpandableSection } from "./expandable-section";
 
 export const dynamic = "force-dynamic";
 
-const VALID_RANGES: AnalyticsRange[] = ["7d", "30d", "90d", "all"];
+const VALID_RANGES: AnalyticsRange[] = ["7d", "30d", "90d"];
 
 function parseRange(value?: string): AnalyticsRange {
   return value && (VALID_RANGES as string[]).includes(value)
@@ -180,19 +184,30 @@ function MetricCard({
 
 // ── Breakdown helpers ────────────────────────────────────────────────────
 
-function FaviconForLabel({ label }: { label: string }) {
+async function FaviconForLabel({ label }: { label: string }) {
   const domain = label.includes(".") ? label : null;
   if (!domain) return null;
+  // Cache-only lookup — no network, no third-party requests from the
+  // admin browser. Falls back to a first-letter avatar like public pages.
+  const cached = await getCachedFaviconUrl(`https://${domain}`);
+  if (cached) {
+    return (
+      <Image
+        src={cached}
+        alt=""
+        width={16}
+        height={16}
+        unoptimized
+        className="size-4 shrink-0 rounded-sm"
+        loading="lazy"
+      />
+    );
+  }
+  const letter = domain.replace(/^www\./, "").charAt(0).toUpperCase();
   return (
-    <Image
-      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
-      alt=""
-      width={16}
-      height={16}
-      unoptimized
-      className="size-4 shrink-0 rounded-sm"
-      loading="lazy"
-    />
+    <span className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-violet/15 text-[9px] font-semibold text-violet">
+      {letter}
+    </span>
   );
 }
 
@@ -292,7 +307,7 @@ export default async function DashboardPage({
     allPages[0];
   const pageId = activePage?.id;
 
-  const [stats, prevStats, links, breakdown, updateResult, profile, activeTheme, slug] = await Promise.all([
+  const [stats, prevStats, links, breakdown, updateResult, profile, activeTheme, slug, retentionDays] = await Promise.all([
     getDashboardStats(range, pageId),
     getPreviousStats(range, pageId),
     getAllLinks(pageId),
@@ -301,9 +316,14 @@ export default async function DashboardPage({
     getProfile(),
     getActiveTheme(),
     getSetting("slug"),
+    getAnalyticsRetentionDays(),
   ]);
 
   const activeCount = links.filter((l) => l.isActive).length;
+
+  // Quiet subscriber count — only when capture is on and someone subscribed.
+  const subscriberCount =
+    activePage?.emailCapture ? await getSubscriberCount() : 0;
   const viewSpark = stats.viewsPerDay.map((d) => d.views);
   const clickSpark = stats.viewsPerDay.map((d) => d.clicks);
 
@@ -373,10 +393,21 @@ export default async function DashboardPage({
             Dashboard
           </h1>
           <p className="text-sm text-muted-foreground">
-            Analytics for the selected range
+            {`Analytics for the last ${range.replace("d", "")} days${retentionDays > 0 ? ` (data kept ${retentionDays} days)` : ""}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {subscriberCount > 0 && (
+            <Link
+              href="/settings?tab=data"
+              title="Email subscribers — opens Settings → Data"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Mail className="size-3.5" />
+              {subscriberCount.toLocaleString()}{" "}
+              {subscriberCount === 1 ? "subscriber" : "subscribers"}
+            </Link>
+          )}
           <a
             href={`/api/analytics/export?range=${range}&metric=views`}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"

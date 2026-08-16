@@ -26,6 +26,7 @@ import { SocialIcons } from "@/components/public/SocialIcons";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import { VideoBackground } from "@/components/public/VideoBackground";
 import { groupLinksBySection, sectionStaggerDelays } from "@/lib/link-sections";
+import { truthy } from "@/lib/utils";
 import {
   resolveBackground,
   isAnimatedAurora,
@@ -224,6 +225,7 @@ export default async function PublicPage({ params }: PageProps) {
     <>
       {useAurora ? <AuroraBackground /> : null}
       {useVideo ? <VideoBackground theme={themeInput} /> : null}
+      {truthy(themeInput.noise) ? <div aria-hidden className="lb-noise" /> : null}
       {page.analyticsScript ? (
         <div dangerouslySetInnerHTML={{ __html: page.analyticsScript }} />
       ) : null}
@@ -246,7 +248,7 @@ export default async function PublicPage({ params }: PageProps) {
           minHeight: "100vh",
           boxSizing: "border-box",
         }}
-        className={`relative flex w-full flex-col${themeInput.linkStyle === "pixel" ? " lb-pixel-mode" : ""}`}
+        className={`relative flex w-full flex-col${themeInput.linkStyle === "pixel" ? " lb-pixel-mode" : ""}${themeInput.linkStyle === "gel" ? " lb-gel-mode" : ""}`}
         data-alignment={themeInput.alignment || "center"}
       >
       <div

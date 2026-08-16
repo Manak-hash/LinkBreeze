@@ -11,6 +11,7 @@ import {
   Sora,
   Outfit,
   Press_Start_2P,
+  Nunito,
 } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -136,7 +137,15 @@ const outfit = Outfit({
 const pressStart2P = Press_Start_2P({
   variable: "--lb-font-press-start",
   subsets: ["latin"],
-  weight: ["400"],
+  weight: "400",
+  display: "swap",
+  preload: false,
+});
+
+const nunito = Nunito({
+  variable: "--lb-font-nunito",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   preload: false,
 });
@@ -151,7 +160,11 @@ export async function generateMetadata(): Promise<Metadata> {
     } else {
       const { headers } = await import("next/headers");
       const h = await headers();
-      const host = (h.get("x-forwarded-host") || h.get("host") || "localhost:3000").toString();
+      const host = (
+        h.get("x-forwarded-host") ||
+        h.get("host") ||
+        "localhost:3000"
+      ).toString();
       const proto = (h.get("x-forwarded-proto") || "http").toString();
       origin = `${proto}://${host}`;
     }
@@ -174,7 +187,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       "Self-hosted link-in-bio platform with analytics, QR codes, and themes. The open-source Linktree alternative.",
     metadataBase: new URL(origin),
-    authors: [{ name: "LinkBreeze", url: "https://linkbreeze.omnirise.dev" }, { name: "OmniRise", url: "https://omnirise.dev" }],
+    authors: [
+      { name: "LinkBreeze", url: "https://linkbreeze.omnirise.dev" },
+      { name: "OmniRise", url: "https://omnirise.dev" },
+    ],
     creator: "LinkBreeze",
     publisher: "LinkBreeze",
     applicationName: "LinkBreeze",
@@ -205,9 +221,47 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} ${nunito.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/*
+         * Guard against a benign-but-noisy Next.js dev-overlay bug (Next 16,
+         * still present in 16.3.1): when a tab is backgrounded during load,
+         * browser timer throttling makes the hydration performance marks land
+         * out of order, and the dev overlay's `performance.measure(name,
+         * navigationStart, beforeRender)` call throws
+         *   "TypeError: Failed to execute 'measure' on 'Performance':
+         *    '<Page>' cannot have a negative time stamp"
+         * on routes that redirect (e.g. /login -> /dashboard). The error is
+         * cosmetic (it only kills the metric logging), but it surfaces as a
+         * red overlay that looks like a real crash. This inline script runs
+         * before any framework code and hardens `performance.measure` so a
+         * negative duration is clamped to 0 instead of throwing. Framework
+         * PR merged upstream; remove when a stable release carries it.
+         */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+              var pm = performance.measure.bind(performance);
+              performance.measure = function (name, start, end) {
+                try { return pm(name, start, end); }
+                catch (e) {
+                  // Negative-duration measure (dev overlay timing bug) —
+                  // return an empty PerformanceMeasure so callers expecting
+                  // an object don't crash on property access.
+                  return {
+                    name: typeof name === "string" ? name : String(name?.name ?? name),
+                    entryType: "measure",
+                    startTime: 0,
+                    duration: 0,
+                  };
+                }
+              };
+            })();`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

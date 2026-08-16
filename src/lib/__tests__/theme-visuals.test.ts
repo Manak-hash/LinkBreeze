@@ -115,14 +115,89 @@ describe("background resolver for gif/video", () => {
     ).toBe("#112233");
   });
 
-  it("video falls back to base color (the <video> element renders it)", async () => {
+  it("video resolves colors as a gradient — the fallback behind the video", async () => {
     const { resolveBackground } = await import("@/lib/theme-tokens");
+    // The <video> covers the page; backgroundValue paints the container so
+    // it shows while loading and whenever the video can't play.
     expect(
       resolveBackground({
         backgroundType: "video",
         backgroundImageUrl: "/api/uploads/bg.mp4",
+        backgroundValue: "#0689E4,#6DD6EC,#FAEFEF",
+        backgroundAngle: "180deg",
+      }),
+    ).toBe("linear-gradient(180deg, #0689E4, #6DD6EC, #FAEFEF)");
+  });
+
+  it("video with a single color resolves to that color", async () => {
+    const { resolveBackground } = await import("@/lib/theme-tokens");
+    expect(
+      resolveBackground({
+        backgroundType: "video",
         backgroundValue: "#0a0820",
       }),
     ).toBe("#0a0820");
+  });
+});
+
+// ─── Gel link style (1.3 Frutiger Aero) ────────────────────────────────────
+
+describe("gel link style", () => {
+  it("resolves pill radius for gel", async () => {
+    const { resolveThemeTokens } = await import("@/lib/theme-tokens");
+    const tokens = resolveThemeTokens({ linkStyle: "gel", radius: "auto" } as never);
+    expect(tokens.cssVars["--lb-card-radius"]).toBe("9999px");
+  });
+
+  it("emits backdrop blur on the card (frosted glass)", async () => {
+    const { buildLinkCardHtml } = await import("@/components/public/build-link-card");
+    const html = buildLinkCardHtml({
+      link: {
+        id: 1,
+        pageId: 1,
+        sectionId: null,
+        orderIndex: 0,
+        type: "link",
+        autoIcon: false,
+        imageUrl: null,
+        isHighlighted: false,
+        isActive: true,
+        title: "Gel test",
+        url: "https://example.com",
+        icon: null,
+        iconUrl: null,
+        description: null,
+        scheduleStart: null,
+        scheduleEnd: null,
+        clicksCount: 0,
+        cardStyle: "default",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      theme: { linkStyle: "gel", blur: "10px" } as never,
+      index: 0,
+    });
+    expect(html).toContain("backdrop-filter:blur(var(--lb-blur))");
+  });
+
+  it("Frutiger Aero preset passes Zod with gel + video + nunito", async () => {
+    const { customSchema } = await import("@/lib/theme-schema");
+    const { PRESETS } = await import("@/lib/theme-presets");
+    const fa = PRESETS.find((p) => p.name === "Frutiger Aero");
+    if (!fa) throw new Error("Frutiger Aero preset missing");
+    const { isPreset: _i, isActive: _a, name: _n, ...fields } = fa;
+    void _i; void _a; void _n;
+    const result = customSchema.safeParse(fields);
+    expect(result.success, JSON.stringify(result.success ? "" : result.error.issues)).toBe(true);
+  });
+
+  it("Frutiger Aero button text resolves to ink on bright aqua", async () => {
+    const { resolveThemeTokens } = await import("@/lib/theme-tokens");
+    const { PRESETS } = await import("@/lib/theme-presets");
+    const fa = PRESETS.find((p) => p.name === "Frutiger Aero");
+    if (!fa) throw new Error("Frutiger Aero preset missing");
+    const tokens = resolveThemeTokens(fa);
+    // Luminance of #0689E4 ≈ 0.235 > 0.179 → pickContrastText emits dark ink,
+    // so the gel pill keeps white/ink contrast without a custom text color.
+    expect(tokens.cssVars["--lb-btn-text"]).not.toBe("#ffffff");
   });
 });

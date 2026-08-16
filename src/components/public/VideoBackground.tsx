@@ -1,4 +1,10 @@
-import type { ThemeBackgroundInput } from "@/lib/theme-tokens";
+import {
+  normalizeOpacity,
+  mediaObjectFit,
+  mediaObjectPosition,
+  resolveBackground,
+  type ThemeBackgroundInput,
+} from "@/lib/theme-tokens";
 
 /**
  * Video background — server-rendered, zero framework JS.
@@ -29,7 +35,11 @@ export function VideoBackground({ theme }: { theme: ThemeBackgroundInput }) {
         zIndex: -10,
         overflow: "hidden",
         pointerEvents: "none",
-        background: "#0a0820",
+        // The theme's own background (gradient for video themes) — visible
+        // while the video loads and as the permanent fallback when it can't
+        // play (dead URL, offline, saveData pause). Replaces the old
+        // hardcoded night-purple letterbox.
+        background: resolveBackground(theme),
       }}
     >
       <video
@@ -44,7 +54,8 @@ export function VideoBackground({ theme }: { theme: ThemeBackgroundInput }) {
           inset: 0,
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: mediaObjectFit(theme) as React.CSSProperties["objectFit"],
+          objectPosition: mediaObjectPosition(theme),
         }}
       />
       {overlay}
@@ -61,12 +72,9 @@ export function VideoBackground({ theme }: { theme: ThemeBackgroundInput }) {
 
 /** Semi-transparent overlay when overlayColor + opacity are set (same rules as image bg). */
 function buildOverlay(theme: ThemeBackgroundInput): React.ReactNode {
-  const opacityNum = theme.overlayOpacity ? parseFloat(theme.overlayOpacity) : NaN;
-  const has =
-    theme.overlayColor &&
-    theme.overlayOpacity?.trim() !== "" &&
-    !Number.isNaN(opacityNum) &&
-    opacityNum > 0;
+  // Stored scale is 0–100 (customizer slider); normalize to a 0–1 fraction.
+  const fraction = normalizeOpacity(theme.overlayOpacity);
+  const has = theme.overlayColor && fraction > 0;
   if (!has || !theme.overlayColor) return null;
   return (
     <div
@@ -74,7 +82,7 @@ function buildOverlay(theme: ThemeBackgroundInput): React.ReactNode {
         position: "absolute",
         inset: 0,
         background: theme.overlayColor,
-        opacity: opacityNum,
+        opacity: fraction,
       }}
     />
   );

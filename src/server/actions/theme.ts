@@ -79,6 +79,8 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     backgroundValue: formData.get("backgroundValue") || undefined,
     backgroundAngle: formData.get("backgroundAngle") || undefined,
     backgroundImageUrl: formData.get("backgroundImageUrl") || undefined,
+    backgroundFit: formData.get("backgroundFit") || undefined,
+    backgroundPosition: formData.get("backgroundPosition") || undefined,
     overlayColor: formData.get("overlayColor") || undefined,
     overlayOpacity: formData.get("overlayOpacity") || undefined,
     primaryColor: formData.get("primaryColor") || undefined,
@@ -87,7 +89,6 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     cardBorderColor: formData.get("cardBorderColor") || undefined,
     textColor: formData.get("textColor") || undefined,
     mutedTextColor: formData.get("mutedTextColor") || undefined,
-    mode: formData.get("mode") || undefined,
     fontFamily: formData.get("fontFamily") || undefined,
     fontScale: formData.get("fontScale") || undefined,
     fontWeight: formData.get("fontWeight") || undefined,
@@ -147,7 +148,7 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
 export async function duplicateActiveTheme(
   name: string,
   themeId?: number,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ themeId: number }>> {
   const blocked = demoGuard();
   if (blocked) return blocked;
   if (!(await getSession())) return unauthorizedError();
@@ -168,9 +169,9 @@ export async function duplicateActiveTheme(
   }
 
   try {
-    await duplicateTheme(source.id, trimmed);
+    const created = await duplicateTheme(source.id, trimmed);
     revalidatePath("/theme");
-    return { success: true };
+    return { success: true, themeId: created.id };
   } catch (err) {
     logError("duplicateActiveTheme", err, { themeId: source.id, name: trimmed });
     return {

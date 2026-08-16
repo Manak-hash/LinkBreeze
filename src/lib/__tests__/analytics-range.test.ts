@@ -26,8 +26,8 @@ describe("parseRange", () => {
     expect(parseRange("90d")).toBe("90d");
   });
 
-  it("returns 'all' for 'all'", () => {
-    expect(parseRange("all")).toBe("all");
+  it("falls back to '7d' for removed legacy 'all'", () => {
+    expect(parseRange("all")).toBe("7d");
   });
 
   it("is case-sensitive (rejects uppercase)", () => {
@@ -37,15 +37,16 @@ describe("parseRange", () => {
 });
 
 describe("VALID_RANGES", () => {
-  it("contains 7d, 30d, 90d, all", () => {
-    expect(VALID_RANGES).toEqual(["7d", "30d", "90d", "all"]);
+  it("contains 7d, 30d, 90d (no 'all' — data retention makes it meaningless)", () => {
+    expect(VALID_RANGES).toEqual(["7d", "30d", "90d"]);
   });
 });
-
 describe("sinceExpr", () => {
-  it("returns epoch for 'all'", () => {
-    const expr = sinceExpr("all");
-    expect(expr).toBeDefined();
+  it("returns a bounded expression for every valid range", () => {
+    for (const r of VALID_RANGES) {
+      const expr = sinceExpr(r);
+      expect(expr).toBeDefined();
+    }
   });
 
   it("returns -7 days for '7d'", () => {

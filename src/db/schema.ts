@@ -53,6 +53,9 @@ export const pages = sqliteTable("pages", {
   emailCapture: integer("email_capture", { mode: "boolean" }).notNull().default(false),
   faviconUrl: text("favicon_url"),
   privacyPolicy: text("privacy_policy").notNull().default(""),
+  // Per-page QR style (colors, center logo choice, size) as JSON.
+  // NULL = defaults; see src/lib/qr.ts for the shape + resolver.
+  qrSettings: text("qr_settings"),
 });
 
 // ─── Link sections (1.3) ──────────────────────────────
@@ -100,6 +103,8 @@ export const themes = sqliteTable("themes", {
   backgroundValue: text("background_value").notNull().default("#1a1a2e,#16213e"),
   backgroundAngle: text("background_angle").notNull().default("160deg"),
   backgroundImageUrl: text("background_image_url").notNull().default(""),
+  backgroundFit: text("background_fit").notNull().default("cover"), // cover, contain, tile
+  backgroundPosition: text("background_position").notNull().default("50% 50%"),
   overlayColor: text("overlay_color").notNull().default("#000000"),
   overlayOpacity: text("overlay_opacity").notNull().default("0"),
 

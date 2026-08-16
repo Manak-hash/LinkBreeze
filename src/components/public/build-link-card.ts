@@ -122,6 +122,9 @@ export function buildLinkCardHtml(options: {
   const isNeon = linkStyle === "neon";
   const isGlass = linkStyle === "glass";
   const isPixel = linkStyle === "pixel";
+  // Gel (Frutiger Aero): glossy pill — most visuals live in globals.css
+  // under main.lb-gel-mode; the builder only opts the card into blur.
+  const isGel = linkStyle === "gel";
 
   // Featured links: accent-tinted background + thicker accent border
   const featured = link.isHighlighted;
@@ -166,9 +169,9 @@ export function buildLinkCardHtml(options: {
   // Thumbnail cards need overflow:hidden so the image clips to the card radius.
   const overflow = hasImage ? `overflow:hidden;` : "";
 
-  // Backdrop blur only for glass / neon styles
+  // Backdrop blur for glass / neon / gel styles
   const backdropBlur =
-    isGlass || isNeon
+    isGlass || isNeon || isGel
       ? `backdrop-filter:blur(var(--lb-blur));-webkit-backdrop-filter:blur(var(--lb-blur));`
       : "";
 
@@ -229,7 +232,7 @@ export function buildLinkCardHtml(options: {
   style="
     ${display};text-decoration:none;width:100%;box-sizing:border-box;
     ${paddingStyle}${featuredPadding}margin:0 0 var(--lb-spacing);
-    background:${cardBg};border:${border};border-radius:var(--lb-card-radius);
+    background:${cardBg};border:${border};border-radius:${hasImage ? "var(--lb-media-radius)" : "var(--lb-card-radius)"};
     color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
     ${backdropBlur}${overflow}${pixelClip}${reveal}
   "

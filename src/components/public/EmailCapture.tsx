@@ -71,7 +71,7 @@ export function EmailCapture({ consentText }: { consentText?: string | null }) {
         <button
           type="submit"
           disabled={pending}
-          className="lb-pixel-clip lb-pixel-shadow px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="lb-pixel-clip lb-pixel-shadow lb-gel-btn px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             background: "var(--lb-accent)",
             color: "var(--lb-btn-text, #ffffff)",

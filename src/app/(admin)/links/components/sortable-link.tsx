@@ -50,28 +50,28 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
       : {}),
   };
 
-  // Resolve favicon/icon: prefer stored iconUrl (cached by favicon lib),
-  // then fall back to Google S2 for http(s) links.
-  // Special protocols get their own icon.
-  const { displayIcon, displaySrc } = React.useMemo(() => {
-    if (link.type === "embed") return { displayIcon: Code2, displaySrc: null };
-    if (link.url.startsWith("mailto:")) return { displayIcon: Mail, displaySrc: null };
-    if (link.url.startsWith("tel:")) return { displayIcon: Phone, displaySrc: null };
+  // Resolve favicon/icon: prefer stored iconUrl (cached by favicon lib).
+  // No network fallback — uncached http(s) links get a first-letter avatar,
+  // matching the public page behavior. Special protocols get their own icon.
+  const { displayIcon, displaySrc, letter } = React.useMemo(() => {
+    if (link.type === "embed") return { displayIcon: Code2, displaySrc: null, letter: null };
+    if (link.url.startsWith("mailto:")) return { displayIcon: Mail, displaySrc: null, letter: null };
+    if (link.url.startsWith("tel:")) return { displayIcon: Phone, displaySrc: null, letter: null };
 
     // Prefer the cached favicon stored on the link
-    if (link.iconUrl) return { displayIcon: null, displaySrc: link.iconUrl };
+    if (link.iconUrl) return { displayIcon: null, displaySrc: link.iconUrl, letter: null };
 
-    // Fall back to Google S2 for http(s)
     try {
       const u = new URL(link.url);
-      return {
-        displayIcon: null,
-        displaySrc: `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`,
-      };
+      if (u.protocol === "http:" || u.protocol === "https:") {
+        const ch = (link.title || u.hostname).trim().charAt(0).toUpperCase();
+        return { displayIcon: null, displaySrc: null, letter: ch || "?" };
+      }
     } catch {
-      return { displayIcon: ImageIcon, displaySrc: null };
+      // not a parseable URL
     }
-  }, [link.url, link.type, link.iconUrl]);
+    return { displayIcon: ImageIcon, displaySrc: null, letter: null };
+  }, [link.url, link.type, link.iconUrl, link.title]);
 
   const Icon = displayIcon;
 
@@ -118,6 +118,10 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
+            ) : letter ? (
+              <span className="flex size-4 items-center justify-center rounded-sm bg-violet/15 text-[10px] font-semibold leading-none text-violet">
+                {letter}
+              </span>
             ) : Icon ? (
               <Icon className="size-4 text-muted-foreground" />
             ) : (

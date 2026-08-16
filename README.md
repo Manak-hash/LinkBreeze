@@ -39,11 +39,11 @@
 - **📊 Privacy-Respecting Analytics** — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored. Data older than 90 days is pruned automatically by default (Settings → Data; set 0 to keep everything).
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
 - **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
-- **🎨 Themes** — 10 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro) + full customizer with CSS token system (colors, 10 fonts, 8 background types, 7 card styles, layout controls, effects) + theme duplicate/import/export
+- **🎨 Themes** — 11 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + full customizer with CSS token system (colors, 11 fonts, 8 background types, 8 card styles, layout controls, effects) + theme duplicate/import/export
 - **✏️ Custom CSS** — Fine-tune your page with raw CSS injection
 - **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
 - **📱 Mobile-First** — Gorgeous on every screen. Loads in under 300ms. Zero client-side JS bundles.
-- **🎯 QR Codes** — Auto-generated for your page. Download as SVG or PNG.
+- **🎯 QR Codes** — Auto-generated for your page. Download as SVG or PNG. Customize colors, embed your avatar or favicon in the center, export up to 1024 px for print.
 - **🔒 Self-Hosted** — Your data, your server. No third-party trackers. No ads. No subscription.
 - **🐳 One-Command Deploy** — Docker compose and you're live
 
@@ -444,7 +444,7 @@ All configuration is via environment variables (`.env`):
 
 **Using external analytics (Plausible, Umami, Matomo, Google Analytics):**
 
-The built-in analytics covers views, clicks, referrers, and device type with no setup needed. If you want to add a third-party analytics provider, paste your `<script>` snippet into Settings -> General -> Analytics script, then add the provider's domain to `EXTRA_SCRIPT_SRC` so CSP allows it to load:
+The built-in analytics covers views, clicks, referrers, and device type with no setup needed. If you want to add a third-party analytics provider, paste your `<script>` snippet into Settings -> Integration -> Analytics script, then add the provider's domain to `EXTRA_SCRIPT_SRC` so CSP allows it to load:
 
 ```bash
 EXTRA_SCRIPT_SRC=plausible.io umami.is
@@ -457,7 +457,7 @@ and stored in the database — no code changes needed.
 
 ## 🎨 Theme System
 
-10 presets are included out of the box: **Aurora** (animated flagship), **Glassmorphism**, **Neon Cyberpunk**, **Editorial Paper**, **Terminal Mono**, **Pastel Soft**, **Brutalist**, **Retro Sunset**, **Minimal Light**, and **8-Bit Retro**.
+11 presets are included out of the box: **Aurora** (animated flagship), **Glassmorphism**, **Neon Cyberpunk**, **Editorial Paper**, **Terminal Mono**, **Pastel Soft**, **Brutalist**, **Retro Sunset**, **Minimal Light**, **8-Bit Retro**, and **Frutiger Aero** (glossy mid-2000s water-and-air look — gel bubble buttons, frosted glass cards, a bubbles video background with an aqua gradient fallback, and the Nunito font).
 
 The theme engine uses a CSS custom property (`--lb-*`) token system — every color, radius, shadow, and font is a token consumed by the public page components. The customizer gives you full control over:
 

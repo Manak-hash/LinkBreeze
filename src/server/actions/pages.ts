@@ -82,6 +82,7 @@ const updatePageSchema = z.object({
   emailCapture: z.boolean().optional(),
   faviconUrl: z.string().max(500).optional().nullable(),
   privacyPolicy: z.string().max(20000).optional(),
+  qrSettings: z.string().max(500).optional(),
 });
 
 export async function updatePageAction(formData: FormData): Promise<ActionResult> {
@@ -109,11 +110,15 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     customCss: formData.get("customCss") || undefined,
     faviconUrl: formData.get("faviconUrl") || undefined,
     privacyPolicy: formData.get("privacyPolicy") || undefined,
+    qrSettings: formData.get("qrSettings") || undefined,
   };
 
-  // Handle checkbox: present = on, absent = off
+  // Handle checkbox: present = on, absent = leave unchanged (the field lives
+  // in the Integration tab — forms that don't contain it must not toggle it).
   const emailCapture = formData.get("emailCapture");
-  data.emailCapture = emailCapture === "on" ? true : false;
+  if (emailCapture !== null) {
+    data.emailCapture = emailCapture === "on";
+  }
 
   // Remove undefined keys.
   for (const key of Object.keys(data)) {

@@ -6,6 +6,7 @@ import { getThemeById, getActiveTheme } from "@/server/queries";
 import { generatePrivacyPolicy } from "@/lib/privacy-template";
 import { MarkdownLite } from "@/components/public/MarkdownLite";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
+import { truthy } from "@/lib/utils";
 import {
   resolveBackground,
   isAnimatedAurora,
@@ -95,6 +96,7 @@ export default async function PrivacyPage({
   return (
     <>
       {useAurora ? <AuroraBackground /> : null}
+      {truthy(themeInput.noise) ? <div aria-hidden className="lb-noise" /> : null}
       <style dangerouslySetInnerHTML={{ __html: themeStyleBlock }} />
       <main
         style={{

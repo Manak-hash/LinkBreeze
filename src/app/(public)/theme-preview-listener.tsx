@@ -38,17 +38,25 @@ export function ThemePreviewListener() {
           document.head.appendChild(style);
         }
 
-        // Toggle pixel mode class on <main>
+        // Toggle mode classes on <main> (pixel: clip-path borders; gel: gel bubble)
         if (main) {
           if (data.linkStyle === "pixel") {
             main.classList.add("lb-pixel-mode");
           } else {
             main.classList.remove("lb-pixel-mode");
           }
+          if (data.linkStyle === "gel") {
+            main.classList.add("lb-gel-mode");
+          } else {
+            main.classList.remove("lb-gel-mode");
+          }
         }
       } else if (data.type === "lb-theme-reset") {
         if (el) el.remove();
-        if (main) main.classList.remove("lb-pixel-mode");
+        if (main) {
+          main.classList.remove("lb-pixel-mode");
+          main.classList.remove("lb-gel-mode");
+        }
       }
     }
 

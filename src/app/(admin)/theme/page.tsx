@@ -7,7 +7,6 @@ import {
   getDefaultPage,
 } from "@/server/queries";
 import { ThemeManager } from "./theme-manager";
-import { ThemeTools } from "./theme-tools";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +44,7 @@ export default async function ThemePage({
   const effective = pageTheme ?? active;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <ThemeManager
         themes={themes}
         activeId={active?.id ?? null}
@@ -53,7 +52,6 @@ export default async function ThemePage({
         pageId={activePage?.id}
         pageThemeId={activePage?.themeId ?? null}
       />
-      <ThemeTools themes={themes} />
     </div>
   );
 }

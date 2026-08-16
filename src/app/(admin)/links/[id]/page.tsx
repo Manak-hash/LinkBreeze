@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MousePointerClick } from "lucide-react";
-import { getLinkStats, type AnalyticsRange } from "@/server/queries";
+import {
+  getAnalyticsRetentionDays,
+  getLinkStats,
+  type AnalyticsRange,
+} from "@/server/queries";
 import {
   Card,
   CardContent,
@@ -14,7 +18,7 @@ import { ClicksChart } from "./clicks-chart";
 
 export const dynamic = "force-dynamic";
 
-const VALID: AnalyticsRange[] = ["7d", "30d", "90d", "all"];
+const VALID: AnalyticsRange[] = ["7d", "30d", "90d"];
 function parseRange(v?: string): AnalyticsRange {
   return (VALID as string[]).includes(v || "") ? (v as AnalyticsRange) : "30d";
 }
@@ -34,7 +38,10 @@ export default async function LinkDetailPage({
   if (!Number.isFinite(linkId)) notFound();
 
   const range = parseRange(rangeParam);
-  const stats = await getLinkStats(linkId, range);
+  const [stats, retentionDays] = await Promise.all([
+    getLinkStats(linkId, range),
+    getAnalyticsRetentionDays(),
+  ]);
   if (!stats) notFound();
 
   const { link, totalClicks, clicksPerDay, topReferrers } = stats;
@@ -61,7 +68,7 @@ export default async function LinkDetailPage({
           <span className="font-medium text-foreground">
             {totalClicks.toLocaleString()}
           </span>{" "}
-          clicks in range
+          {`clicks in the last ${range.replace("d", "")} days${retentionDays > 0 ? ` (data kept ${retentionDays} days)` : ""}`}
         </div>
         <RangePicker current={range} />
       </div>

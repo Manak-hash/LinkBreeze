@@ -332,6 +332,46 @@ export const PRESETS: ThemePreset[] = [
     buttonSize: "md",
     containerWidth: "480px",
   },
+  // ── 11. Frutiger Aero ────────────────────────────────────────────────
+  // The canonical mid-2000s "water + air" look: glossy gel-bubble buttons,
+  // frosted glass, sky/aqua/leaf palette, bubbles video background. Light
+  // mode. Video URL is hotlinked from Mixkit (free license, no attribution);
+  // backgroundValue doubles as the aqua gradient fallback when the video
+  // can't load. Ink text on bright aqua keeps contrast AA on the gel pills.
+  {
+    ...base,
+    mode: "light",
+    name: "Frutiger Aero",
+    backgroundType: "video",
+    backgroundValue: "#0689E4,#6DD6EC,#FAEFEF",
+    backgroundAngle: "180deg",
+    backgroundImageUrl:
+      "https://assets.mixkit.co/videos/41991/41991-720.mp4",
+    overlayColor: "#FAEFEF",
+    overlayOpacity: "22",
+    fontFamily: "nunito",
+    fontWeight: "700",
+    primaryColor: "#0689E4",
+    // Sky (not Leaf #71AB23): the avatar gradient ring + gradient-flow name
+    // use accent→secondary; keeping both in the blue family avoids the green
+    // cast on the avatar border and display name.
+    secondaryColor: "#6DD6EC",
+    cardBackground: "rgba(250,239,239,0.55)",
+    cardBorderColor: "rgba(201,214,221,0.65)",
+    textColor: "#14425e",
+    mutedTextColor: "#3d6a85",
+    linkStyle: "gel",
+    animationType: "blur-in",
+    radius: "auto",
+    shadowStrength: "soft",
+    blur: "10px",
+    glow: "true",
+    glowColor: "#6DD6EC",
+    hoverEffect: "lift",
+    avatarBorder: "gradient",
+    avatarFloat: "true",
+    textAnimation: "gradient-flow",
+  },
 ];
 
 /** Human-readable list of preset names (for test output + seed log). */

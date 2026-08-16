@@ -51,15 +51,19 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   }
 
   const d = parsed.data;
-  await updateSettingQuery("slug", d.slug);
-  await updateSettingQuery("title", d.title);
-  await updateSettingQuery("description", d.description);
-  await updateSettingQuery("footerText", d.footerText);
-  await updateSettingQuery("analyticsScript", d.analyticsScript);
-  await updateSettingQuery("customCss", d.customCss);
-  await updateSettingQuery("emailCapture", d.emailCapture);
-  await updateSettingQuery("faviconUrl", d.faviconUrl);
-  await updateSettingQuery("consentText", d.consentText);
+  // Presence-aware: only write the fields this form actually submitted.
+  // Settings are split across tabs (General / Integration / Appearance) —
+  // saving one tab must not blank the others.
+  const has = (key: string) => formData.has(key);
+  if (has("slug")) await updateSettingQuery("slug", d.slug);
+  if (has("title")) await updateSettingQuery("title", d.title);
+  if (has("description")) await updateSettingQuery("description", d.description);
+  if (has("footerText")) await updateSettingQuery("footerText", d.footerText);
+  if (has("analyticsScript")) await updateSettingQuery("analyticsScript", d.analyticsScript);
+  if (has("customCss")) await updateSettingQuery("customCss", d.customCss);
+  if (has("emailCapture")) await updateSettingQuery("emailCapture", d.emailCapture);
+  if (has("faviconUrl")) await updateSettingQuery("faviconUrl", d.faviconUrl);
+  if (has("consentText")) await updateSettingQuery("consentText", d.consentText);
 
   // Persist active theme if provided.
   if (d.activeThemeId) {

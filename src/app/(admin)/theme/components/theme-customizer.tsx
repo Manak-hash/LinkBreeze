@@ -1,364 +1,137 @@
 "use client";
 
+import * as React from "react";
 import { Save } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ColorField, SelectField, ToggleField, SliderField, MediaUrlField } from "./field-controls";
 import {
-  FONT_OPTIONS,
-  BG_TYPES,
-  LINK_STYLES,
-  SHADOW_STRENGTHS,
-  HOVER_EFFECTS,
-  BACKGROUND_ANGLES,
-  FONT_WEIGHTS,
-  BUTTON_SIZES,
-  ALIGNMENTS,
-  DENSITIES,
-  REVEAL_ANIMATIONS,
-  MODE_OPTIONS,
-  AVATAR_SHAPES,
-  AVATAR_BORDERS,
-  PROFILE_LAYOUTS,
-  TEXT_ANIMATIONS,
-} from "../theme-constants";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ThemeLivePreview } from "./theme-live-preview";
+import {
+  BackgroundSection,
+  ColorsSection,
+  TypographySection,
+  CardStyleSection,
+  LayoutSection,
+  EffectsSection,
+  ProfileSection,
+} from "./theme-customizer-sections";
 
-// ─── Section sub-components ────────────────────────────────────────────────
+/** Shape of the controlled customizer state (strings, matching the form fields). */
+export type CustomizerState = {
+  backgroundType: string;
+  backgroundValue: string;
+  backgroundAngle: string;
+  backgroundImageUrl: string;
+  backgroundFit: string;
+  backgroundPosition: string;
+  overlayColor: string;
+  overlayOpacity: string; // 0–100 (slider scale)
+  primaryColor: string;
+  secondaryColor: string;
+  cardBackground: string;
+  cardBorderColor: string;
+  textColor: string;
+  mutedTextColor: string;
+  fontFamily: string;
+  fontScale: string;
+  fontWeight: string;
+  letterSpacing: string;
+  linkStyle: string;
+  animationType: string;
+  radius: string;
+  buttonSize: string;
+  borderWidth: string;
+  shadowStrength: string;
+  hoverEffect: string;
+  containerWidth: string;
+  alignment: string;
+  density: string;
+  glow: string;
+  glowColor: string;
+  blur: string;
+  noise: string;
+  avatarShape: string;
+  avatarBorder: string;
+  avatarFloat: string;
+  profileLayout: string;
+  textAnimation: string;
+};
 
-function BackgroundSection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">Background</h3>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SelectField
-          label="Type"
-          name="backgroundType"
-          defaultValue={active.backgroundType}
-          options={BG_TYPES}
-        />
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="backgroundValue" className="text-xs text-muted-foreground">
-            Value (colors separated by commas)
-          </Label>
-          <Input
-            id="backgroundValue"
-            name="backgroundValue"
-            defaultValue={active.backgroundValue ?? ""}
-            placeholder="#1a1530,#2a2150"
-            className="font-mono text-xs"
-          />
-        </div>
-        <SelectField
-          label="Angle"
-          name="backgroundAngle"
-          defaultValue={active.backgroundAngle}
-          options={BACKGROUND_ANGLES}
-        />
-        {active.backgroundType === "image" ? (
-          <MediaUrlField
-            label="Image URL"
-            name="backgroundImageUrl"
-            defaultValue={active.backgroundImageUrl ?? ""}
-            accept="image/*"
-            hint="Max 2 MB. Cover-fit across the whole page."
-          />
-        ) : null}
-        {active.backgroundType === "gif" ? (
-          <MediaUrlField
-            label="Animated GIF URL"
-            name="backgroundImageUrl"
-            defaultValue={active.backgroundImageUrl ?? ""}
-            accept="image/gif"
-            hint="Max 2 MB. Keep loops short — big GIFs are heavy for mobile visitors."
-          />
-        ) : null}
-        {active.backgroundType === "video" ? (
-          <MediaUrlField
-            label="Video URL (.mp4 / .webm)"
-            name="backgroundImageUrl"
-            defaultValue={active.backgroundImageUrl ?? ""}
-            accept="video/mp4,video/webm"
-            hint="Max 5 MB, muted autoplay loop. Visitors on slow connections see a still frame."
-          />
-        ) : null}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <ColorField
-          label="Overlay color"
-          name="overlayColor"
-          defaultValue={active.overlayColor}
-        />
-        <SliderField
-          label="Overlay opacity"
-          name="overlayOpacity"
-          defaultValue={active.overlayOpacity ?? "0"}
-          min={0}
-          max={100}
-          unit="%"
-        />
-      </div>
-    </section>
-  );
+function stateFromTheme(active: ThemeRow): CustomizerState {
+  return {
+    backgroundType: active.backgroundType ?? "gradient",
+    backgroundValue: active.backgroundValue ?? "",
+    backgroundAngle: active.backgroundAngle ?? "135deg",
+    backgroundImageUrl: active.backgroundImageUrl ?? "",
+    backgroundFit: active.backgroundFit ?? "cover",
+    backgroundPosition: active.backgroundPosition ?? "50% 50%",
+    overlayColor: active.overlayColor ?? "#000000",
+    // Normalize legacy 0–1 rows to the 0–100 slider scale.
+    overlayOpacity: normalizeOverlayScale(active.overlayOpacity),
+    primaryColor: active.primaryColor ?? "#533fd6",
+    secondaryColor: active.secondaryColor ?? "#a78bfa",
+    cardBackground: active.cardBackground ?? "",
+    cardBorderColor: active.cardBorderColor ?? "",
+    textColor: active.textColor ?? "#eceafe",
+    mutedTextColor: active.mutedTextColor ?? "",
+    fontFamily: active.fontFamily ?? "inter",
+    fontScale: active.fontScale ?? "100",
+    fontWeight: active.fontWeight ?? "500",
+    letterSpacing: active.letterSpacing ?? "0",
+    linkStyle: active.linkStyle ?? "glass",
+    animationType: active.animationType ?? "lift",
+    radius: active.radius ?? "auto",
+    buttonSize: active.buttonSize ?? "md",
+    borderWidth: active.borderWidth ?? "1px",
+    shadowStrength: active.shadowStrength ?? "medium",
+    hoverEffect: active.hoverEffect ?? "lift",
+    containerWidth: active.containerWidth ?? "540px",
+    alignment: active.alignment ?? "center",
+    density: active.density ?? "normal",
+    glow: active.glow ?? "false",
+    glowColor: active.glowColor ?? "#533fd6",
+    blur: active.blur ?? "12px",
+    noise: active.noise ?? "false",
+    avatarShape: active.avatarShape ?? "circle",
+    avatarBorder: active.avatarBorder ?? "solid",
+    avatarFloat: active.avatarFloat ?? "false",
+    profileLayout: active.profileLayout ?? "classic",
+    textAnimation: active.textAnimation ?? "none",
+  };
 }
 
-function ColorsSection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Colors</h3>
-        <SelectField
-          label=""
-          name="mode"
-          defaultValue={active.mode ?? "dark"}
-          options={MODE_OPTIONS}
-        />
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ColorField label="Accent (primary)" name="primaryColor" defaultValue={active.primaryColor} />
-        <ColorField label="Secondary" name="secondaryColor" defaultValue={active.secondaryColor} />
-        <ColorField label="Text" name="textColor" defaultValue={active.textColor} />
-        <ColorField label="Muted text" name="mutedTextColor" defaultValue={active.mutedTextColor} />
-        <ColorField label="Card background" name="cardBackground" defaultValue={active.cardBackground} allowRgba />
-        <ColorField label="Card border" name="cardBorderColor" defaultValue={active.cardBorderColor} allowRgba />
-      </div>
-    </section>
-  );
+/** Legacy rows stored 0–1 fractions; the slider works on 0–100. */
+function normalizeOverlayScale(raw: string | null | undefined): string {
+  if (!raw) return "0";
+  const num = parseFloat(raw);
+  if (Number.isNaN(num)) return "0";
+  return String(Math.round(num <= 1 ? num * 100 : num));
 }
 
-function TypographySection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">Typography</h3>
-      <div className="flex flex-wrap gap-1.5">
-        {FONT_OPTIONS.map((font) => (
-          <label key={font.id} className="cursor-pointer">
-            <input
-              type="radio"
-              name="fontFamily"
-              value={font.id}
-              defaultChecked={active.fontFamily === font.id}
-              className="peer sr-only"
-            />
-            <span
-              className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-[border-color,background-color] peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
-            >
-              <span className="text-base font-bold">{font.sample}</span>
-              {font.label}
-            </span>
-          </label>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <SliderField
-          label="Font scale"
-          name="fontScale"
-          defaultValue={active.fontScale ?? "100"}
-          min={80}
-          max={150}
-          unit="%"
-        />
-        <SelectField
-          label="Weight"
-          name="fontWeight"
-          defaultValue={active.fontWeight ?? "500"}
-          options={FONT_WEIGHTS}
-        />
-        <SliderField
-          label="Letter spacing"
-          name="letterSpacing"
-          defaultValue={active.letterSpacing ?? "0"}
-          min={-2}
-          max={5}
-          step={0.5}
-        />
-      </div>
-      <SelectField
-        label="Display name animation"
-        name="textAnimation"
-        defaultValue={active.textAnimation ?? "none"}
-        options={TEXT_ANIMATIONS}
-      />
-    </section>
-  );
-}
+const TABS = [
+  { id: "background", label: "Background" },
+  { id: "typography", label: "Typography" },
+  { id: "links", label: "Links" },
+  { id: "profile", label: "Profile" },
+  { id: "effects", label: "Effects" },
+] as const;
 
-function CardStyleSection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">Card Style</h3>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <SelectField
-          label="Link style"
-          name="linkStyle"
-          defaultValue={active.linkStyle}
-          options={LINK_STYLES}
-        />
-        <SelectField
-          label="Hover effect"
-          name="hoverEffect"
-          defaultValue={active.hoverEffect ?? active.animationType}
-          options={HOVER_EFFECTS}
-        />
-        <SelectField
-          label="Button size"
-          name="buttonSize"
-          defaultValue={active.buttonSize ?? "md"}
-          options={BUTTON_SIZES}
-        />
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="radius" className="text-xs text-muted-foreground">
-            Corner radius
-          </Label>
-          <Input
-            id="radius"
-            name="radius"
-            defaultValue={active.radius ?? "auto"}
-            placeholder="auto, 0px, 8px, 9999px"
-            className="font-mono text-xs"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="borderWidth" className="text-xs text-muted-foreground">
-            Border width
-          </Label>
-          <Input
-            id="borderWidth"
-            name="borderWidth"
-            defaultValue={active.borderWidth ?? "1px"}
-            placeholder="0px, 1px, 2px, 3px"
-            className="font-mono text-xs"
-          />
-        </div>
-        <SelectField
-          label="Shadow"
-          name="shadowStrength"
-          defaultValue={active.shadowStrength ?? "medium"}
-          options={SHADOW_STRENGTHS}
-        />
-      </div>
-    </section>
-  );
-}
-
-function LayoutSection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">Layout</h3>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="containerWidth" className="text-xs text-muted-foreground">
-            Container width
-          </Label>
-          <Input
-            id="containerWidth"
-            name="containerWidth"
-            defaultValue={active.containerWidth ?? "540px"}
-            placeholder="480px, 540px, 640px"
-            className="font-mono text-xs"
-          />
-        </div>
-        <SelectField
-          label="Alignment"
-          name="alignment"
-          defaultValue={active.alignment ?? "center"}
-          options={ALIGNMENTS}
-        />
-        <SelectField
-          label="Density"
-          name="density"
-          defaultValue={active.density ?? "normal"}
-          options={DENSITIES}
-        />
-      </div>
-      <SelectField
-        label="Profile layout"
-        name="profileLayout"
-        defaultValue={active.profileLayout ?? "classic"}
-        options={PROFILE_LAYOUTS}
-      />
-      {active.profileLayout === "hero" || active.profileLayout === "banner" ? (
-        <p className="text-[11px] text-muted-foreground">
-          Set the banner image on the Profile page (Banner image field). Hero and
-          Banner layouts use it as the cover.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function EffectsSection({ active }: { active: ThemeRow }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">Effects</h3>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ToggleField label="Glow" name="glow" defaultValue={active.glow ?? "false"} />
-        <ToggleField label="Noise texture" name="noise" defaultValue={active.noise ?? "false"} />
-        <ColorField label="Glow color" name="glowColor" defaultValue={active.glowColor} />
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="blur" className="text-xs text-muted-foreground">
-            Glass blur
-          </Label>
-          <Input
-            id="blur"
-            name="blur"
-            defaultValue={active.blur ?? "12px"}
-            placeholder="0px, 8px, 12px, 20px"
-            className="font-mono text-xs"
-          />
-        </div>
-      </div>
-      <SelectField
-        label="Reveal animation"
-        name="animationType"
-        defaultValue={active.animationType ?? "lift"}
-        options={REVEAL_ANIMATIONS}
-      />
-      <Separator className="my-1" />
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avatar</h4>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SelectField
-          label="Shape"
-          name="avatarShape"
-          defaultValue={active.avatarShape ?? "circle"}
-          options={AVATAR_SHAPES}
-        />
-        <SelectField
-          label="Border"
-          name="avatarBorder"
-          defaultValue={active.avatarBorder ?? "solid"}
-          options={AVATAR_BORDERS}
-        />
-        <ToggleField
-          label="Floating avatar"
-          name="avatarFloat"
-          defaultValue={active.avatarFloat ?? "false"}
-        />
-      </div>
-    </section>
-  );
-}
-
-// ─── Main customizer component ─────────────────────────────────────────────
-
-interface ThemeCustomizerProps {
-  active: ThemeRow;
-  onCustomize: (formData: FormData) => void;
-  customPending: boolean;
-  customError: string | null;
-  isCustom: boolean;
-}
+type TabId = (typeof TABS)[number]["id"];
 
 export function ThemeCustomizer({
   active,
@@ -366,68 +139,164 @@ export function ThemeCustomizer({
   customPending,
   customError,
   isCustom,
-}: ThemeCustomizerProps) {
+  onFork,
+  forkPending,
+}: {
+  active: ThemeRow;
+  onCustomize: (formData: FormData) => void;
+  customPending: boolean;
+  customError: string | null;
+  isCustom: boolean;
+  onFork: (name: string, formData: FormData) => void;
+  forkPending: boolean;
+}) {
+  const [state, setState] = React.useState<CustomizerState>(() => stateFromTheme(active));
+  const [forkOpen, setForkOpen] = React.useState(false);
+  const [forkName, setForkName] = React.useState("");
+  const [tab, setTab] = React.useState<TabId>("background");
+
+  // Remount fields on theme switch (controlled state re-initialises).
+  const [themeKey, setThemeKey] = React.useState(active.id);
+  if (active.id !== themeKey) {
+    setThemeKey(active.id);
+    setState(stateFromTheme(active));
+  }
+
+  const set = (patch: Partial<CustomizerState>) => setState((s) => ({ ...s, ...patch }));
+
+  const dirty = React.useMemo(() => {
+    const initial = stateFromTheme(active);
+    return Object.keys(initial).some(
+      (k) => initial[k as keyof CustomizerState] !== state[k as keyof CustomizerState],
+    );
+  }, [state, active]);
+
+  const formData = React.useCallback(() => {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(state)) fd.set(k, v);
+    fd.set("themeId", String(active.id));
+    return fd;
+  }, [state, active.id]);
+
+  const handleSave = () => {
+    if (!dirty) return;
+    if (isCustom) {
+      onCustomize(formData());
+    } else {
+      setForkName(`${active.name} (copy)`);
+      setForkOpen(true);
+    }
+  };
+
   return (
     <>
-      <Separator />
-      <Card className="mx-auto w-full max-w-2xl">
-        <CardHeader>
+      <Card className="w-full">
+        <CardHeader className="pb-4">
           <CardTitle>Customise &ldquo;{active.name}&rdquo;</CardTitle>
           <CardDescription>
-            Full control over every visual aspect. Changes apply on save.
+            Every change previews live. Changes apply on save.
           </CardDescription>
         </CardHeader>
-        <form action={onCustomize}>
-          {/* themeId targets the save at the theme this page renders
-              (page-specific or global). Remounts fields on theme switch so
-              controlled state re-initialises (Bug 3). */}
-          <input type="hidden" name="themeId" value={active.id} />
-          <CardContent key={active.id}>
-            <Tabs defaultValue="background" className="gap-4">
-              <TabsList>
-                <TabsTrigger value="background">Background</TabsTrigger>
-                <TabsTrigger value="typography">Typography</TabsTrigger>
-                <TabsTrigger value="links">Links</TabsTrigger>
-                <TabsTrigger value="effects">Effects</TabsTrigger>
-              </TabsList>
-              <TabsContent value="background">
-                <BackgroundSection active={active} />
-                <div className="mt-4">
-                  <ColorsSection active={active} />
+        <div className="flex flex-col gap-6 px-6 pb-4 xl:flex-row">
+          {/* Vertical tab rail (horizontal strip below xl) */}
+          <nav
+            aria-label="Customizer sections"
+            className="flex shrink-0 gap-1 overflow-x-auto pb-1 xl:w-40 xl:flex-col xl:pb-0"
+          >
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                aria-current={tab === t.id}
+                className={`flex shrink-0 items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                  tab === t.id
+                    ? "bg-[var(--aurora-grad)] text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Fields area */}
+          <div className="min-w-0 flex-1">
+            {tab === "background" ? (
+              <>
+                <BackgroundSection s={state} set={set} />
+                <div className="mt-6">
+                  <ColorsSection s={state} set={set} />
                 </div>
-              </TabsContent>
-              <TabsContent value="typography">
-                <TypographySection active={active} />
-              </TabsContent>
-              <TabsContent value="links">
-                <CardStyleSection active={active} />
-                <div className="mt-4">
-                  <LayoutSection active={active} />
-                </div>
-              </TabsContent>
-              <TabsContent value="effects">
-                <EffectsSection active={active} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2">
-            {customError ? (
-              <p className="w-full text-xs text-destructive">{customError}</p>
+              </>
             ) : null}
-            <div className="flex w-full items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                {isCustom
-                  ? "Editing a custom theme"
-                  : "Editing a preset — duplicate it first to keep changes separate"}
-              </p>
-              <Button type="submit" disabled={customPending}>
-                <Save className="size-4" />
-                {customPending ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
-          </CardFooter>
-        </form>
+            {tab === "typography" ? <TypographySection s={state} set={set} /> : null}
+            {tab === "links" ? (
+              <>
+                <CardStyleSection s={state} set={set} />
+                <div className="mt-6">
+                  <LayoutSection s={state} set={set} />
+                </div>
+              </>
+            ) : null}
+            {tab === "profile" ? <ProfileSection s={state} set={set} /> : null}
+            {tab === "effects" ? <EffectsSection s={state} set={set} /> : null}
+          </div>
+
+          {/* Theme visualizer — sticky on wide screens */}
+          <div className="mx-auto w-full shrink-0 xl:sticky xl:top-20 xl:w-[268px]">
+            <ThemeLivePreview state={state} />
+          </div>
+        </div>
+        <CardFooter className="flex flex-col gap-2">
+          {customError ? (
+            <p className="w-full text-xs text-destructive">{customError}</p>
+          ) : null}
+          <div className="flex w-full items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {isCustom
+                ? "Editing a custom theme"
+                : "Preset — saving creates your own copy"}
+            </p>
+            <Button type="button" onClick={handleSave} disabled={customPending || forkPending || !dirty}>
+              <Save className="size-4" />
+              {customPending || forkPending ? "Saving…" : dirty ? "Save changes" : "Saved"}
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
+
+      {/* Fork dialog: saving a preset prompts for a copy name first */}
+      <Dialog open={forkOpen} onOpenChange={setForkOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Save as your own theme?</DialogTitle>
+            <DialogDescription>
+              &ldquo;{active.name}&rdquo; is a shared preset — changing it would
+              restyle every page using that preset. Save your customisations as a
+              new theme instead.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={forkName}
+            onChange={(e) => setForkName(e.target.value)}
+            placeholder="New theme name"
+            maxLength={100}
+          />
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setForkOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={forkPending || !forkName.trim()}
+              onClick={() => onFork(forkName.trim().slice(0, 100), formData())}
+            >
+              {forkPending ? "Creating…" : "Create & save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   setActiveTheme: vi.fn(async () => undefined),
   updateTheme: vi.fn(async () => undefined),
   getActiveTheme: vi.fn(async (): Promise<{ id: number; name: string } | null> => ({ id: 1, name: "Default" })),
-  duplicateTheme: vi.fn(async () => undefined),
+  duplicateTheme: vi.fn(async (): Promise<{ id: number; name: string }> => ({ id: 42, name: "Copy" })),
   deleteTheme: vi.fn(async () => undefined),
   themeNameExists: vi.fn(async () => false),
 }));

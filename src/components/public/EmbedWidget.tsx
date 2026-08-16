@@ -106,6 +106,7 @@ export function EmbedWidget({ url, title, index, animationType, theme, baseDelay
   if (!embed) return null;
 
   const isPixel = theme?.linkStyle === "pixel";
+  const isGel = theme?.linkStyle === "gel";
 
   const revealStyle = revealAnimationStyle(animationType, baseDelayMs + index * 60);
   const reveal = revealStyle?.animation ?? "";
@@ -206,13 +207,13 @@ export function EmbedWidget({ url, title, index, animationType, theme, baseDelay
 
   return (
     <div
-      className="overflow-hidden"
+      className={`overflow-hidden${isGel ? " lb-gel-embed" : ""}`}
       style={{
         animation: reveal || undefined,
         animationDelay: delay,
         background: "var(--lb-card-bg)",
         border: "var(--lb-border-width) solid var(--lb-card-border)",
-        borderRadius: "var(--lb-card-radius)",
+        borderRadius: "var(--lb-media-radius)",
         backdropFilter: "blur(var(--lb-blur))",
         WebkitBackdropFilter: "blur(var(--lb-blur))",
         margin: "0 0 var(--lb-spacing)",

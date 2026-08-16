@@ -55,7 +55,7 @@ export default async function AdminLayout({
           {/* Sidebar — pinned left, full viewport height, sticky while scrolling */}
           <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar p-4 md:flex md:sticky md:top-0 md:h-dvh md:self-start">
             <div className="mb-8 flex items-center gap-2 px-2">
-              <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} />
+              <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} unoptimized />
               <span className="font-heading text-lg font-semibold">
                 LinkBreeze
               </span>
@@ -97,7 +97,7 @@ export default async function AdminLayout({
             {/* Mobile top bar */}
             <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 md:hidden">
               <div className="flex items-center gap-2">
-                <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} />
+                <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} unoptimized />
                 <span className="font-heading font-semibold">LinkBreeze</span>
               </div>
               <div className="flex items-center gap-2">

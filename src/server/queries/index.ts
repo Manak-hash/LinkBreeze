@@ -186,6 +186,7 @@ export interface UpdatePageInput {
   emailCapture?: boolean;
   faviconUrl?: string | null;
   privacyPolicy?: string;
+  qrSettings?: string | null;
 }
 
 export async function updatePage(id: number, data: UpdatePageInput): Promise<void> {
@@ -456,6 +457,8 @@ export async function getActiveTheme(): Promise<ThemeRow | null> {
   // The public page calls getActiveTheme() before the admin theme page is
   // visited, so this must be the single source of truth for seeding.
   await seedThemesIfEmpty();
+  // Newer presets also reach installs seeded by older versions.
+  await backfillPresets();
 
   const rows = await db.select().from(themes).where(eq(themes.isActive, true)).limit(1);
   if (rows[0]) return rows[0];
@@ -564,6 +567,24 @@ export async function seedThemesIfEmpty(): Promise<void> {
   if ((count[0]?.c ?? 0) > 0) return;
 
   await db.insert(themes).values(PRESETS);
+}
+
+/**
+ * Insert built-in presets that are missing from an existing install (matched
+ * by name, isPreset rows only). Runs alongside seedThemesIfEmpty so a new
+ * release's presets reach databases seeded by older versions without a SQL
+ * migration. Never touches existing rows — user edits are safe.
+ */
+export async function backfillPresets(): Promise<void> {
+  const rows = await db
+    .select({ name: themes.name })
+    .from(themes)
+    .where(eq(themes.isPreset, true));
+  const existing = new Set(rows.map((r) => r.name));
+  const missing = PRESETS.filter((p) => !existing.has(p.name));
+  if (missing.length === 0) return;
+
+  await db.insert(themes).values(missing);
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -716,23 +737,7 @@ export interface LinkStats {
 
 /** Number of day-buckets to render for a range. */
 async function rangeDayCount(range: AnalyticsRange): Promise<number> {
-  if (range !== "all") {
-    return range === "7d" ? 7 : range === "30d" ? 30 : 90;
-  }
-  // "all": span from the earliest analytics record to today (capped at 365).
-  const [pvRow, clRow] = await Promise.all([
-    db.select({ m: sql<string>`min(${analyticsPageviews.createdAt})` }).from(analyticsPageviews),
-    db.select({ m: sql<string>`min(${analyticsClicks.createdAt})` }).from(analyticsClicks),
-  ]);
-  const pv = pvRow[0];
-  const cl = clRow[0];
-  const earliest = [pv?.m, cl?.m].filter(Boolean).sort()[0];
-  if (!earliest) return 30;
-  // Handle both ISO (2026-07-29T...) and SQLite datetime (2026-07-29 ...) formats
-  const start = new Date(earliest.includes("T") ? earliest : earliest.replace(" ", "T") + "Z").getTime();
-  if (isNaN(start)) return 30;
-  const days = Math.ceil((Date.now() - start) / 86_400_000);
-  return Math.min(365, Math.max(1, days));
+  return range === "7d" ? 7 : range === "30d" ? 30 : 90;
 }
 
 /** `days` UTC date keys ending today, for zero-filling a chart series. */
@@ -867,8 +872,6 @@ export async function getPreviousStats(
   range: AnalyticsRange = "7d",
   pageId?: number,
 ): Promise<{ totalViews: number; totalClicks: number }> {
-  if (range === "all") return { totalViews: 0, totalClicks: 0 };
-
   const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
   const startShift = sql`datetime('now', ${`-${days * 2} days`})`;
   const endShift = sql`datetime('now', ${`-${days} days`})`;

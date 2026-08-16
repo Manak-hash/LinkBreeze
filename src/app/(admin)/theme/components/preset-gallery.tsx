@@ -3,6 +3,7 @@
 import { Check, Trash2 } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Badge } from "@/components/ui/badge";
+import { resolveBackground } from "@/lib/theme-tokens";
 
 interface PresetGalleryProps {
   themes: ThemeRow[];
@@ -15,28 +16,25 @@ interface PresetGalleryProps {
 
 /**
  * Build a mini visual preview of a theme using its actual tokens.
- * Each card shows a tiny mockup: background swatch + 2-3 fake link cards
- * with the theme's colors, border style, and font family.
+ * Uses the production resolveBackground so the card matches what the public
+ * page renders (including aurora's base color and image overlays).
  */
 function ThemePreview({ theme }: { theme: ThemeRow }) {
-  // Build background
-  let bgStyle: React.CSSProperties;
-  if (theme.backgroundType === "solid") {
-    bgStyle = { background: theme.backgroundValue ?? "#0a0820" };
-  } else if (theme.backgroundType === "aurora") {
-    bgStyle = { background: theme.backgroundValue ?? "#0a0820" };
-  } else if (theme.backgroundType === "mesh" || (theme.backgroundValue?.split(",").length ?? 0) >= 3) {
-    bgStyle = { background: `linear-gradient(135deg, ${theme.backgroundValue})` };
-  } else {
-    bgStyle = { background: `linear-gradient(${theme.backgroundAngle ?? "135deg"}, ${theme.backgroundValue})` };
-  }
+  const isAurora = theme.backgroundType === "aurora";
+  const bg = resolveBackground(theme);
+  // resolveBackground already composes fit + focal point into the background
+  // shorthand for image/gif media; extra size/position overrides would fight it.
+  const bgStyle: React.CSSProperties = isAurora
+    ? { background: theme.backgroundValue?.split(",")[0]?.trim() || "#0a0820" }
+    : { background: bg };
 
   const radius = theme.radius ?? "12px";
   const isPill = theme.linkStyle === "pill";
   const isSharp = theme.linkStyle === "sharp";
   const isPixel = theme.linkStyle === "pixel";
+  const isGel = theme.linkStyle === "gel";
 
-  const cardRadius = isPill ? "9999px" : isSharp || isPixel ? "0px" : radius;
+  const cardRadius = isPill || isGel ? "9999px" : isSharp || isPixel ? "0px" : radius;
 
   // Fake link card
   const fakeCard: React.CSSProperties = {

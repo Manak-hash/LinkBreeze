@@ -86,7 +86,6 @@ function SectionSelect({
 
 export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] }: LinkDialogProps) {
   const [pending, startTransition] = React.useTransition();
-  const formRef = React.useRef<HTMLFormElement>(null);
   const [type, setType] = React.useState(editing?.type ?? "url");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
@@ -135,14 +134,10 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   // Pre-compute default values for the UTM fields when editing.
   const utmDefaults: UTMParams = hadUTM ? parseUTM(storedUrl) : emptyUTM();
 
-  const handleSubmit = () => {
-    const form = formRef.current;
-    if (!form) return;
-    // Use native form.reportValidity() so required fields, maxLength etc. work.
-    if (!form.reportValidity()) return;
-
-    const formData = new FormData(form);
-
+  // Form action (React 19): the browser runs native validation (required,
+  // maxLength…) before invoking this, so Enter and the Save button both
+  // submit — no JavaScript-only interception.
+  const handleSubmit = (formData: FormData) => {
     // Prepend the correct prefix for non-URL types
     const rawUrl = (formData.get("url") as string) || "";
     let finalUrl = prefixLinkUrl(type, rawUrl);
@@ -196,7 +191,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             {editing ? "Update the details of this link." : "Create a new link for your page."}
           </DialogDescription>
         </DialogHeader>
-        <form ref={formRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+        <form action={handleSubmit} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
@@ -363,7 +358,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" disabled={pending} onClick={handleSubmit}>
+            <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>

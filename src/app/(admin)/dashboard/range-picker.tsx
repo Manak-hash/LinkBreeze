@@ -7,7 +7,6 @@ const RANGES = [
   { value: "7d", label: "7d" },
   { value: "30d", label: "30d" },
   { value: "90d", label: "90d" },
-  { value: "all", label: "All" },
 ] as const;
 
 /** Segmented range control. Preserves the current route via window.location,

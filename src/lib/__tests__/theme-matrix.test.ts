@@ -151,8 +151,8 @@ describe("Dimension 2 — every preset passes Zod validation", () => {
 });
 
 describe("Dimension 2b — preset count and names are stable", () => {
-  it("ships exactly 10 presets", () => {
-    expect(PRESETS).toHaveLength(10);
+  it("ships exactly 11 presets", () => {
+    expect(PRESETS).toHaveLength(11);
   });
 
   it("includes the canonical preset names", () => {
@@ -167,6 +167,7 @@ describe("Dimension 2b — preset count and names are stable", () => {
       "Retro Sunset",
       "Minimal Light",
       "8-Bit Retro",
+      "Frutiger Aero",
     ]);
   });
 

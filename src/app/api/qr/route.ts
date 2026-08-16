@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateQrSvg, generateQrPng } from "@/lib/qr";
-import { getSetting } from "@/server/queries";
+import {
+  generateQrSvg,
+  generateQrPng,
+  parseQrStyle,
+  type QrStyle,
+} from "@/lib/qr";
+import { getSetting, getPageBySlug } from "@/server/queries";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -13,6 +18,25 @@ function getOrigin(request: NextRequest): string {
   const proto = request.headers.get("x-forwarded-proto") || "http";
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost";
   return `${proto}://${host}`;
+}
+
+/** Merge saved page style with per-request overrides from the query string. */
+function mergeStyle(saved: QrStyle, params: URLSearchParams): QrStyle {
+  const fg = params.get("fg");
+  const bg = params.get("bg");
+  const logo = params.get("logo");
+  const size = params.get("size");
+  return {
+    fg: fg && /^#[0-9a-fA-F]{6}$/.test(fg) ? fg : saved.fg,
+    bg: bg && /^#[0-9a-fA-F]{6}$/.test(bg) ? bg : saved.bg,
+    logo:
+      logo === "avatar" || logo === "favicon" || logo === "none"
+        ? logo
+        : saved.logo,
+    size: size && !Number.isNaN(Number(size))
+      ? Math.min(Math.max(Math.round(Number(size)), 64), 1024)
+      : saved.size,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -29,7 +53,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const slugParam = searchParams.get("slug");
   const format = (searchParams.get("format") || "svg").toLowerCase();
-  const size = Math.min(Math.max(Number(searchParams.get("size")) || 256, 64), 1024);
   const download = searchParams.get("download") === "1";
 
   // Resolve the slug from settings if not provided.
@@ -43,13 +66,23 @@ export async function GET(request: NextRequest) {
 
   const targetUrl = `${getOrigin(request)}/${slug}`;
 
+  // Saved per-page style (absent/garbage → defaults), then query overrides.
+  const page = await getPageBySlug(slug);
+  const style = mergeStyle(parseQrStyle(page?.qrSettings), searchParams);
+  const logoUrl =
+    style.logo === "avatar"
+      ? page?.avatarUrl
+      : style.logo === "favicon"
+        ? page?.faviconUrl
+        : null;
+
   const downloadHeaders: Record<string, string> = download
     ? { "Content-Disposition": `attachment; filename="linkbreeze-${slug}.svg"` }
     : {};
 
   try {
     if (format === "png") {
-      const png = await generateQrPng(targetUrl, size);
+      const png = await generateQrPng(targetUrl, style, logoUrl);
       return new NextResponse(new Uint8Array(png), {
         status: 200,
         headers: {
@@ -63,7 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: SVG
-    const svg = await generateQrSvg(targetUrl);
+    const svg = await generateQrSvg(targetUrl, style, logoUrl);
     return new NextResponse(svg, {
       status: 200,
       headers: {

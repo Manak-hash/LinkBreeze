@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { QrCode, Download } from "lucide-react";
+import { QrCode } from "lucide-react";
 import {
   getAllPages,
   getDefaultPage,
@@ -10,7 +9,9 @@ import {
   getAllSubscribers,
 } from "@/server/queries";
 import { isUpdateCheckEnabled } from "@/lib/update-check";
-import { GeneralTab, AppearanceTab } from "./settings-tab-forms";
+import { parseQrStyle } from "@/lib/qr-style";
+import { QrCard } from "./qr-card";
+import { GeneralTab, IntegrationTab, AppearanceTab } from "./settings-tab-forms";
 import { ChangePasswordForm } from "./change-password-form";
 import { DataManager } from "./data-manager";
 import { SubscribersCard } from "./subscribers-card";
@@ -56,6 +57,15 @@ export default async function SettingsPage({
 
   const slug = activePage?.slug || "u";
 
+  // Theme accent swatches offered as one-click QR colors (valid hex only).
+  const qrThemePresets = Array.from(
+    new Set(
+      [active?.primaryColor, active?.secondaryColor]
+        .filter((c): c is string => !!c && /^#[0-9a-fA-F]{6}$/.test(c))
+        .map((c) => c.toLowerCase()),
+    ),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
@@ -77,8 +87,14 @@ export default async function SettingsPage({
               title={activePage?.seoTitle || ""}
               description={activePage?.seoDescription || ""}
               footerText={activePage?.footerText || ""}
-              analyticsScript={activePage?.analyticsScript || ""}
               privacyPolicy={activePage?.privacyPolicy || ""}
+            />
+          ),
+          integration: (
+            <IntegrationTab
+              pageId={activePage?.id}
+              slug={slug}
+              analyticsScript={activePage?.analyticsScript || ""}
               consentText={consentText}
               emailCapture={activePage?.emailCapture ?? false}
             />
@@ -92,7 +108,7 @@ export default async function SettingsPage({
                 themes={themes}
                 activeThemeId={activePage?.themeId ?? active?.id ?? null}
               />
-              {/* QR Code in appearance tab */}
+              {/* QR Code customizer in appearance tab */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -100,35 +116,19 @@ export default async function SettingsPage({
                     QR Code
                   </CardTitle>
                   <CardDescription>
-                    Scan to open /{slug}. Download for print or digital use.
+                    Customize and download the QR for /{slug}. Scan to open your
+                    public page — use it on print or screens.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                  <div className="rounded-xl border border-border bg-white p-4">
-                    <Image
-                      src={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg`}
-                      alt="QR code"
-                      width={200}
-                      height={200}
-                      unoptimized
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <a
-                      href={`/api/qr?slug=${encodeURIComponent(slug)}&format=svg&download=1`}
-                      className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      <Download className="size-4" />
-                      SVG
-                    </a>
-                    <a
-                      href={`/api/qr?slug=${encodeURIComponent(slug)}&format=png&download=1`}
-                      className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      <Download className="size-4" />
-                      PNG
-                    </a>
-                  </div>
+                <CardContent>
+                  <QrCard
+                    pageId={activePage?.id}
+                    slug={slug}
+                    initialStyle={parseQrStyle(activePage?.qrSettings)}
+                    avatarAvailable={Boolean(activePage?.avatarUrl)}
+                    faviconAvailable={Boolean(activePage?.faviconUrl)}
+                    themePresets={qrThemePresets}
+                  />
                 </CardContent>
               </Card>
             </div>

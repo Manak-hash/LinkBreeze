@@ -29,6 +29,7 @@ export const FONT_REGISTRY: Record<string, string> = {
   sora: "var(--lb-font-sora), sans-serif",
   outfit: "var(--lb-font-outfit), sans-serif",
   "press-start": "'Press Start 2P', var(--lb-font-press-start), monospace",
+  nunito: "var(--lb-font-nunito), sans-serif",
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -126,6 +127,19 @@ function str(v: string | null | undefined, fallback: string): string {
   return v && v.trim() ? v.trim() : fallback;
 }
 
+/**
+ * Normalize a stored overlay opacity to a 0–1 fraction.
+ * The customizer slider stores 0–100; legacy rows stored 0–1 fractions.
+ * Values > 1 are treated as percent (50 → 0.5); everything clamps to [0, 1].
+ */
+export function normalizeOpacity(raw: string | null | undefined): number {
+  if (!raw || !raw.trim()) return 0;
+  const num = parseFloat(raw);
+  if (Number.isNaN(num) || num <= 0) return 0;
+  const fraction = num > 1 ? num / 100 : num;
+  return Math.min(fraction, 1);
+}
+
 /** Resolve a font identifier or raw CSS to a font-family stack. */
 export function resolveFont(fontFamily: string | null | undefined): string {
   if (!fontFamily || !fontFamily.trim()) return FALLBACKS.font;
@@ -167,6 +181,8 @@ function resolveCardRadius(linkStyle: string, radius: string | null | undefined)
       return "12px";
     case "pixel":
       return "0px";
+    case "gel":
+      return "9999px";
     case "rounded":
     default:
       return "12px";
@@ -406,6 +422,11 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-card-bg": cardBg,
     "--lb-card-border": cardBorder,
     "--lb-card-radius": cardRadius,
+    // Radius for cards that carry media blocks (thumbnail + rich preview
+    // links, embed widgets). A 9999px pill is correct for compact one-line
+    // links but turns tall media cards into circles; clamping keeps pill
+    // themes (Pastel Soft, gel) sane on those surfaces.
+    "--lb-media-radius": `min(${cardRadius}, 24px)`,
     "--lb-btn-text": btnText,
     "--lb-font": font,
     "--lb-font-size": fontSize,
@@ -428,6 +449,15 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
     "--lb-avatar-gradient": `linear-gradient(135deg, ${accent}, ${secondary})`,
     // Pixel mode flag: "1" when linkStyle is pixel, used for global clip-paths
     "--lb-pixel": linkStyle === "pixel" ? "1" : "0",
+    // Aurora background colors (1.3): drive the animated aurora from the
+    // theme's own colors instead of the hardcoded defaults. Base = the first
+    // backgroundValue color; blobs = accent + secondary.
+    "--lb-aurora-base": str(
+      (theme.backgroundValue || "").split(",")[0]?.trim() || null,
+      NIGHT_BASE,
+    ),
+    "--lb-aurora-blob-1": accent,
+    "--lb-aurora-blob-2": secondary,
   };
 
   // Keyframes for animated gradient backgrounds
@@ -465,11 +495,52 @@ export function buildThemeStyleBlock(theme: ThemeInput): string {
 
 const NIGHT_BASE = "#0a0820";
 
+/**
+ * Media background CSS parts (image/gif): fit + focal point.
+ * - cover:   background-size: cover        (zoom to fill, crop overflow)
+ * - contain: background-size: contain      (letterboxed, no crop)
+ * - tile:    background-size: auto + repeat (pattern across the page)
+ * Focal point (background-position, "x% y%") applies to cover/contain; for
+ * tile it pins the repeat origin (subtle, but keeps the mental model one).
+ */
+export function mediaBackgroundCss(theme: ThemeBackgroundInput): string {
+  const url = `url('${theme.backgroundImageUrl}')`;
+  const fit = theme.backgroundFit || "cover";
+  const pos = theme.backgroundPosition || "50% 50%";
+  // Fallback color sits behind the media — matters for contain (letterbox
+  // bars) and transparent PNGs. Uses the theme's first bg color, else night.
+  const fallback =
+    (theme.backgroundValue || "").split(",")[0]?.trim() || NIGHT_BASE;
+  if (fit === "tile") {
+    // repeat with natural size; position pins the pattern origin
+    return `${url} ${pos}/auto repeat ${fallback}`;
+  }
+  const size = fit === "contain" ? "contain" : "cover";
+  return `${url} ${pos}/${size} no-repeat ${fallback}`;
+}
+
+/**
+ * Fit values for <video> (object-fit): tile is meaningless for video —
+ * callers should treat it as cover. Exported for VideoBackground and the
+ * live preview.
+ */
+export function mediaObjectFit(theme: ThemeBackgroundInput): string {
+  const fit = theme.backgroundFit || "cover";
+  return fit === "contain" ? "contain" : "cover";
+}
+
+/** object-position for <video> from the stored focal point. */
+export function mediaObjectPosition(theme: ThemeBackgroundInput): string {
+  return theme.backgroundPosition || "50% 50%";
+}
+
 export interface ThemeBackgroundInput {
   backgroundType?: string | null;
   backgroundValue?: string | null;
   backgroundAngle?: string | null;
   backgroundImageUrl?: string | null;
+  backgroundFit?: string | null;
+  backgroundPosition?: string | null;
   overlayColor?: string | null;
   overlayOpacity?: string | null;
 }
@@ -523,28 +594,26 @@ export function resolveBackground(theme: ThemeBackgroundInput): string {
     case "image":
       if (theme.backgroundImageUrl) {
         // Render the overlay as a uniform translucent layer over the image.
-        // opacity "0" (or missing) = no overlay, just the image.
-        const opacityNum = theme.overlayOpacity
-          ? parseFloat(theme.overlayOpacity)
-          : NaN;
+        // Stored scale is 0–100 (the customizer slider). Normalize to 0–1:
+        // legacy rows stored 0–1 fractions; treat >1 as percent, clamp to 1.
+        const overlayFraction = normalizeOpacity(theme.overlayOpacity);
         const hasOverlay =
-          theme.overlayColor &&
-          theme.overlayOpacity &&
-          theme.overlayOpacity.trim() !== "" &&
-          !Number.isNaN(opacityNum) &&
-          opacityNum > 0;
+          theme.overlayColor !== undefined &&
+          theme.overlayColor !== null &&
+          overlayFraction > 0;
 
+        const media = mediaBackgroundCss(theme);
         if (hasOverlay && theme.overlayColor) {
           // Encode opacity as 2-digit alpha hex appended to the overlay color,
           // then repeat the SAME color at both gradient stops so the layer is
           // uniform (not a gradient from transparent-ish to opaque).
-          const alpha = Math.round(opacityNum * 255)
+          const alpha = Math.round(overlayFraction * 255)
             .toString(16)
             .padStart(2, "0");
           const overlayLayer = `${theme.overlayColor}${alpha}`;
-          return `linear-gradient(${overlayLayer}, ${overlayLayer}), url('${theme.backgroundImageUrl}')`;
+          return `linear-gradient(${overlayLayer}, ${overlayLayer}), ${media}`;
         }
-        return `url('${theme.backgroundImageUrl}')`;
+        return media;
       }
       return parts[0];
 
@@ -554,12 +623,21 @@ export function resolveBackground(theme: ThemeBackgroundInput): string {
     case "gif":
       // Animated GIF: same treatment as a static image (browser animates it).
       if (theme.backgroundImageUrl) {
-        return `url('${theme.backgroundImageUrl}')`;
+        return mediaBackgroundCss(theme);
       }
       return parts[0];
 
     case "pattern":
       return parts[0];
+
+    case "video":
+      // The <video> element covers the page; backgroundValue still resolves to
+      // a gradient so it can double as the fallback when the video can't load
+      // (offline, dead URL, saveData pause) and as the letterbox color for
+      // object-fit: contain. Mirrors the "gif" treatment above.
+      return parts.length > 1
+        ? `linear-gradient(${angle}, ${parts.join(", ")})`
+        : parts[0];
 
     case "aurora":
     default:

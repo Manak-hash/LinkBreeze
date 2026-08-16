@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { PresetGallery } from "./components/preset-gallery";
 import { ThemeCustomizer } from "./components/theme-customizer";
-import { DuplicateTheme } from "./components/duplicate-theme";
+import { ThemeActions } from "./components/theme-actions";
 import { usePreview } from "@/components/admin/PreviewPane";
 
 interface ThemeManagerProps {
@@ -37,8 +37,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
   const [selecting, setSelecting] = React.useState<number | null>(null);
   const [customPending, setCustomPending] = React.useState(false);
   const [customError, setCustomError] = React.useState<string | null>(null);
-  const [dupName, setDupName] = React.useState("");
-  const [dupPending, setDupPending] = React.useState(false);
+  const [forkPending, setForkPending] = React.useState(false);
   const [delPending, setDelPending] = React.useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<number | null>(null);
   const router = useRouter();
@@ -76,19 +75,37 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
     }
   };
 
-  const handleDuplicate = async () => {
-    const name = dupName.trim().slice(0, 100);
-    if (!name) return;
-    setDupPending(true);
+  // Saving a preset forks it: duplicate → apply the pending customizations →
+  // point the page at the new copy (or activate it globally).
+  const handleFork = async (name: string, formData: FormData) => {
+    setForkPending(true);
+    setCustomError(null);
     try {
-      const res = await duplicateActiveTheme(name, active?.id);
-      if (res.success) {
-        setDupName("");
-        router.refresh();
-        reloadPreview();
+      const dup = await duplicateActiveTheme(name, active?.id);
+      if (!dup.success) {
+        setCustomError(dup.error);
+        return;
       }
+      const fd = new FormData();
+      for (const [k, v] of formData.entries()) fd.append(k, v);
+      fd.set("themeId", String(dup.themeId));
+      const res = await customizeActiveTheme(fd);
+      if (!res.success) {
+        setCustomError(res.error);
+        return;
+      }
+      // Point this page (or the global default) at the new theme.
+      if (pageId) {
+        await setPageThemeAction(pageId, dup.themeId);
+      } else {
+        await activateTheme(dup.themeId);
+      }
+      router.refresh();
+      reloadPreview();
+    } catch {
+      setCustomError("Failed to save theme. Please try again.");
     } finally {
-      setDupPending(false);
+      setForkPending(false);
     }
   };
 
@@ -106,16 +123,19 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
 
   const isCustom = active ? !active.isPreset : false;
 
-  // In page mode, highlight the page's selected theme instead of the global active.
   const effectiveActiveId = pageId ? (pageThemeId ?? activeId) : activeId;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Theme</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose a preset or fully customise your page.
-        </p>
+    <div className="flex flex-col gap-8">
+      {/* Header row: title left, actions top-right */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Theme</h1>
+          <p className="text-sm text-muted-foreground">
+            Choose a preset or fully customise your page.
+          </p>
+        </div>
+        <ThemeActions themes={themes} active={active} />
       </div>
 
       <PresetGallery
@@ -128,22 +148,15 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
       />
 
       {active ? (
-        <>
-          <ThemeCustomizer
-            active={active}
-            onCustomize={handleCustom}
-            customPending={customPending}
-            customError={customError}
-            isCustom={isCustom}
-          />
-          <DuplicateTheme
-            activeName={active.name}
-            onDuplicate={handleDuplicate}
-            dupName={dupName}
-            setDupName={setDupName}
-            dupPending={dupPending}
-          />
-        </>
+        <ThemeCustomizer
+          active={active}
+          onCustomize={handleCustom}
+          customPending={customPending}
+          customError={customError}
+          isCustom={isCustom}
+          onFork={handleFork}
+          forkPending={forkPending}
+        />
       ) : null}
 
       {/* Delete confirmation dialog — replaces native confirm() */}
@@ -154,7 +167,7 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
             <DialogDescription>
               This action cannot be undone. The theme will be permanently removed.
             </DialogDescription>
-          </DialogHeader>
+      </DialogHeader>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => setDeleteTarget(null)}>
               Cancel

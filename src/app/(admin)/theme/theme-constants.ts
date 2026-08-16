@@ -11,6 +11,7 @@ export const FONT_OPTIONS = [
   { id: "bebas", label: "Bebas Neue", sample: "Aa" },
   { id: "sora", label: "Sora", sample: "Aa" },
   { id: "outfit", label: "Outfit", sample: "Aa" },
+  { id: "nunito", label: "Nunito", sample: "Aa" },
   { id: "press-start", label: "Press Start 2P", sample: "8b" },
 ];
 
@@ -22,7 +23,6 @@ export const BG_TYPES = [
   { value: "aurora", label: "Aurora" },
   { value: "animatedGradient", label: "Animated Gradient" },
   { value: "image", label: "Image" },
-  { value: "pattern", label: "Pattern" },
   { value: "video", label: "Video" },
   { value: "gif", label: "Animated GIF" },
 ];
@@ -35,6 +35,7 @@ export const LINK_STYLES = [
   { value: "outline", label: "Outline" },
   { value: "neon", label: "Neon" },
   { value: "pixel", label: "Pixel" },
+  { value: "gel", label: "Gel" },
 ];
 
 export const SHADOW_STRENGTHS = [
@@ -57,7 +58,6 @@ export const BACKGROUND_ANGLES = [
   { value: "135deg", label: "135° (diagonal)" },
   { value: "160deg", label: "160° (steep)" },
   { value: "180deg", label: "180° (vertical)" },
-  { value: "radial", label: "Radial" },
 ];
 
 export const FONT_WEIGHTS = [
@@ -121,11 +121,6 @@ export const TEXT_ANIMATIONS = [
   { value: "none", label: "None" },
   { value: "typewriter", label: "Typewriter (display name)" },
   { value: "gradient-flow", label: "Gradient flow (display name)" },
-];
-
-export const MODE_OPTIONS = [
-  { value: "dark", label: "🌙 Dark" },
-  { value: "light", label: "☀️ Light" },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

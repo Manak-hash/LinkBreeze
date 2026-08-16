@@ -62,6 +62,11 @@ function buildCsp(): { key: string; value: string } {
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${extraScriptSrc ? ` ${extraScriptSrc}` : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
+      // Media (background videos) — same trust model as img-src: operators
+      // hotlink from arbitrary https CDNs (Mixkit, etc.). Without this,
+      // default-src 'self' silently blocks cross-origin <video> and the
+      // gradient fallback paints instead.
+      "media-src 'self' https: blob:",
       "font-src 'self' data:",
       "connect-src 'self'",
       "frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com",
@@ -114,15 +119,15 @@ const nextConfig: NextConfig = {
       "@dnd-kit/sortable",
       "@dnd-kit/utilities",
     ],
-  },
 
-  // Allow SVG through the image optimizer (the logo + QR code are SVG). The
-  // CSP strips scripting/sandbox from served SVG, which neutralizes the XSS
-  // risk that `dangerouslyAllowSVG` would otherwise introduce.
-  images: {
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    contentDispositionType: "attachment",
+    // Server Action request body cap. Next's default is 1 MB, which rejects
+    // every upload the app itself accepts (2 MB images / avatars, 5 MB
+    // background videos) with a bare 413 before validation runs. 10 MB
+    // comfortably covers the largest cap with headroom for multipart
+    // overhead, while still bounding abuse.
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
 
   async headers() {

@@ -234,7 +234,10 @@ export function LinksManager({
 
     // Rebuild the flat order: remove, then insert at the over-link's position
     // (or at the end of the target group when dropped on the container).
-    const without = items.filter((l) => l.id !== linkId).map((l) => ({ ...l }));
+    const without: LinkRow[] = [];
+    for (const l of items) {
+      if (l.id !== linkId) without.push({ ...l });
+    }
     let insertAt = without.length;
     if (!overId.startsWith("section:")) {
       const overIdx = without.findIndex((l) => l.id === Number(overId));

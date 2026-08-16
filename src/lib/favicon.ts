@@ -21,6 +21,9 @@ import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
 
 const FETCH_TIMEOUT_MS = 6_000;
 
+/** File extensions a cached favicon may be stored under. */
+const FAVICON_EXTS = [".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".ico"];
+
 /**
  * Extract the hostname from a URL string.
  * Returns null for non-HTTP(s) links (mailto, tel, etc.).
@@ -88,6 +91,31 @@ export async function fetchAndCacheFavicon(url: string): Promise<string | null> 
 }
 
 // ─── Strategy 1: Parse the site's HTML <head> ───────────────────────────
+
+/**
+ * Cache-only lookup: return the locally cached favicon URL for a domain,
+ * or null when nothing is cached. Never touches the network — safe to call
+ * per-render on dashboard pages.
+ */
+export async function getCachedFaviconUrl(url: string): Promise<string | null> {
+  const domain = extractDomain(url);
+  if (!domain) return null;
+  const hash = crypto
+    .createHash("sha256")
+    .update(domain)
+    .digest("hex")
+    .slice(0, 16);
+  for (const ext of FAVICON_EXTS) {
+    const name = `favicon-${hash}${ext}`;
+    try {
+      await fs.access(path.join(UPLOADS_DIR, name));
+      return `/api/uploads/${name}`;
+    } catch {
+      // Not cached under this extension — try the next.
+    }
+  }
+  return null;
+}
 
 async function tryHtmlHeadLinks(url: string): Promise<CandidateResult | null> {
   try {

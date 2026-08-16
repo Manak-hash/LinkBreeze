@@ -183,13 +183,18 @@
 .lb-float { animation: lb-float 3s ease-in-out infinite; }
 
 .aurora-root       { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; }
-.aurora-base       { position: absolute; inset: 0; background: #0a0820; }
+.aurora-base       { position: absolute; inset: 0; background: var(--lb-aurora-base, #0a0820); }
 .aurora-blob       { position: absolute; border-radius: 9999px; filter: blur(110px); will-change: transform; }
-.aurora-blob--1    { width: 60vw; height: 60vw; left: -10vw; top: -15vh; background: #533fd6; opacity: 0.20; animation: aurora-drift 24s ease-in-out infinite; }
-.aurora-blob--2    { width: 55vw; height: 55vw; right: -12vw; bottom: -18vh; background: #a78bfa; opacity: 0.18; animation: aurora-drift 30s ease-in-out infinite reverse; }
+.aurora-blob--1    { width: 60vw; height: 60vw; left: -10vw; top: -15vh; background: var(--lb-aurora-blob-1, #533fd6); opacity: 0.20; animation: aurora-drift 24s ease-in-out infinite; }
+.aurora-blob--2    { width: 55vw; height: 55vw; right: -12vw; bottom: -18vh; background: var(--lb-aurora-blob-2, #a78bfa); opacity: 0.18; animation: aurora-drift 30s ease-in-out infinite reverse; }
 .aurora-grain      { position: absolute; inset: 0; opacity: 0.04; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 .aurora-vignette   { position: absolute; inset: 0; background: radial-gradient(120% 120% at 50% 40%, transparent 55%, rgba(5, 3, 20, 0.55) 100%); }
+
+/* Film-grain noise overlay for any theme (Effects → Noise). Same SVG grain
+   as the aurora background, exposed as a standalone fixed layer. */
+.lb-noise          { position: fixed; inset: 0; z-index: -5; pointer-events: none; opacity: 0.06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
 .glass {
   background: rgba(20, 17, 46, 0.6);
@@ -219,6 +224,121 @@
 
 /* ── Pixel (8-bit) hover: hard shadow, no blur ──────────────────────────── */
 .lb-link-card[data-pixel="true"]:hover { box-shadow: 6px 6px 0 var(--lb-accent); }
+
+/* ── Gel bubble style (Frutiger Aero / Web 2.0 glossy) ──────────────────── */
+/* Pill-shaped translucent cards with a vertical aqua gradient, a bright     */
+/* specular highlight arc near the top, and a "gel press" hover: the card    */
+/* squashes like a jelly pad while the highlight slides. Zero JS — the      */
+/* specular is a ::before overlay, colors come from theme tokens.           */
+.lb-gel-mode .lb-link-card {
+  position: relative;
+  overflow: hidden;
+  border: var(--lb-border-width) solid var(--lb-card-border) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.18) 42%, var(--lb-card-bg) 100%) !important;
+  backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 6px 18px -6px rgba(6, 137, 228, 0.35);
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, border-color .22s ease;
+}
+/* Specular highlight arc — the glossy bubble "shine" */
+.lb-gel-mode .lb-link-card::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 4%;
+  height: 42%;
+  border-radius: 9999px / 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.05));
+  pointer-events: none;
+  transition: top .25s ease;
+}
+/* Gel press: squash + shine slides up. The generic hover transforms from
+   globals (lift/scale) are overridden — gel has its own motion. */
+.lb-gel-mode .lb-link-card:hover {
+  transform: scaleY(0.975) scaleX(1.008);
+  border-color: var(--lb-accent) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 4px 12px -4px rgba(6, 137, 228, 0.45);
+}
+.lb-gel-mode .lb-link-card:hover::before {
+  top: 2%;
+}
+.lb-gel-mode .lb-link-card:active {
+  transform: scaleY(0.94) scaleX(1.015);
+}
+
+/* Gel social icons: frosted round bubbles with mini shine */
+.lb-gel-mode .lb-social-icon {
+  position: relative;
+  overflow: hidden;
+  border: var(--lb-border-width) solid var(--lb-card-border) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 45%, var(--lb-card-bg) 100%) !important;
+  backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 4px 12px -4px rgba(6, 137, 228, 0.3);
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), border-color .22s ease;
+}
+.lb-gel-mode .lb-social-icon::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 6%;
+  height: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.04));
+  pointer-events: none;
+}
+.lb-gel-mode .lb-social-icon:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: var(--lb-accent) !important;
+}
+
+/* Gel subscribe button: bright aqua pill (text color resolved by
+   pickContrastText → ink on bright aqua) + specular + press */
+.lb-gel-mode .lb-gel-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lb-accent) 78%, #ffffff) 0%, var(--lb-accent) 48%, color-mix(in srgb, var(--lb-accent) 82%, #063a5e) 100%) !important;
+  color: var(--lb-btn-text);
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(6, 58, 94, 0.25),
+    0 5px 15px -5px rgba(6, 137, 228, 0.55);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+}
+.lb-gel-mode .lb-gel-btn::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 5%;
+  height: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.04));
+  pointer-events: none;
+}
+.lb-gel-mode .lb-gel-btn:hover { transform: translateY(-1px) scale(1.02); }
+.lb-gel-mode .lb-gel-btn:active { transform: scaleY(0.94); }
+
+/* Gel embed cards: frosted glass with top shine */
+.lb-gel-mode .lb-gel-embed {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.12) 45%, var(--lb-card-bg) 100%) !important;
+  backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--lb-blur)) saturate(130%);
+  border: var(--lb-border-width) solid var(--lb-card-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 18px -6px rgba(6, 137, 228, 0.35);
+}
 
 /* ── Pixel mode (8-bit): clip-paths + wrapper-based borders ─────────────── */
 /* Pixel borders use a wrapper div with accent background + clip-path,       */
@@ -318,6 +438,17 @@ main.lb-pixel-mode .lb-pixel-avatar img {
   .lb-link-card:hover { transform: none !important; }
   .lb-social-icon { transition: none !important; }
   .lb-social-icon:hover { transform: none !important; }
+  /* Gel: no squash/shine-slide motion — the glossy look itself stays */
+  .lb-gel-mode .lb-link-card,
+  .lb-gel-mode .lb-link-card::before,
+  .lb-gel-mode .lb-social-icon,
+  .lb-gel-mode .lb-gel-btn { transition: none !important; }
+  .lb-gel-mode .lb-link-card:hover,
+  .lb-gel-mode .lb-link-card:active,
+  .lb-gel-mode .lb-social-icon:hover,
+  .lb-gel-mode .lb-gel-btn:hover,
+  .lb-gel-mode .lb-gel-btn:active { transform: none !important; }
+  .lb-gel-mode .lb-link-card:hover::before { top: 4% !important; }
 }
 
 /* ── Embedded preview: hide scrollbar (phone frame handles scroll) ────── */

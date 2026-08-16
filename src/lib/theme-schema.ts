@@ -44,6 +44,12 @@ export const customSchema = z.object({
   backgroundValue: z.string().max(500).optional(),
   backgroundAngle: z.string().max(20).optional(),
   backgroundImageUrl: z.string().max(2000).optional(),
+  backgroundFit: z.enum(["cover", "contain", "tile"]).optional(),
+  backgroundPosition: z
+    .string()
+    .max(20)
+    .regex(/^\s*-?\d+(\.\d+)?%\s+-?\d+(\.\d+)?%\s*$/, "Invalid position")
+    .optional(),
   overlayColor: cssColor.optional(),
   overlayOpacity: z.string().max(10).optional(),
   // Colors
@@ -61,7 +67,7 @@ export const customSchema = z.object({
   letterSpacing: z.string().max(10).optional(),
   // Card
   linkStyle: z
-    .enum(["pill", "rounded", "sharp", "glass", "outline", "neon", "pixel"])
+    .enum(["pill", "rounded", "sharp", "glass", "outline", "neon", "pixel", "gel"])
     .optional(),
   animationType: z.enum(["lift", "scale", "none", "fade-up", "slide-in", "zoom-in", "blur-in"]).optional(),
   radius: z.string().max(20).optional(),
