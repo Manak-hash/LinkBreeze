@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPageBySlug, getActiveLinks, getSetting } from "@/server/queries";
+import { getPageBySlug, getActiveLinks, getAnalyticsRetentionDays } from "@/server/queries";
 import { getThemeById, getActiveTheme } from "@/server/queries";
 import { generatePrivacyPolicy } from "@/lib/privacy-template";
 import { MarkdownLite } from "@/components/public/MarkdownLite";
@@ -62,7 +62,7 @@ export default async function PrivacyPage({
 
   const [links, retentionDays] = await Promise.all([
     getActiveLinks(page.id),
-    getSetting("analyticsRetentionDays"),
+    getAnalyticsRetentionDays(),
   ]);
 
   // Resolve the same theme the public page uses.
@@ -88,7 +88,7 @@ export default async function PrivacyPage({
       hasEmailCapture: page.emailCapture ?? false,
       hasEmbeds: hasEmbedLink(links),
       hasExternalAnalytics: Boolean(page.analyticsScript?.trim()),
-      analyticsRetentionDays: retentionDays ? parseInt(retentionDays, 10) || 0 : 0,
+      analyticsRetentionDays: retentionDays,
     });
   }
 

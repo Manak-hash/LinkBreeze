@@ -5,6 +5,7 @@ import {
   getDefaultPage,
   getAllThemes,
   getActiveTheme,
+  getAnalyticsRetentionDays,
   getSetting,
   getAllSubscribers,
 } from "@/server/queries";
@@ -48,7 +49,7 @@ export default async function SettingsPage({
     getAllThemes(),
     getActiveTheme(),
     isUpdateCheckEnabled(),
-    getSetting("analyticsRetentionDays"),
+    getAnalyticsRetentionDays(),
     getSetting("consentText"),
     getAllSubscribers(),
   ]);
@@ -141,7 +142,7 @@ export default async function SettingsPage({
                 emailCaptureEnabled={activePage?.emailCapture ?? false}
               />
               <DataManager
-                retentionDays={retentionDays ?? ""}
+                retentionDays={String(retentionDays)}
                 updateCheckEnabled={updateCheckEnabled}
               />
             </div>

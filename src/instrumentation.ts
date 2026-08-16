@@ -26,7 +26,7 @@ export async function register() {
   // ── 1. Ensure SECRET_KEY is set before anything touches auth ─────────
   await ensureSecretKey();
 
-  const [{ db }, { migrate }, path] = await Promise.all([
+  const [{ db, sqlite }, { migrate }, path] = await Promise.all([
     import("@/db"),
     import("drizzle-orm/better-sqlite3/migrator"),
     import("path"),
@@ -43,7 +43,7 @@ export async function register() {
   );
 
   try {
-    await repairMigrationTimestamps(migrationsFolder);
+    await repairMigrationTimestamps(migrationsFolder, sqlite);
     await migrate(db, { migrationsFolder });
     console.log("[migrate] database schema is up to date");
   } catch (err) {
@@ -75,11 +75,13 @@ export async function register() {
  *     CREATE UNIQUE INDEX), and
  *   - nothing that should run gets skipped.
  */
-async function repairMigrationTimestamps(migrationsFolder: string): Promise<void> {
-  const [{ createHash }, { readFileSync }, { sqlite }] = await Promise.all([
+async function repairMigrationTimestamps(
+  migrationsFolder: string,
+  sqlite: import("better-sqlite3").Database,
+): Promise<void> {
+  const [{ createHash }, { readFileSync }] = await Promise.all([
     import("crypto"),
     import("fs"),
-    import("@/db"),
   ]);
   const { join } = await import("path");
 

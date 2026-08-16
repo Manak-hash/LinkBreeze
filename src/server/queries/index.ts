@@ -618,18 +618,31 @@ export async function updateUserPassword(
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
+/** Default analytics retention window in days, used when no setting is stored
+ *  (#77). An explicit `0` from the operator means keep forever and IS
+ *  respected — only a missing (or non-numeric) setting falls back to this. */
+export const DEFAULT_ANALYTICS_RETENTION_DAYS = 90;
+
+/** Resolve the effective analytics retention in days: the stored setting when
+ *  it's a valid non-negative integer, otherwise the default. Every reader
+ *  (pruner, settings UI, privacy policy) goes through this so they can never
+ *  disagree about what "unlimited" means. */
+export async function getAnalyticsRetentionDays(): Promise<number> {
+  const raw = await getSetting("analyticsRetentionDays");
+  if (raw === null) return DEFAULT_ANALYTICS_RETENTION_DAYS;
+  return /^\d+$/.test(raw) ? Number(raw) : DEFAULT_ANALYTICS_RETENTION_DAYS;
+}
+
 // Cached retention window so we don't read settings on every pageview.
 let retentionCache: { days: number; at: number } = { days: -1, at: 0 };
 
 /** Opportunistically prune analytics older than the configured retention
  *  window (settings key `analyticsRetentionDays`). Reads the setting at most
- *  once per minute; a no-op when no retention is configured. */
+ *  once per minute; a no-op when retention is set to 0 (keep forever). */
 async function pruneAnalyticsIfDue(): Promise<void> {
   const now = Date.now();
   if (now - retentionCache.at > 60_000) {
-    const raw = await getSetting("analyticsRetentionDays");
-    const days = raw && /^\d+$/.test(raw) ? Number(raw) : 0;
-    retentionCache = { days, at: now };
+    retentionCache = { days: await getAnalyticsRetentionDays(), at: now };
   }
   const { days } = retentionCache;
   if (days <= 0) return;
@@ -673,6 +686,9 @@ export async function recordClick(
       .where(eq(links.id, linkId))
       .run();
   });
+  // Same opportunistic prune as pageviews, so click-heavy pages (e.g. a page
+  // embedded somewhere that skips the pageview beacon) don't retain forever.
+  await pruneAnalyticsIfDue();
 }
 
 // AnalyticsRange is re-exported from the shared analytics-range module so there

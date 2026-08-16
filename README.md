@@ -36,7 +36,7 @@
 - **🖼️ Link Thumbnails** — Add images to your links for visual preview cards
 - **🎵 Embed Widgets** — Embed YouTube, Spotify, SoundCloud, Vimeo, or Bandcamp directly on your page
 - **⏰ Link Scheduling** — Schedule links to appear/disappear automatically with date/time controls
-- **📊 Privacy-Respecting Analytics** — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored.
+- **📊 Privacy-Respecting Analytics** — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored. Data older than 90 days is pruned automatically by default (Settings → Data; set 0 to keep everything).
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
 - **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
 - **🎨 Themes** — 10 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro) + full customizer with CSS token system (colors, 10 fonts, 8 background types, 7 card styles, layout controls, effects) + theme duplicate/import/export

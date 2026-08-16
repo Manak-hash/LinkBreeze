@@ -175,7 +175,7 @@ export function DataManager({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Older analytics are pruned automatically. 0 keeps everything.
+            Older analytics are pruned automatically. Defaults to 90 days — set 0 to keep everything.
           </p>
           {retentionSaved ? (
             <p className="text-sm text-success">Saved!</p>

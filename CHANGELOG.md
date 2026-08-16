@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backup, restore, and theme export/import** — All five new theme fields and the page banner round-trip through backup/restore and the theme JSON export/import. Pre-1.3 backup files and theme exports import cleanly (new fields default).
 - **Tests: 21 new** — Reveal animation resolver (all keyframe mappings, none, fallbacks, delays), avatar tokens (shape radii, gradient build), gif/video background resolution, and DB integration (migration 0014 columns and defaults, updateTheme persistence, duplicateTheme cloning all new fields, getPagesUsingTheme).
 
+### Changed
+
+- **Analytics retention defaults to 90 days (#77)** — Instances that never set a retention window now prune analytics older than 90 days instead of keeping them forever. An explicit value in Settings → Data — including 0 (keep everything) — is respected unchanged; only the unset case changes. All readers (pruner, settings UI, privacy policy text) resolve the value through one shared helper, so the policy page can no longer disagree with actual pruning. Clicks are now pruned on the same opportunistic schedule as pageviews (previously only pageviews triggered pruning). Upgrading instances with no setting stored will prune analytics older than 90 days on the first tracked event — export first (Settings → Data → Export CSV) if you need the full history.
+
 ### Fixed
 
 - **Migration bookkeeping repair (#79)** — On databases upgraded from older LinkBreeze versions, migration records could end up out of chronological order, which made newer schema changes look already applied. The affected migrations were silently skipped and the first query touching a missing column crashed (reported on 1.2.7 Docker installs as `SqliteError: no such column: privacy_policy`). Fixed in three layers:
