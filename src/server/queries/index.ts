@@ -201,18 +201,27 @@ export async function updatePage(id: number, data: UpdatePageInput): Promise<voi
   }
 }
 
-export async function deletePage(id: number): Promise<void> {
+export async function deletePage(id: number, wipe = false): Promise<void> {
   const target = await getPageById(id);
   if (!target) return;
   if (target.isDefault) throw new Error("Cannot delete the default page");
 
-  // Move links to the default page before deleting (sections don't transfer).
-  const def = await getDefaultPage();
-  await db.update(links).set({ pageId: def.id, sectionId: null }).where(eq(links.pageId, id));
-  // Clear pageId on analytics rows (keep historical data, disassociate page).
-  await db.update(analyticsPageviews).set({ pageId: null }).where(eq(analyticsPageviews.pageId, id));
-  await db.delete(linkSections).where(eq(linkSections.pageId, id));
-  await db.delete(pages).where(eq(pages.id, id));
+  db.transaction((tx) => {
+    if (wipe) {
+      // Hard delete: links (their click analytics cascade), sections, then the page.
+      tx.delete(links).where(eq(links.pageId, id)).run();
+    } else {
+      // Keep mode: move links to the default page (sections don't transfer).
+      // The default page always exists (schema invariant), so assert it.
+      const def = tx.select({ id: pages.id }).from(pages).where(eq(pages.isDefault, true)).limit(1).get();
+      if (!def) throw new Error("No default page found to move links to");
+      tx.update(links).set({ pageId: def.id, sectionId: null }).where(eq(links.pageId, id)).run();
+    }
+    // Clear pageId on analytics rows (keep historical data, disassociate page).
+    tx.update(analyticsPageviews).set({ pageId: null }).where(eq(analyticsPageviews.pageId, id)).run();
+    tx.delete(linkSections).where(eq(linkSections.pageId, id)).run();
+    tx.delete(pages).where(eq(pages.id, id)).run();
+  });
 }
 
 export async function reorderPages(orderedIds: number[]): Promise<void> {
@@ -558,7 +567,14 @@ export async function themeNameExists(name: string): Promise<boolean> {
 
 /** Delete a theme by id. Presets cannot be deleted. */
 export async function deleteTheme(id: number): Promise<void> {
-  await db.delete(themes).where(eq(themes.id, id));
+  const row = await getThemeById(id);
+  if (row?.isPreset) throw new Error("Built-in preset themes cannot be deleted");
+  await db.transaction((tx) => {
+    // Release any pages still pinned to this theme so no dangling themeId
+    // survives; those pages fall back to the globally active theme.
+    tx.update(pages).set({ themeId: null }).where(eq(pages.themeId, id)).run();
+    tx.delete(themes).where(eq(themes.id, id)).run();
+  });
 }
 
 /** Seed a set of attractive preset themes if the table is empty. */

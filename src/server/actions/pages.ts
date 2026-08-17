@@ -9,10 +9,14 @@ import {
   validationError,
   unauthorizedError,
   conflictError,
+  ErrorCode,
+  logError,
 } from "@/lib/errors";
 import {
   createPage as createPageQuery,
   updatePage as updatePageQuery,
+  deletePage as deletePageQuery,
+  getDefaultPage,
   getAllPages,
 } from "@/server/queries";
 
@@ -170,5 +174,46 @@ export async function setPageThemeAction(pageId: number, themeId: number): Promi
 
   revalidatePath("/theme");
   revalidatePath(`/`);
+  return { success: true };
+}
+
+export async function deletePageAction(formData: FormData): Promise<ActionResult> {
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await getSession())) return unauthorizedError();
+
+  const idStr = formData.get("pageId");
+  if (!idStr) return validationError("Missing page id");
+  const pageId = Number(idStr);
+  if (Number.isNaN(pageId)) return validationError("Invalid page id");
+
+  const mode = formData.get("mode");
+  if (mode !== "keep" && mode !== "wipe") {
+    return validationError("Invalid delete mode");
+  }
+
+  // The default page is the fallback target for links on deleted pages,
+  // so it can never be deleted itself.
+  const def = await getDefaultPage();
+  if (def.id === pageId) {
+    return validationError("The default page cannot be deleted");
+  }
+
+  try {
+    await deletePageQuery(pageId, mode === "wipe");
+  } catch (err) {
+    logError("deletePageAction", err, { pageId, mode });
+    return {
+      success: false,
+      error: "Something went wrong while deleting the page. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
+
+  revalidatePath("/links");
+  revalidatePath("/dashboard");
+  revalidatePath("/theme");
+  revalidatePath("/settings");
+  revalidatePath("/");
   return { success: true };
 }

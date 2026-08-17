@@ -195,6 +195,11 @@ export async function deleteCustomTheme(id: number): Promise<ActionResult> {
   if (active?.id === id) {
     return validationError("Cannot delete the active theme");
   }
+  const row = await getThemeById(id);
+  if (!row) return validationError("Theme not found");
+  if (row.isPreset) {
+    return validationError("Built-in themes cannot be deleted");
+  }
 
   try {
     await deleteTheme(id);

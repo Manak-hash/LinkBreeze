@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   setActiveTheme: vi.fn(async () => undefined),
   updateTheme: vi.fn(async () => undefined),
   getActiveTheme: vi.fn(async (): Promise<{ id: number; name: string } | null> => ({ id: 1, name: "Default" })),
+  getThemeById: vi.fn(async (): Promise<{ id: number; name: string; isPreset: boolean } | null> => ({ id: 5, name: "My Theme", isPreset: false })),
   duplicateTheme: vi.fn(async (): Promise<{ id: number; name: string }> => ({ id: 42, name: "Copy" })),
   deleteTheme: vi.fn(async () => undefined),
   themeNameExists: vi.fn(async () => false),
@@ -19,6 +20,7 @@ vi.mock("@/server/queries", () => ({
   setActiveTheme: mocks.setActiveTheme,
   updateTheme: mocks.updateTheme,
   getActiveTheme: mocks.getActiveTheme,
+  getThemeById: mocks.getThemeById,
   duplicateTheme: mocks.duplicateTheme,
   deleteTheme: mocks.deleteTheme,
   themeNameExists: mocks.themeNameExists,
@@ -31,6 +33,7 @@ beforeEach(() => {
   mocks.demoBlock.mockReturnValue(null);
   mocks.getSession.mockResolvedValue({ userId: 1, username: "admin", exp: Date.now() + 60000, pv: 1 });
   mocks.getActiveTheme.mockResolvedValue({ id: 1, name: "Default" });
+  mocks.getThemeById.mockResolvedValue({ id: 5, name: "My Theme", isPreset: false });
   mocks.themeNameExists.mockResolvedValue(false);
 });
 
@@ -98,6 +101,7 @@ describe("duplicateActiveTheme", () => {
 describe("deleteCustomTheme", () => {
   it("deletes a non-active custom theme", async () => {
     mocks.getActiveTheme.mockResolvedValue({ id: 1, name: "Default" });
+    mocks.getThemeById.mockResolvedValue({ id: 5, name: "My Theme", isPreset: false });
     const res = await deleteCustomTheme(5);
     expect(res.success).toBe(true);
   });
@@ -106,5 +110,22 @@ describe("deleteCustomTheme", () => {
     mocks.getActiveTheme.mockResolvedValue({ id: 5, name: "Active" });
     const res = await deleteCustomTheme(5);
     expect(res.success).toBe(false);
+  });
+
+  it("refuses to delete a built-in preset theme", async () => {
+    mocks.getActiveTheme.mockResolvedValue({ id: 1, name: "Default" });
+    mocks.getThemeById.mockResolvedValue({ id: 9, name: "Aurora", isPreset: true });
+    const res = await deleteCustomTheme(9);
+    expect(res.success).toBe(false);
+    if (!res.success) expect(res.error).toBe("Built-in themes cannot be deleted");
+    expect(mocks.deleteTheme).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a missing theme", async () => {
+    mocks.getActiveTheme.mockResolvedValue({ id: 1, name: "Default" });
+    mocks.getThemeById.mockResolvedValue(null);
+    const res = await deleteCustomTheme(99);
+    expect(res.success).toBe(false);
+    expect(mocks.deleteTheme).not.toHaveBeenCalled();
   });
 });

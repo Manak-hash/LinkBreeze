@@ -3,8 +3,9 @@
 import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Plus, FileText, Star, Globe, ExternalLink } from "lucide-react";
+import { ChevronDown, Plus, FileText, Star, Globe, Trash2 } from "lucide-react";
 import type { PageRow } from "@/server/queries";
+import { DeletePageDialog } from "@/components/admin/delete-page-dialog";
 
 interface PageSwitcherProps {
   pages: Pick<PageRow, "id" | "slug" | "title" | "isDefault" | "isPublished">[];
@@ -18,6 +19,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
 
   const currentPageId = searchParams.get("page");
   const [open, setOpen] = React.useState(false);
+  const [pageToDelete, setPageToDelete] = React.useState<PageSwitcherProps["pages"][number] | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   // Resolve the active page: explicit ?page= param → default page → first.
@@ -88,7 +90,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
           {pages.map((page) => (
             <div
               key={page.id}
-              className={`group flex w-full items-center rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+              className={`flex w-full items-center rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
                 page.id === activePage.id ? "bg-muted/30" : ""
               }`}
             >
@@ -108,18 +110,28 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
                 {!page.isPublished && (
                   <Globe className="size-3 shrink-0 text-muted-foreground opacity-50" />
                 )}
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  /{page.slug}
-                </span>
               </button>
+              {!page.isDefault && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPageToDelete(page);
+                  }}
+                  className="mr-1 shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+                  aria-label={`Delete page ${page.title || page.slug}`}
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
               <a
                 href={`/${page.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-1 shrink-0 text-muted-foreground transition-colors hover:text-lavender"
-                aria-label="View public page"
+                className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-lavender"
+                aria-label={`View public page /${page.slug}`}
               >
-                <ExternalLink className="size-3.5" />
+                /{page.slug}
               </a>
             </div>
           ))}
@@ -134,6 +146,14 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
           </div>
         </div>
       )}
+
+      <DeletePageDialog
+        page={pageToDelete}
+        open={pageToDelete !== null}
+        onOpenChange={(next) => {
+          if (!next) setPageToDelete(null);
+        }}
+      />
     </div>
   );
 }

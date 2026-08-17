@@ -8,6 +8,7 @@ import {
   Download,
   Upload,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SuccessToast } from "@/components/ui/success-toast";
-import { duplicateActiveTheme } from "@/server/actions/theme";
+import { duplicateActiveTheme, deleteCustomTheme } from "@/server/actions/theme";
 import type { ThemeRow } from "@/server/queries";
 
 /**
@@ -67,6 +68,41 @@ export function ThemeActions({
       setDupError("Failed to duplicate theme. Please try again.");
     } finally {
       setDupPending(false);
+    }
+  };
+
+  // ── Delete ────────────────────────────────────────────────────────────
+  const [delOpen, setDelOpen] = React.useState(false);
+  const [delPending, setDelPending] = React.useState(false);
+  const [delError, setDelError] = React.useState<string | null>(null);
+  const [delTarget, setDelTarget] = React.useState<ThemeRow | null>(null);
+
+  const canDeleteActive = active !== null && !active.isPreset;
+
+  const openDelete = () => {
+    if (!canDeleteActive) return;
+    setDelError(null);
+    setDelTarget(active);
+    setDelOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!delTarget) return;
+    setDelPending(true);
+    setDelError(null);
+    try {
+      const res = await deleteCustomTheme(delTarget.id);
+      if (!res.success) {
+        setDelError(res.error);
+        return;
+      }
+      setDelOpen(false);
+      setToast(`Theme "${delTarget.name}" deleted`);
+      router.refresh();
+    } catch {
+      setDelError("Failed to delete theme. Please try again.");
+    } finally {
+      setDelPending(false);
     }
   };
 
@@ -123,6 +159,23 @@ export function ThemeActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={openDelete}
+        disabled={!canDeleteActive}
+        title={
+          canDeleteActive
+            ? `Delete "${active?.name}"`
+            : "Built-in themes cannot be deleted"
+        }
+        aria-label="Delete theme"
+        className={!canDeleteActive ? "text-muted-foreground" : undefined}
+      >
+        <Trash2 className="size-3.5" />
+      </Button>
+
       <Button
         type="button"
         variant="outline"
@@ -211,6 +264,45 @@ export function ThemeActions({
         </DialogContent>
       </Dialog>
 
+      {/* Delete dialog */}
+      <Dialog open={delOpen} onOpenChange={setDelOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete theme</DialogTitle>
+            <DialogDescription>
+              {delTarget
+                ? `This permanently removes "${delTarget.name}" from your themes.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {delError ? (
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="size-3.5" />
+              {delError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDelOpen(false)}
+              disabled={delPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={delPending}
+            >
+              <Trash2 className="size-3.5" />
+              {delPending ? "Deleting…" : "Delete theme"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Import & export dialog */}
       <Dialog open={toolsOpen} onOpenChange={setToolsOpen}>
         <DialogContent className="sm:max-w-md">
@@ -256,6 +348,33 @@ export function ThemeActions({
                     </span>
                     <Download className="size-3.5 shrink-0 text-muted-foreground" />
                   </button>
+                  {!t.isPreset && t.id !== active?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDelError(null);
+                        setDelTarget(t);
+                        setDelOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-destructive/10"
+                      aria-label={`Delete theme ${t.name}`}
+                    >
+                      <span
+                        aria-hidden
+                        className="size-3.5 shrink-0 rounded-full ring-1 ring-foreground/10 opacity-40"
+                        style={{
+                          background:
+                            t.backgroundValue?.split(",")[0]?.trim() ||
+                            t.primaryColor ||
+                            "#7c5ff0",
+                        }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm text-destructive">
+                        Delete {t.name}
+                      </span>
+                      <Trash2 className="size-3.5 shrink-0 text-destructive" />
+                    </button>
+                  ) : null}
                 </React.Fragment>
               ))}
             </div>

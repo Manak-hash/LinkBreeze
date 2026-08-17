@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   createPage: vi.fn(async () => ({ id: 5 })),
   updatePage: vi.fn(async () => undefined),
+  deletePage: vi.fn(async () => undefined),
+  getDefaultPage: vi.fn(async () => ({ id: 1, slug: "home" })),
   getAllPages: vi.fn(async (): Promise<{ id: number; slug: string }[]> => []),
 }));
 
@@ -15,10 +17,12 @@ vi.mock("@/lib/demo", () => ({ demoBlock: mocks.demoBlock }));
 vi.mock("@/server/queries", () => ({
   createPage: mocks.createPage,
   updatePage: mocks.updatePage,
+  deletePage: mocks.deletePage,
+  getDefaultPage: mocks.getDefaultPage,
   getAllPages: mocks.getAllPages,
 }));
 
-import { createPageAction, updatePageAction, setPageThemeAction } from "@/server/actions/pages";
+import { createPageAction, updatePageAction, setPageThemeAction, deletePageAction } from "@/server/actions/pages";
 
 function fd(data: Record<string, string>): FormData {
   const f = new FormData();
@@ -84,6 +88,54 @@ describe("setPageThemeAction", () => {
   it("rejects when unauthenticated", async () => {
     mocks.getSession.mockResolvedValue(null);
     const res = await setPageThemeAction(1, 3);
+    expect(res.success).toBe(false);
+  });
+});
+
+describe("deletePageAction", () => {
+  it("deletes a non-default page (keep mode)", async () => {
+    const res = await deletePageAction(fd({ pageId: "7", mode: "keep" }));
+    expect(res.success).toBe(true);
+    expect(mocks.deletePage).toHaveBeenCalledWith(7, false);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/links");
+  });
+
+  it("deletes a non-default page (wipe mode)", async () => {
+    const res = await deletePageAction(fd({ pageId: "7", mode: "wipe" }));
+    expect(res.success).toBe(true);
+    expect(mocks.deletePage).toHaveBeenCalledWith(7, true);
+  });
+
+  it("rejects when unauthenticated", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    const res = await deletePageAction(fd({ pageId: "7", mode: "keep" }));
+    expect(res.success).toBe(false);
+    expect(mocks.deletePage).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete the default page", async () => {
+    // Default page id is 1 per the getDefaultPage mock.
+    const res = await deletePageAction(fd({ pageId: "1", mode: "keep" }));
+    expect(res.success).toBe(false);
+    if (!res.success) expect(res.error).toBe("The default page cannot be deleted");
+    expect(mocks.deletePage).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-numeric page id", async () => {
+    const res = await deletePageAction(fd({ pageId: "abc", mode: "keep" }));
+    expect(res.success).toBe(false);
+    expect(mocks.deletePage).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid delete mode", async () => {
+    const res = await deletePageAction(fd({ pageId: "7", mode: "teleport" }));
+    expect(res.success).toBe(false);
+    expect(mocks.deletePage).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the query layer throws", async () => {
+    mocks.deletePage.mockRejectedValueOnce(new Error("boom"));
+    const res = await deletePageAction(fd({ pageId: "7", mode: "keep" }));
     expect(res.success).toBe(false);
   });
 });
