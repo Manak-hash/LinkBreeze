@@ -53,11 +53,13 @@ const linkSchema = z
       .transform(truthy)
       .default(true),
     cardStyle: z.enum(["compact", "rich"]).default("compact"),
-    sectionId: z
-      .union([z.coerce.number(), z.literal(""), z.null()])
-      .transform((v) => (v === "" || v === null ? null : v))
-      .nullable()
-      .optional(),
+    // Form data sends an empty string when "No section" is selected; coerce
+    // that to null before numeric parsing, otherwise Number("") === 0 and the
+    // insert fails on the section_id foreign key (issue #86).
+    sectionId: z.preprocess(
+      (v) => (v === "" || v === null || v === undefined ? null : v),
+      z.coerce.number().nullable().optional()
+    ),
   })
   .refine((link) => isAllowedLinkUrl(link.type, link.url), {
     path: ["url"],

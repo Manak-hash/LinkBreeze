@@ -94,6 +94,18 @@ describe("createLink", () => {
     const res = await createLink(makeFormData({ title: "WA", url: "https://evil.com", type: "whatsapp", isActive: "true", isHighlighted: "false" }));
     expect(res.success).toBe(false);
   });
+
+  it("maps empty sectionId to null (#86)", async () => {
+    const res = await createLink(makeFormData({ title: "No Section", url: "https://example.com", type: "url", isActive: "true", isHighlighted: "false", sectionId: "" }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({ sectionId: null }));
+  });
+
+  it("passes a numeric sectionId through", async () => {
+    const res = await createLink(makeFormData({ title: "Sectioned", url: "https://example.com", type: "url", isActive: "true", isHighlighted: "false", sectionId: "3" }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({ sectionId: 3 }));
+  });
 });
 
 describe("updateLink", () => {
@@ -101,6 +113,12 @@ describe("updateLink", () => {
     const res = await updateLink(makeFormData({ id: "1", title: "Updated", url: "https://new.com", type: "url", isActive: "true", isHighlighted: "false" }));
     expect(res.success).toBe(true);
     expect(mocks.updateLink).toHaveBeenCalledOnce();
+  });
+
+  it("maps empty sectionId to null (#86)", async () => {
+    const res = await updateLink(makeFormData({ id: "1", title: "Cleared", url: "https://new.com", type: "url", isActive: "true", isHighlighted: "false", sectionId: "" }));
+    expect(res.success).toBe(true);
+    expect(mocks.updateLink).toHaveBeenCalledWith(1, expect.objectContaining({ sectionId: null }));
   });
 
   it("rejects when unauthenticated", async () => {

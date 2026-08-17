@@ -17,6 +17,10 @@ import * as schema from "@/db/schema";
 const SQL = await initSqlJs();
 const sqliteDb = new SQL.Database();
 
+// Match production (src/db/index.ts): enforce FK constraints, otherwise a
+// buggy write like sectionId=0 (#86) would slip through tests silently.
+sqliteDb.run("PRAGMA foreign_keys = ON");
+
 // Create drizzle instance with our schema
 const db = drizzle(sqliteDb, { schema });
 
