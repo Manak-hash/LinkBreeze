@@ -88,7 +88,7 @@ export function DeletePageDialog({ page, open, onOpenChange }: DeletePageDialogP
           >
             <span className="text-sm font-medium text-destructive">Delete everything</span>
             <span className="text-xs text-muted-foreground">
-              The page's links are deleted with it, including their click history.
+              The page&rsquo;s links are deleted with it, including their click history.
             </span>
           </button>
         </div>
