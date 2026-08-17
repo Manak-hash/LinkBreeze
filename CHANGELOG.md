@@ -5,6 +5,24 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - Unreleased
+
+### Added
+
+- **Page and theme deletion (#84)** — Non-default pages can now be deleted from the page switcher, and user-created themes from the theme page (trash icon left of Duplicate theme). Both ask for confirmation first. In the page switcher, clicking a page's `/slug` opens its public page.
+  - Page deletion offers a choice: keep the page's links by moving them to the default page as uncategorized, or delete everything including the links and their click history. Sections and per-page view analytics are removed either way. The default page has no delete option since it is the fallback target for kept links.
+  - Theme deletion works on themes the user created, duplicated, or imported. The 11 built-in presets can't be deleted, and neither can the currently active theme. Pages still using a deleted theme automatically fall back to the active theme.
+  - Page deletion runs as a single database transaction, so a failure midway can't leave a half-deleted page behind.
+
+### Fixed
+
+- **Link creation failing with "FOREIGN KEY constraint failed" (#86)** — Any new link failed to save once the page had at least one section. The link dialog's "No section" option submits an empty value, and the form schema coerced that empty string to `0` before the "empty means no section" check could run (`Number("") === 0`). The insert then referenced section 0, which doesn't exist, and SQLite rejected it with the FOREIGN KEY error. The section field now normalizes empty values to "no section" before numeric parsing, so the coercion can't misfire regardless of how the validation branches are ordered. Both the create and edit flows shared the flawed schema, so both are fixed. Covered by regression tests at the form-parsing layer, and the test database now enforces foreign keys the same way production does, so this class of bug can't slip through tests silently again.
+
+### Dependencies
+
+- Bumped the minor-and-patch group with 6 updates (#88): `next` 16.3.0 → 16.3.1, `lucide-react` 1.30.0 → 1.31.0, `shadcn` 4.16.2 → 4.18.0, `@axe-core/playwright` 4.12.1 → 4.13.0, `@types/node` 26.1.2 → 26.2.0, `eslint-config-next` 16.3.0 → 16.3.1
+- Bumped `@types/better-sqlite3` from 7.6.13 to 9.6.0 (#89), aligning the type declarations with the runtime `better-sqlite3` v13
+
 ## [1.3.0] - 2026-08-16
 
 ### Added
