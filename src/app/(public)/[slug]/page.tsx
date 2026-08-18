@@ -8,6 +8,7 @@ import {
   getSectionsByPage,
   getActiveTheme,
   getThemeById,
+  getCustomFontById,
   recordPageview,
   type SocialLink,
 } from "@/server/queries";
@@ -34,6 +35,7 @@ import {
   revealAnimationStyle,
   type ThemeInput,
 } from "@/lib/theme-tokens";
+import { parseCustomFontId, buildFontFaceCss } from "@/lib/custom-fonts";
 
 export const revalidate = 60;
 
@@ -187,11 +189,28 @@ export default async function PublicPage({ params }: PageProps) {
 
   const themeInput: ThemeInput = theme ?? {};
 
+  // Uploaded font (#82): resolve "custom:<id>" to an @font-face rule + lookup
+  // map so the token resolver emits the right family stack. Missing row →
+  // resolver falls back to the default font (never a broken stack).
+  const customFontId = parseCustomFontId(themeInput.fontFamily);
+  let fontFaceCss: string | undefined;
+  let customFontLookup: Map<number, { family: string }> | undefined;
+  if (customFontId) {
+    const fontRow = await getCustomFontById(customFontId);
+    if (fontRow) {
+      fontFaceCss = buildFontFaceCss(fontRow);
+      customFontLookup = new Map([[fontRow.id, { family: fontRow.family }]]);
+    }
+  }
+
   const useAurora = isAnimatedAurora(themeInput);
   const useVideo = themeInput.backgroundType === "video" && !!themeInput.backgroundImageUrl;
   const background = resolveBackground(themeInput);
 
-  const themeStyleBlock = buildThemeStyleBlock(themeInput);
+  const themeStyleBlock = buildThemeStyleBlock(themeInput, {
+    customFonts: customFontLookup,
+    fontFaceCss,
+  });
 
   // Map page row → ProfileRow-compatible object for ProfileHeader.
   const profileCompat = {

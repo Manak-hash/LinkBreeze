@@ -2,7 +2,7 @@ import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPageBySlug, getActiveLinks, getAnalyticsRetentionDays } from "@/server/queries";
-import { getThemeById, getActiveTheme } from "@/server/queries";
+import { getThemeById, getActiveTheme, getCustomFontById } from "@/server/queries";
 import { generatePrivacyPolicy } from "@/lib/privacy-template";
 import { MarkdownLite } from "@/components/public/MarkdownLite";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
@@ -13,6 +13,7 @@ import {
   buildThemeStyleBlock,
   type ThemeInput,
 } from "@/lib/theme-tokens";
+import { parseCustomFontId, buildFontFaceCss } from "@/lib/custom-fonts";
 
 export async function generateMetadata({
   params,
@@ -74,7 +75,24 @@ export default async function PrivacyPage({
 
   const useAurora = isAnimatedAurora(themeInput);
   const background = resolveBackground(themeInput);
-  const themeStyleBlock = buildThemeStyleBlock(themeInput);
+
+  // Uploaded font (#82): same resolution as the public page — missing row
+  // falls back to the default font via the resolver.
+  const customFontId = parseCustomFontId(themeInput.fontFamily);
+  let fontFaceCss: string | undefined;
+  let customFontLookup: Map<number, { family: string }> | undefined;
+  if (customFontId) {
+    const fontRow = await getCustomFontById(customFontId);
+    if (fontRow) {
+      fontFaceCss = buildFontFaceCss(fontRow);
+      customFontLookup = new Map([[fontRow.id, { family: fontRow.family }]]);
+    }
+  }
+
+  const themeStyleBlock = buildThemeStyleBlock(themeInput, {
+    customFonts: customFontLookup,
+    fontFaceCss,
+  });
 
   // Determine what content to render.
   let content: string;

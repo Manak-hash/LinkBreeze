@@ -21,6 +21,7 @@ import {
   conflictError,
   logError,
 } from "@/lib/errors";
+import { parseCustomFontId } from "@/lib/custom-fonts";
 
 /** Revalidate the public paths of every page rendering this theme. */
 async function revalidateThemePages(themeId: number): Promise<void> {
@@ -124,6 +125,17 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
   for (const [key, value] of Object.entries(parsed.data)) {
     if (value !== undefined) updates[key] = value as string;
   }
+
+  // Uploaded-font references must point at a real custom_fonts row, so a
+  // deleted font can't be re-selected from a stale client state.
+  if (updates.fontFamily && parseCustomFontId(updates.fontFamily)) {
+    const fontId = parseCustomFontId(updates.fontFamily)!;
+    const { getCustomFontById } = await import("@/server/queries");
+    if (!(await getCustomFontById(fontId))) {
+      return validationError("That custom font no longer exists");
+    }
+  }
+
   if (Object.keys(updates).length > 0) {
     try {
       await updateTheme(active.id, updates);

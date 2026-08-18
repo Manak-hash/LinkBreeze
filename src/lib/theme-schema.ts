@@ -61,6 +61,8 @@ export const customSchema = z.object({
   mutedTextColor: cssColor.optional(),
   mode: z.enum(["light", "dark"]).optional(),
   // Typography
+  // fontFamily accepts a bundled id ("inter"), an uploaded font ref
+  // ("custom:<id>", validated in the action), or legacy raw CSS from old rows.
   fontFamily: z.string().max(100).optional(),
   fontScale: z.string().max(10).optional(),
   fontWeight: z.string().max(10).optional(),
