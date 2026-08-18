@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Custom theme fonts (#82)** — Upload your own woff/woff2 (max 2 MB) from the customizer's Typography tab and pick it for any theme, exactly like a bundled font. Four new bundled Google families join the picker the same release — **Montserrat** (geometric sans), **Caveat** (handwritten), **Pacifico** (retro script), and **Abril Fatface** (display serif), bringing the curated set to 15.
+  - Uploads are validated by magic bytes (a renamed PNG never passes), stored in the uploads volume, tracked in a new `custom_fonts` table (migration `0017`), and served same-origin — no CSP changes needed.
+  - Themes reference an uploaded font as `custom:<id>`; the public page injects the matching `@font-face` rule ahead of the theme tokens, and the customizer's visualizer renders it live. A deleted or missing font always falls back to Inter, never a broken font stack — malformed `custom:` values fall back too instead of leaking into CSS.
+  - Deleting a font asks first and lists the themes that will fall back to Inter; affected public pages are revalidated immediately.
+  - Theme exports embed the font's bytes (base64) so the file is fully portable; importing restores it as a new font row (ids never collide across instances) and rewrites the theme's reference. Imports without a payload fall back to Inter. Backups carry the `custom_fonts` rows; restore resets themes whose referenced font isn't in the backup.
+
 - **Page and theme deletion (#84)** — Non-default pages can now be deleted from the page switcher, and user-created themes from the theme page (trash icon left of Duplicate theme). Both ask for confirmation first. In the page switcher, clicking a page's `/slug` opens its public page.
   - Page deletion offers a choice: keep the page's links by moving them to the default page as uncategorized, or delete everything including the links and their click history. Sections and per-page view analytics are removed either way. The default page has no delete option since it is the fallback target for kept links.
   - Theme deletion works on themes the user created, duplicated, or imported. The 11 built-in presets can't be deleted, and neither can the currently active theme. Pages still using a deleted theme automatically fall back to the active theme.

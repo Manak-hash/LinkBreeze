@@ -39,7 +39,7 @@
 - **📊 Privacy-Respecting Analytics** — Views, clicks, referrers, device type. Cookieless by design. Visitor IPs are hashed with a daily-rotating salt, never stored. Data older than 90 days is pruned automatically by default (Settings → Data; set 0 to keep everything).
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
 - **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
-- **🎨 Themes** — 11 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + full customizer with CSS token system (colors, 11 fonts, 8 background types, 8 card styles, layout controls, effects) + theme duplicate/import/export
+- **🎨 Themes** — 11 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + full customizer with CSS token system (colors, 15 fonts + custom font upload, 8 background types, 8 card styles, layout controls, effects) + theme duplicate/import/export
 - **✏️ Custom CSS** — Fine-tune your page with raw CSS injection
 - **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
 - **📱 Mobile-First** — Gorgeous on every screen. Loads in under 300ms. Zero client-side JS bundles.
@@ -463,7 +463,7 @@ The theme engine uses a CSS custom property (`--lb-*`) token system — every co
 
 - **Background** — 8 types (solid, gradient, radial, mesh, aurora, animated gradient, image, pattern) with angle, overlay, and opacity controls
 - **Colors** — accent, secondary, text, muted text, card background, card border (hex or rgba)
-- **Typography** — 10 curated Google Fonts (Inter, Poppins, Playfair Display, JetBrains Mono, Space Grotesk, DM Sans, Lora, Bebas Neue, Sora, Outfit), font scale, weight, letter spacing
+- **Typography** — 15 curated Google Fonts (Inter, Poppins, Playfair Display, JetBrains Mono, Space Grotesk, DM Sans, Lora, Bebas Neue, Sora, Outfit, Nunito, Montserrat, Caveat, Pacifico, Abril Fatface), font scale, weight, letter spacing — plus your own: upload any woff2/woff (max 2 MB) in the Typography tab and pick it like a bundled font. Uploaded fonts are served same-origin, embedded in theme export files, and carried through backups. Deleting one resets themes using it to Inter (with a confirmation listing the affected themes).
 - **Card style** — 7 link styles (pill, rounded, sharp, glass, outline, neon, pixel), hover effects, button size, corner radius, border width, shadow strength
 - **Layout** — container width, alignment (left/center/right), density (compact/normal/relaxed)
 - **Effects** — glow with custom color, glass blur, noise texture, reveal animation
