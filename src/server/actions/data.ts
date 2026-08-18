@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import path from "node:path";
+import crypto from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 import { db } from "@/db";
 import {
   profile,
@@ -10,6 +13,7 @@ import {
   linkSections,
   settings,
   themes,
+  customFonts,
   analyticsPageviews,
   analyticsClicks,
 } from "@/db/schema";
@@ -23,6 +27,8 @@ import {
   ErrorCode,
 } from "@/lib/errors";
 import { isAllowedLinkUrl } from "@/lib/link-url";
+import { UPLOADS_DIR, ensureUploadsDir, sniffFontFormat } from "@/lib/uploads";
+import { parseCustomFontId, customFontFamily } from "@/lib/custom-fonts";
 import {
   updateSetting,
   type ProfileRow,
@@ -129,6 +135,18 @@ const themeRowSchema = z.object({
   isPreset: z.boolean().optional(),
 });
 
+/** Uploaded theme font row (#82) — rows only in backups. */
+const customFontRowSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1).max(60),
+  family: z.string().min(1).max(100),
+  filename: z.string().min(1).max(120),
+  url: z.string().min(1).max(500),
+  sizeBytes: z.number().optional(),
+  format: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
 /** Shape of an exported theme (all cosmetic fields, no id/isActive/isPreset). */
 const exportableThemeSchema = z.object({
   version: z.literal(1),
@@ -180,6 +198,17 @@ const exportableThemeSchema = z.object({
   avatarFloat: z.string().max(10).optional().default("false"),
   profileLayout: z.string().max(20).optional().default("classic"),
   textAnimation: z.string().max(20).optional().default("none"),
+  // Custom font payload (#82) — present when fontFamily is "custom:<id>".
+  // woff2/woff bytes as base64 so the export is a single portable file; the
+  // importer writes the file and re-registers the font as a NEW row, so ids
+  // never collide with fonts already on the target instance.
+  customFont: z
+    .object({
+      name: z.string().min(1).max(60),
+      format: z.enum(["woff2", "woff"]),
+      data: z.string().min(1),
+    })
+    .optional(),
   exportedAt: z.string(),
 });
 
@@ -193,16 +222,29 @@ interface BackupPayload {
   sections?: Array<{ id?: number; pageId: number; title: string; icon: string | null; orderIndex: number; createdAt?: string }>;
   settings: Array<{ key: string; value: string }>;
   themes: ThemeRow[];
+  /** Uploaded theme fonts (#82) — rows only; files live in the uploads
+   *  volume, which survives a restore (same as avatars/backgrounds). */
+  customFonts?: Array<{
+    id?: number;
+    name: string;
+    family: string;
+    filename: string;
+    url: string;
+    sizeBytes?: number;
+    format?: string;
+    createdAt?: string;
+  }>;
 }
 
 /** Snapshot of all regenerable config (not analytics — that's CSV-exportable). */
 export async function exportBackupPayload(): Promise<BackupPayload> {
-  const [p, l, sec, s, t] = await Promise.all([
+  const [p, l, sec, s, t, cf] = await Promise.all([
     db.select().from(profile),
     db.select().from(links),
     db.select().from(linkSections),
     db.select().from(settings),
     db.select().from(themes),
+    db.select().from(customFonts),
   ]);
   return {
     version: SUPPORTED_BACKUP_VERSION,
@@ -212,6 +254,7 @@ export async function exportBackupPayload(): Promise<BackupPayload> {
     sections: sec,
     settings: s,
     themes: t,
+    customFonts: cf,
   };
 }
 
@@ -288,6 +331,29 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
     (link) => link.type && link.url && isAllowedLinkUrl(link.type, link.url),
   );
 
+  // Custom fonts (#82): optional array (older backups have none). Rows only —
+  // the files live in the uploads volume. A malformed array rejects the
+  // restore like any other table.
+  let fonts: z.infer<typeof customFontRowSchema>[] = [];
+  if (Array.isArray(parsed.customFonts) && parsed.customFonts.length > 0) {
+    const validatedFonts = z.array(customFontRowSchema).safeParse(parsed.customFonts);
+    if (!validatedFonts.success) {
+      return validationError("Backup contains malformed custom fonts");
+    }
+    fonts = validatedFonts.data;
+  }
+
+  // Themes referencing a custom font that isn't in the backup (or whose file
+  // was never uploaded to this instance) would render a dangling "custom:<id>".
+  // The resolver falls back safely, but reset the field so the theme UI shows
+  // the truth: Inter.
+  const fontIds = new Set(fonts.map((f) => f.id).filter((n): n is number => n != null));
+  parsed.themes = parsed.themes.map((theme) =>
+    theme.fontFamily && parseCustomFontId(theme.fontFamily) && !fontIds.has(parseCustomFontId(theme.fontFamily)!)
+      ? { ...theme, fontFamily: "inter" }
+      : theme,
+  );
+
   try {
     db.transaction((tx) => {
       tx.delete(profile).run();
@@ -295,11 +361,13 @@ export async function restoreBackup(formData: FormData): Promise<ActionResult> {
       tx.delete(linkSections).run();
       tx.delete(settings).run();
       tx.delete(themes).run();
+      tx.delete(customFonts).run();
       if (parsed.profile.length) tx.insert(profile).values(parsed.profile).run();
       if (sections.length) tx.insert(linkSections).values(sections).run();
       if (parsed.links.length) tx.insert(links).values(parsed.links).run();
       if (parsed.settings.length) tx.insert(settings).values(parsed.settings).run();
       if (parsed.themes.length) tx.insert(themes).values(parsed.themes).run();
+      if (fonts.length) tx.insert(customFonts).values(fonts).run();
     });
   } catch (err) {
     console.error("[restoreBackup]", err);
@@ -355,6 +423,32 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
   const theme = rows[0];
   if (!theme) throw new Error("Theme not found");
 
+  // Embed the uploaded font's bytes when the theme references one (#82) so
+  // the export file is self-contained. Missing file degrades to a reference
+  // (fontFamily stays "custom:<id>") — import then maps it to an existing
+  // font when possible, else falls back to Inter.
+  let customFont: ExportableTheme["customFont"];
+  const fontId = parseCustomFontId(theme.fontFamily);
+  if (fontId) {
+    const fontRows = await db.select().from(customFonts).where(eq(customFonts.id, fontId)).limit(1);
+    const font = fontRows[0];
+    if (font && (font.format === "woff2" || font.format === "woff")) {
+      try {
+        const filename = font.url.split("/").pop();
+        if (filename) {
+          const bytes = await readFile(path.join(UPLOADS_DIR, filename));
+          customFont = {
+            name: font.name,
+            format: font.format,
+            data: bytes.toString("base64"),
+          };
+        }
+      } catch {
+        // File gone from disk — export without the payload.
+      }
+    }
+  }
+
   return {
     version: 1,
     app: "linkbreeze",
@@ -398,6 +492,7 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     avatarFloat: theme.avatarFloat,
     profileLayout: theme.profileLayout,
     textAnimation: theme.textAnimation,
+    ...(customFont ? { customFont } : {}),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -421,9 +516,50 @@ export async function importTheme(json: string): Promise<ActionResult> {
   }
   const t = result.data;
 
-  const { themeNameExists } = await import("@/server/queries");
+  const { themeNameExists, insertCustomFont, updateCustomFontFamily } = await import("@/server/queries");
   if (await themeNameExists(t.name)) {
     return conflictError("A theme with this name already exists");
+  }
+
+  // Custom font (#82): embedded bytes are stored and registered as a NEW row;
+  // the theme's fontFamily is rewritten to the new "custom:<id>". Exports
+  // without a payload keep their reference only if that font already exists
+  // here (by name), else the theme falls back to Inter.
+  let fontFamily = t.fontFamily;
+  if (parseCustomFontId(t.fontFamily)) {
+    if (t.customFont) {
+      try {
+        const buffer = Buffer.from(t.customFont.data, "base64");
+        const sniffed = sniffFontFormat(buffer);
+        if (!sniffed || sniffed !== t.customFont.format) {
+          return validationError("Embedded font payload is not a valid " + t.customFont.format + " file");
+        }
+        if (buffer.length > 2 * 1024 * 1024) {
+          return validationError("Embedded font is too large (max 2 MB)");
+        }
+        await ensureUploadsDir();
+        const hexId = crypto.randomBytes(12).toString("hex");
+        const filename = `${hexId}.${sniffed}`;
+        await writeFile(path.join(UPLOADS_DIR, filename), buffer);
+        const row = await insertCustomFont({
+          name: t.customFont.name,
+          family: "",
+          filename: `${t.customFont.name}.${sniffed}`.slice(0, 120),
+          url: `/api/uploads/${filename}`,
+          sizeBytes: buffer.length,
+          format: sniffed,
+        });
+        await updateCustomFontFamily(row.id, customFontFamily(row.id));
+        fontFamily = `custom:${row.id}`;
+      } catch {
+        return validationError("Could not restore the embedded font file");
+      }
+    } else {
+      // No embedded payload — the "custom:<id>" refers to an id from the
+      // instance that exported the theme, which is meaningless here. Reset
+      // to the default font rather than keep a dangling reference.
+      fontFamily = "inter";
+    }
   }
 
   await db.insert(themes).values({
@@ -443,7 +579,7 @@ export async function importTheme(json: string): Promise<ActionResult> {
     textColor: t.textColor,
     mutedTextColor: t.mutedTextColor,
     mode: t.mode,
-    fontFamily: t.fontFamily,
+    fontFamily,
     fontScale: t.fontScale,
     fontWeight: t.fontWeight,
     letterSpacing: t.letterSpacing,
