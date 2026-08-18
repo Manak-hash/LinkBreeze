@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { resolveFont, resolveThemeTokens, buildThemeStyleBlock, FONT_REGISTRY } from "@/lib/theme-tokens";
 
+/** FALLBACK_FONT — not exported; keep in sync with theme-tokens.ts. */
+const FALLBACK_FONT = "var(--font-sans), sans-serif";
+
 describe("resolveFont", () => {
   it("returns fallback for null/undefined/empty", () => {
     const fallback = "var(--font-sans), sans-serif";
@@ -26,6 +29,31 @@ describe("resolveFont", () => {
   it("passes through unregistered CSS as-is (backward compat)", () => {
     const custom = "Georgia, serif";
     expect(resolveFont(custom)).toBe(custom);
+  });
+});
+
+describe("resolveFont — custom fonts (#82)", () => {
+  const fonts = new Map<number, { family: string }>([
+    [12, { family: "LB Custom 12" }],
+  ]);
+
+  it("resolves custom:<id> to the uploaded font's stack", () => {
+    expect(resolveFont("custom:12", fonts)).toBe("'LB Custom 12', sans-serif");
+    expect(resolveFont("Custom:12", fonts)).toBe("'LB Custom 12', sans-serif");
+  });
+
+  it("falls back to the default font for unknown ids", () => {
+    expect(resolveFont("custom:999", fonts)).toBe(FALLBACK_FONT);
+  });
+
+  it("falls back to the default font when no lookup is provided", () => {
+    expect(resolveFont("custom:12")).toBe(FALLBACK_FONT);
+    expect(resolveFont("custom:12", undefined)).toBe(FALLBACK_FONT);
+  });
+
+  it("falls back for malformed custom ids", () => {
+    expect(resolveFont("custom:abc", fonts)).toBe(FALLBACK_FONT);
+    expect(resolveFont("custom:-1", fonts)).toBe(FALLBACK_FONT);
   });
 });
 
@@ -69,5 +97,26 @@ describe("resolveThemeTokens", () => {
     const html = buildThemeStyleBlock(cssVars);
     expect(html).toContain(":root");
     expect(html).toContain("--lb-accent");
+  });
+});
+
+describe("buildThemeStyleBlock — custom fonts (#82)", () => {
+  it("prefixes the @font-face rule ahead of the token block", () => {
+    const cssVars = resolveThemeTokens({ fontFamily: "custom:12" }).cssVars;
+    const fontFace = "@font-face { font-family: 'LB Custom 12'; src: url('/api/uploads/x.woff2') format('woff2'); }";
+    const html = buildThemeStyleBlock(cssVars, { fontFaceCss: fontFace });
+    expect(html.startsWith(fontFace)).toBe(true);
+    expect(html).toContain(":root");
+    const tokenIdx = html.indexOf(":root");
+    const fontFaceIdx = html.indexOf("@font-face");
+    expect(fontFaceIdx).toBeLessThan(tokenIdx);
+  });
+
+  it("resolves --lb-font through the customFonts lookup", () => {
+    const { cssVars } = resolveThemeTokens(
+      { fontFamily: "custom:12" },
+      { customFonts: new Map([[12, { family: "LB Custom 12" }]]) },
+    );
+    expect(cssVars["--lb-font"]).toBe("'LB Custom 12', sans-serif");
   });
 });

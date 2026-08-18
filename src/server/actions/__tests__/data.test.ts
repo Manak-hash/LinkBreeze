@@ -20,6 +20,7 @@ vi.mock("@/db", () => ({
 vi.mock("@/db/schema", () => ({
   analyticsClicks: {},
   analyticsPageviews: {},
+  customFonts: {},
   links: {},
   profile: {},
   settings: {},

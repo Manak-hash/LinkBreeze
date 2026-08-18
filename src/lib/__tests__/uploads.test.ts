@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { contentTypeFor, safeUploadPath } from "@/lib/uploads";
+import { contentTypeFor, safeUploadPath, sniffFontFormat } from "@/lib/uploads";
 
 describe("contentTypeFor", () => {
   it("returns image/png for .png", () => {
@@ -34,6 +34,34 @@ describe("contentTypeFor", () => {
   it("handles uppercase extensions", () => {
     expect(contentTypeFor("PHOTO.PNG")).toBe("image/png");
     expect(contentTypeFor("Image.JPEG")).toBe("image/jpeg");
+  });
+
+  it("returns font/woff2 for .woff2 and font/woff for .woff", () => {
+    expect(contentTypeFor("brand.woff2")).toBe("font/woff2");
+    expect(contentTypeFor("brand.woff")).toBe("font/woff");
+    expect(contentTypeFor("BRAND.WOFF2")).toBe("font/woff2");
+  });
+});
+
+describe("sniffFontFormat (#82)", () => {
+  it("detects woff2 by its wOF2 magic bytes", () => {
+    const buf = Buffer.from([0x77, 0x4f, 0x46, 0x32, 0x00, 0x00]);
+    expect(sniffFontFormat(buf)).toBe("woff2");
+  });
+
+  it("detects woff1 by its wOFF magic bytes", () => {
+    const buf = Buffer.from([0x77, 0x4f, 0x46, 0x46, 0x00, 0x00]);
+    expect(sniffFontFormat(buf)).toBe("woff");
+  });
+
+  it("rejects non-font bytes (PNG renamed to .woff2)", () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+    expect(sniffFontFormat(png)).toBeNull();
+  });
+
+  it("rejects empty and truncated buffers", () => {
+    expect(sniffFontFormat(Buffer.alloc(0))).toBeNull();
+    expect(sniffFontFormat(Buffer.from([0x77, 0x4f]))).toBeNull();
   });
 });
 

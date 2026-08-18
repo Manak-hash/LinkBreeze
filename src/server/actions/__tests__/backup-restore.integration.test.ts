@@ -137,6 +137,40 @@ describe("[integration] backup → restore round-trip", () => {
       ])
       .run();
 
+    // 1 uploaded font row (#82) + a theme using it
+    db.insert(schema.customFonts)
+      .values({
+        id: 5,
+        name: "Brand Sans",
+        family: "LB Custom 5",
+        filename: "brand-sans.woff2",
+        url: "/api/uploads/aaaabbbb.woff2",
+        sizeBytes: 20480,
+        format: "woff2",
+      })
+      .run();
+    db.insert(schema.themes)
+      .values({
+        name: "Branded",
+        isActive: false,
+        isPreset: false,
+        mode: "dark",
+        fontFamily: "custom:5",
+      })
+      .run();
+    // Dangling reference: custom font id 99 is NOT in the backup's font set
+    // (seeded directly here, missing from custom_fonts) — restore must reset
+    // this theme to inter rather than keep the dead reference.
+    db.insert(schema.themes)
+      .values({
+        name: "Dangling",
+        isActive: false,
+        isPreset: false,
+        mode: "dark",
+        fontFamily: "custom:99",
+      })
+      .run();
+
     // Also seed an analytics row so we can assert restore leaves analytics
     // untouched.
     db.insert(schema.analyticsPageviews)
@@ -159,7 +193,10 @@ describe("[integration] backup → restore round-trip", () => {
     expect(snapshot.profile).toHaveLength(1);
     expect(snapshot.links).toHaveLength(3);
     expect(snapshot.settings).toHaveLength(2);
-    expect(snapshot.themes).toHaveLength(2);
+    expect(snapshot.themes).toHaveLength(4);
+    // Custom fonts ride along (#82) — rows only.
+    expect(snapshot.customFonts).toHaveLength(1);
+    expect(snapshot.customFonts?.[0]?.name).toBe("Brand Sans");
   });
 
   it("restores the exact seed data after the DB is mutated", async () => {
@@ -247,9 +284,9 @@ describe("[integration] backup → restore round-trip", () => {
     expect(settingMap["siteTitle"]).toBe("Ada's Links");
     expect(settingMap["analyticsRetentionDays"]).toBe("30");
 
-    // themes: 2 rows, original names + cosmetic values
+    // themes: original names + cosmetic values (2 seeded + Branded + Dangling)
     const themeRows = db.select().from(schema.themes).all();
-    expect(themeRows).toHaveLength(2);
+    expect(themeRows).toHaveLength(4);
     const themeByName = Object.fromEntries(
       themeRows.map((t) => [t.name, t]),
     );
@@ -259,6 +296,17 @@ describe("[integration] backup → restore round-trip", () => {
     expect(themeByName["Midnight"].primaryColor).toBe("#0f3460");
     expect(themeByName["Daylight"]).toBeDefined();
     expect(themeByName["Daylight"].mode).toBe("light");
+
+    // Custom fonts restored with rows intact (#82), including the id the
+    // Branded theme references.
+    const fontRows = db.select().from(schema.customFonts).all();
+    expect(fontRows).toHaveLength(1);
+    expect(fontRows[0]!.id).toBe(5);
+    expect(fontRows[0]!.family).toBe("LB Custom 5");
+    expect(themeByName["Branded"].fontFamily).toBe("custom:5");
+
+    // The dangling custom:99 ref (font not in the backup) is reset to inter.
+    expect(themeByName["Dangling"].fontFamily).toBe("inter");
 
     // ── Analytics must be untouched by restore ────────────────────────
     const pageviewRows = db.select().from(schema.analyticsPageviews).all();
