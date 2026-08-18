@@ -23,6 +23,7 @@ import { PresetGallery } from "./components/preset-gallery";
 import { ThemeCustomizer } from "./components/theme-customizer";
 import { ThemeActions } from "./components/theme-actions";
 import { usePreview } from "@/components/admin/PreviewPane";
+import type { CustomFontMeta } from "@/lib/custom-fonts";
 
 interface ThemeManagerProps {
   themes: ThemeRow[];
@@ -30,9 +31,17 @@ interface ThemeManagerProps {
   active: ThemeRow | null;
   pageId?: number;
   pageThemeId?: number | null;
+  customFonts?: CustomFontMeta[];
 }
 
-export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: ThemeManagerProps) {
+export function ThemeManager({
+  themes,
+  activeId,
+  active,
+  pageId,
+  pageThemeId,
+  customFonts = [],
+}: ThemeManagerProps) {
   const { reload: reloadPreview } = usePreview();
   const [selecting, setSelecting] = React.useState<number | null>(null);
   const [customPending, setCustomPending] = React.useState(false);
@@ -121,6 +130,13 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
     }
   };
 
+  // Uploaded fonts (#82): after upload/delete the server revalidated /theme,
+  // but the client tree needs a refresh for the new chips + usage counts.
+  const refreshAfterFontChange = React.useCallback(() => {
+    router.refresh();
+    reloadPreview();
+  }, [router, reloadPreview]);
+
   const isCustom = active ? !active.isPreset : false;
 
   const effectiveActiveId = pageId ? (pageThemeId ?? activeId) : activeId;
@@ -156,6 +172,10 @@ export function ThemeManager({ themes, activeId, active, pageId, pageThemeId }: 
           isCustom={isCustom}
           onFork={handleFork}
           forkPending={forkPending}
+          customFonts={customFonts}
+          themes={themes}
+          onFontUploaded={refreshAfterFontChange}
+          onFontDeleted={refreshAfterFontChange}
         />
       ) : null}
 

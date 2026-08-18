@@ -30,6 +30,7 @@ import {
   EffectsSection,
   ProfileSection,
 } from "./theme-customizer-sections";
+import type { CustomFontMeta } from "@/lib/custom-fonts";
 
 /** Shape of the controlled customizer state (strings, matching the form fields). */
 export type CustomizerState = {
@@ -141,6 +142,10 @@ export function ThemeCustomizer({
   isCustom,
   onFork,
   forkPending,
+  customFonts = [],
+  themes = [],
+  onFontUploaded,
+  onFontDeleted,
 }: {
   active: ThemeRow;
   onCustomize: (formData: FormData) => void;
@@ -149,6 +154,13 @@ export function ThemeCustomizer({
   isCustom: boolean;
   onFork: (name: string, formData: FormData) => void;
   forkPending: boolean;
+  /** Uploaded fonts (#82) — selectable alongside the bundled ones. */
+  customFonts?: CustomFontMeta[];
+  /** All themes — used by the font delete confirm (affected-theme list). */
+  themes?: { id: number; name: string; fontFamily: string | null }[];
+  /** Refresh after upload/delete so chips + usage counts stay accurate. */
+  onFontUploaded?: () => void;
+  onFontDeleted?: () => void;
 }) {
   const [state, setState] = React.useState<CustomizerState>(() => stateFromTheme(active));
   const [forkOpen, setForkOpen] = React.useState(false);
@@ -230,7 +242,16 @@ export function ThemeCustomizer({
                 </div>
               </>
             ) : null}
-            {tab === "typography" ? <TypographySection s={state} set={set} /> : null}
+            {tab === "typography" ? (
+              <TypographySection
+                s={state}
+                set={set}
+                customFonts={customFonts}
+                themes={themes}
+                onFontUploaded={onFontUploaded}
+                onFontDeleted={onFontDeleted}
+              />
+            ) : null}
             {tab === "links" ? (
               <>
                 <CardStyleSection s={state} set={set} />
@@ -245,7 +266,7 @@ export function ThemeCustomizer({
 
           {/* Theme visualizer — sticky on wide screens */}
           <div className="mx-auto w-full shrink-0 xl:sticky xl:top-20 xl:w-[268px]">
-            <ThemeLivePreview state={state} />
+            <ThemeLivePreview state={state} customFonts={customFonts} />
           </div>
         </div>
         <CardFooter className="flex flex-col gap-2">

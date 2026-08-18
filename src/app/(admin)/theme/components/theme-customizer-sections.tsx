@@ -3,9 +3,17 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ColorField, SelectField, ToggleField, SliderField, MediaUrlField } from "./field-controls";
+import {
+  ColorField,
+  SelectField,
+  ToggleField,
+  SliderField,
+  MediaUrlField,
+  FontUploadField,
+} from "./field-controls";
 import { FocalPointPicker, FitPicker } from "./focal-point-picker";
 import type { CustomizerState } from "./theme-customizer";
+import { buildFontFaceCss, type CustomFontMeta } from "@/lib/custom-fonts";
 import {
   FONT_OPTIONS,
   BG_TYPES,
@@ -193,7 +201,29 @@ export function ColorsSection({ s, set }: { s: CustomizerState; set: SetFn }) {
   );
 }
 
-export function TypographySection({ s, set }: { s: CustomizerState; set: SetFn }) {
+export function TypographySection({
+  s,
+  set,
+  customFonts = [],
+  themes = [],
+  onFontUploaded,
+  onFontDeleted,
+}: {
+  s: CustomizerState;
+  set: SetFn;
+  customFonts?: CustomFontMeta[];
+  /** All themes — the delete confirm lists which fall back to Inter. */
+  themes?: { id: number; name: string; fontFamily: string | null }[];
+  onFontUploaded?: () => void;
+  onFontDeleted?: () => void;
+}) {
+  // Uploaded fonts render in their own typeface via per-font @font-face rules
+  // (admin-side only — the public page injects the same CSS server-side).
+  const fontFaceCss = React.useMemo(
+    () => customFonts.map((f) => buildFontFaceCss(f)).join("\n"),
+    [customFonts],
+  );
+
   return (
     <section className="flex flex-col gap-4">
       <h3 className="text-sm font-semibold">Typography</h3>
@@ -217,7 +247,38 @@ export function TypographySection({ s, set }: { s: CustomizerState; set: SetFn }
             </span>
           </label>
         ))}
+        {customFonts.map((font) => {
+          const id = `custom:${font.id}`;
+          return (
+            <label key={id} className="cursor-pointer">
+              <input
+                type="radio"
+                name="fontFamily"
+                value={id}
+                checked={s.fontFamily === id}
+                onChange={() => set({ fontFamily: id })}
+                className="peer sr-only"
+              />
+              <span
+                style={{ fontFamily: `'${font.family}', sans-serif` }}
+                className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
+              >
+                <span className="text-base font-bold">Aa</span>
+                {font.name}
+              </span>
+            </label>
+          );
+        })}
       </div>
+      {fontFaceCss ? (
+        <style dangerouslySetInnerHTML={{ __html: fontFaceCss }} />
+      ) : null}
+      <FontUploadField
+        fonts={customFonts}
+        themes={themes}
+        onUploaded={() => onFontUploaded?.()}
+        onDeleted={() => onFontDeleted?.()}
+      />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <SliderField
           label="Font scale"

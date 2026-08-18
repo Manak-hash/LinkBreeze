@@ -1,10 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Upload } from "lucide-react";
+import { Upload, FileType, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadBackgroundMedia } from "@/server/actions/uploads";
+import { Button } from "@/components/ui/button";
+import {
+  uploadBackgroundMedia,
+  uploadCustomFont,
+  deleteCustomFontAction,
+} from "@/server/actions/uploads";
+import type { CustomFontMeta } from "@/lib/custom-fonts";
 import {
   Select,
   SelectContent,
@@ -271,6 +277,195 @@ export function MediaUrlField({
       </div>
       {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
       {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Font upload control (#82). Uploads a woff/woff2 via uploadCustomFont,
+ * shows the uploaded font library below with delete (with confirm dialog
+ * listing themes that will fall back to Inter).
+ */
+export function FontUploadField({
+  fonts,
+  onUploaded,
+  onDeleted,
+  themes,
+}: {
+  fonts: CustomFontMeta[];
+  onUploaded: (font: CustomFontMeta) => void;
+  onDeleted: () => void;
+  /** All themes — used to count which reference each uploaded font. */
+  themes: { id: number; name: string; fontFamily: string | null }[];
+}) {
+  const [uploading, setUploading] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<CustomFontMeta | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setError("File too large (max 2 MB)");
+      e.target.value = "";
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      if (name.trim()) fd.append("name", name.trim());
+      const res = await uploadCustomFont(fd);
+      if (res.success) {
+        onUploaded(res.font);
+        setName("");
+      } else {
+        setError(res.error);
+      }
+    } catch {
+      setError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteCustomFontAction(deleteTarget.id);
+      if (res.success) {
+        setDeleteTarget(null);
+        onDeleted();
+      } else {
+        setDeleteError(res.error);
+      }
+    } catch {
+      setDeleteError("Delete failed. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-card/50 p-4">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">
+          Your fonts (woff2 / woff, max 2 MB)
+        </Label>
+        <div className="flex items-center gap-2">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Display name (optional)"
+            maxLength={60}
+            className="flex-1"
+          />
+          <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
+            <Upload className="size-3.5" />
+            {uploading ? "Uploading…" : "Upload font"}
+            <input
+              type="file"
+              accept=".woff2,.woff,font/woff2,font/woff"
+              className="hidden"
+              onChange={handleUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+        {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
+        <p className="text-[11px] text-muted-foreground">
+          Only upload fonts you have the license to use. Upload happens once; you
+          can then pick it for any theme.
+        </p>
+      </div>
+
+      {fonts.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          {fonts.map((f) => {
+            const users = themes.filter((t) => t.fontFamily === `custom:${f.id}`);
+            return (
+              <div
+                key={f.id}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
+              >
+                <FileType className="size-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <span
+                    className="block truncate text-xs font-medium"
+                    style={{ fontFamily: `'${f.family}', sans-serif` }}
+                  >
+                    {f.name}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {f.format} · {(f.sizeBytes / 1024).toFixed(0)} KB
+                    {users.length > 0
+                      ? ` · used by ${users.length} theme${users.length === 1 ? "" : "s"}`
+                      : ""}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(f)}
+                  className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  aria-label={`Delete ${f.name}`}
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {deleteTarget ? (
+        <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+          <p className="text-xs font-medium">
+            Delete &ldquo;{deleteTarget.name}&rdquo;?
+          </p>
+          {(() => {
+            const users = themes.filter((t) => t.fontFamily === `custom:${deleteTarget.id}`);
+            return users.length > 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                {users.length} theme{users.length === 1 ? "" : "s"} use{users.length === 1 ? "s" : ""} it
+                ({users.map((t) => t.name).join(", ")}) and will fall back to Inter.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                No themes use this font.
+              </p>
+            );
+          })()}
+          {deleteError ? (
+            <p className="text-[11px] text-destructive">{deleteError}</p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              size="sm"
+              onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              type="button"
+              size="sm"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? "Deleting…" : "Delete font"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { buildLinkCardHtml } from "@/components/public/build-link-card";
 import type { LinkRow } from "@/server/queries";
 import type { CustomizerState } from "./theme-customizer";
+import { parseCustomFontId, buildFontFaceCss, type CustomFontMeta } from "@/lib/custom-fonts";
 
 /** Fake rows so the preview renders realistic link cards. */
 function mockLinks(): LinkRow[] {
@@ -48,15 +49,40 @@ const NOISE_URL =
  * the Live Preview button in the admin sidebar, which opens the real public
  * page in a phone frame.)
  */
-export function ThemeLivePreview({ state }: { state: CustomizerState }) {
+export function ThemeLivePreview({
+  state,
+  customFonts = [],
+}: {
+  state: CustomizerState;
+  /** Uploaded fonts (#82) so the preview renders the selected custom font. */
+  customFonts?: CustomFontMeta[];
+}) {
   const theme = React.useMemo<ThemeInput>(() => ({ ...state }), [state]);
+
+  // Uploaded-font lookup for the resolver + the matching @font-face rule.
+  const customFont = React.useMemo(() => {
+    const id = parseCustomFontId(theme.fontFamily);
+    if (!id) return null;
+    return customFonts.find((f) => f.id === id) ?? null;
+  }, [theme.fontFamily, customFonts]);
+
+  const customFontsMap = React.useMemo(
+    () =>
+      customFont ? new Map([[customFont.id, { family: customFont.family }]]) : undefined,
+    [customFont],
+  );
 
   const { cssVars, background } = React.useMemo(() => {
     const isAurora = theme.backgroundType === "aurora";
     const isVideo = theme.backgroundType === "video" && !!theme.backgroundImageUrl;
     const bg = isAurora ? "var(--lb-aurora-base)" : isVideo ? "transparent" : resolveBackground(theme);
-    return { cssVars: resolveThemeTokens(theme).cssVars, background: bg };
-  }, [theme]);
+    return {
+      cssVars: resolveThemeTokens(theme, { customFonts: customFontsMap }).cssVars,
+      background: bg,
+    };
+  }, [theme, customFontsMap]);
+
+  const fontFaceCss = customFont ? buildFontFaceCss(customFont) : "";
 
   const cards = React.useMemo(() => {
     const links = mockLinks();
@@ -74,7 +100,11 @@ export function ThemeLivePreview({ state }: { state: CustomizerState }) {
       className="relative overflow-hidden rounded-[2rem] border-4 border-border shadow-xl"
       style={{ width: 240, height: 460, background: "var(--lb-card-bg, #0a0820)" }}
     >
-      <style dangerouslySetInnerHTML={{ __html: `#lb-theme-preview-root { ${varStyle} }` }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `#lb-theme-preview-root { ${varStyle} }${fontFaceCss ? `\n${fontFaceCss}` : ""}`,
+        }}
+      />
       <div
         id="lb-theme-preview-root"
         className={`relative flex h-full w-full flex-col items-center overflow-hidden${theme.linkStyle === "gel" ? " lb-gel-mode" : ""}`}
