@@ -8,6 +8,7 @@ import {
   links,
   linkSections,
   themes,
+  customFonts,
   analyticsPageviews,
   analyticsClicks,
   subscribers,
@@ -601,6 +602,69 @@ export async function backfillPresets(): Promise<void> {
   if (missing.length === 0) return;
 
   await db.insert(themes).values(missing);
+}
+
+// ─── Custom fonts (#82) ───────────────────────────────────────────────────────
+
+export type CustomFontRow = typeof customFonts.$inferSelect;
+
+export async function getAllCustomFonts(): Promise<CustomFontRow[]> {
+  return db.select().from(customFonts).orderBy(asc(customFonts.id));
+}
+
+export async function getCustomFontById(id: number): Promise<CustomFontRow | null> {
+  const rows = await db.select().from(customFonts).where(eq(customFonts.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+/** Font lookup map for the theme resolver ("custom:<id>" → family). */
+export async function getCustomFontLookup(): Promise<Map<number, { family: string }>> {
+  const rows = await db
+    .select({ id: customFonts.id, family: customFonts.family })
+    .from(customFonts);
+  return new Map(rows.map((r) => [r.id, { family: r.family }]));
+}
+
+/** Themes currently referencing a custom font via fontFamily = "custom:<id>". */
+export async function getThemesUsingCustomFont(
+  fontId: number,
+): Promise<Array<{ id: number; name: string }>> {
+  const ref = `custom:${fontId}`;
+  return db
+    .select({ id: themes.id, name: themes.name })
+    .from(themes)
+    .where(eq(themes.fontFamily, ref));
+}
+
+export async function insertCustomFont(
+  data: typeof customFonts.$inferInsert,
+): Promise<CustomFontRow> {
+  const inserted = await db.insert(customFonts).values(data).returning();
+  return inserted[0];
+}
+
+/** Fill in the family name once the row id is known ("LB Custom 12"). */
+export async function updateCustomFontFamily(id: number, family: string): Promise<void> {
+  await db.update(customFonts).set({ family }).where(eq(customFonts.id, id));
+}
+
+/**
+ * Delete a custom font row and reset every theme that referenced it back to
+ * the default bundled font (inter). One transaction: no theme can keep a
+ * dangling "custom:<id>" reference. Returns the affected theme names.
+ */
+export async function deleteCustomFont(
+  fontId: number,
+): Promise<{ affectedThemes: string[] }> {
+  const affected = await getThemesUsingCustomFont(fontId);
+  db.transaction((tx) => {
+    tx.update(themes)
+      .set({ fontFamily: "inter" })
+      .where(eq(themes.fontFamily, `custom:${fontId}`))
+      .run();
+    tx.delete(customFonts).where(eq(customFonts.id, fontId)).run();
+  });
+  return { affectedThemes: affected.map((t) => t.name) };
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

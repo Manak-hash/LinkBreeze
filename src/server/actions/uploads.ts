@@ -2,7 +2,7 @@
 
 import path from "node:path";
 import crypto from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { writeFile, unlink } from "node:fs/promises";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { demoGuard } from "@/lib/demo-guard";
@@ -10,7 +10,14 @@ import {
   validationError,
   unauthorizedError,
 } from "@/lib/errors";
-import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
+import { UPLOADS_DIR, ensureUploadsDir, sniffFontFormat } from "@/lib/uploads";
+import {
+  insertCustomFont,
+  getCustomFontById,
+  getThemesUsingCustomFont,
+  deleteCustomFont,
+} from "@/server/queries";
+import { customFontFamily } from "@/lib/custom-fonts";
 
 export type UploadResult =
   | { success: true; url: string }
@@ -47,6 +54,10 @@ const MEDIA_ALLOWED_EXT = new Set([
 ]);
 const VIDEO_ALLOWED_EXT = new Set([".mp4", ".webm"]);
 const VIDEO_MAX_BYTES = 5 * 1024 * 1024; // 5 MB — background loops must stay light
+
+// Custom theme fonts (#82). woff2 preferred; woff accepted for older files.
+const FONT_ALLOWED_EXT = new Set([".woff2", ".woff"]);
+const FONT_MAX_BYTES = 2 * 1024 * 1024; // 2 MB — matches the issue's cap
 
 /** Accepts an image upload, stores it on disk, returns its public URL. */
 export async function uploadAvatar(formData: FormData): Promise<UploadResult> {
@@ -161,4 +172,143 @@ export async function uploadFavicon(formData: FormData): Promise<UploadResult> {
   revalidatePath("/settings");
   revalidatePath("/");
   return { success: true, url: `/api/uploads/${filename}` };
+}
+
+export type CustomFontUploadResult =
+  | {
+      success: true;
+      font: {
+        id: number;
+        name: string;
+        family: string;
+        filename: string;
+        url: string;
+        sizeBytes: number;
+        format: string;
+      };
+    }
+  | { success: false; error: string; errorCode: string };
+
+/**
+ * Upload a custom theme font (#82): validate (magic bytes + size), store in
+ * the uploads dir, insert a custom_fonts row, return its metadata. Themes
+ * then reference it as fontFamily "custom:<id>".
+ */
+export async function uploadCustomFont(formData: FormData): Promise<CustomFontUploadResult> {
+  const blocked = demoGuard();
+  if (blocked) return { success: false, error: blocked.error, errorCode: blocked.errorCode };
+  if (!(await getSession())) return unauthorizedError();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return validationError("No file provided");
+  }
+  if (file.size === 0) return validationError("File is empty");
+  if (file.size > FONT_MAX_BYTES) {
+    return validationError("File too large (max 2 MB)");
+  }
+
+  const ext = path.extname(file.name).toLowerCase();
+  if (!FONT_ALLOWED_EXT.has(ext)) {
+    return validationError("Unsupported file type. Use .woff2 or .woff");
+  }
+
+  // Name: user-supplied, else derive from the filename.
+  const rawName = String(formData.get("name") || "").trim();
+  const fallbackName = path.basename(file.name, ext).replace(/[-_]+/g, " ").trim();
+  const name = (rawName || fallbackName || "Custom font").slice(0, 60);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffFontFormat(buffer);
+  if (!sniffed) {
+    return validationError("Not a valid font file (expected woff2 or woff)");
+  }
+  // Trust the bytes over the extension: a .woff2-named woff1 still works, a
+  // renamed PNG never becomes a font.
+  const format = sniffed;
+
+  await ensureUploadsDir();
+  const id = crypto.randomBytes(12).toString("hex");
+  const filename = `${id}.${format}`;
+  const dest = path.join(UPLOADS_DIR, filename);
+
+  try {
+    await writeFile(dest, buffer);
+  } catch {
+    return validationError("Could not store the font file. Check disk space and permissions.");
+  }
+
+  const row = await insertCustomFont({
+    name,
+    family: "", // placeholder; filled after insert so the id is known
+    filename: path.basename(file.name).slice(0, 120),
+    url: `/api/uploads/${filename}`,
+    sizeBytes: buffer.length,
+    format,
+  });
+  // Family is derived from the row id — update in place.
+  const { updateCustomFontFamily } = await import("@/server/queries");
+  const family = customFontFamily(row.id);
+  await updateCustomFontFamily(row.id, family);
+
+  revalidatePath("/theme");
+  return {
+    success: true,
+    font: {
+      id: row.id,
+      name,
+      family,
+      filename: path.basename(file.name).slice(0, 120),
+      url: `/api/uploads/${filename}`,
+      sizeBytes: buffer.length,
+      format,
+    },
+  };
+}
+
+export type CustomFontDeleteResult =
+  | { success: true; affectedThemes: string[] }
+  | { success: false; error: string; errorCode: string };
+
+/**
+ * Delete a custom font and reset every theme using it back to Inter.
+ * The stored file is removed best-effort (a leftover file is harmless; a
+ * broken theme reference is not).
+ */
+export async function deleteCustomFontAction(id: number): Promise<CustomFontDeleteResult> {
+  const blocked = demoGuard();
+  if (blocked) return { success: false, error: blocked.error, errorCode: blocked.errorCode };
+  if (!(await getSession())) return unauthorizedError();
+  if (!Number.isInteger(id) || id <= 0) return validationError("Invalid font id");
+
+  const font = await getCustomFontById(id);
+  if (!font) return validationError("Font not found");
+
+  // Capture affected theme ids before the rows are reset, so their public
+  // pages can be revalidated afterwards.
+  const affectedRows = await getThemesUsingCustomFont(id);
+  const { affectedThemes } = await deleteCustomFont(id);
+
+  // Best-effort file cleanup — never fail the action over it.
+  try {
+    const filename = font.url.split("/").pop();
+    if (filename) {
+      await unlink(path.join(UPLOADS_DIR, filename));
+    }
+  } catch {
+    // File already gone or inaccessible; the DB row was removed.
+  }
+
+  // Revalidate the theme admin page + the public pages of affected themes.
+  revalidatePath("/theme");
+  const { getPagesUsingTheme } = await import("@/server/queries");
+  for (const t of affectedRows) {
+    try {
+      const using = await getPagesUsingTheme(t.id);
+      for (const page of using) revalidatePath(`/${page.slug}`);
+    } catch {
+      // Revalidation is best-effort.
+    }
+  }
+  return { success: true, affectedThemes };
 }

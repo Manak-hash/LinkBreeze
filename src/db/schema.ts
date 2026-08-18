@@ -155,6 +155,24 @@ export const themes = sqliteTable("themes", {
   isPreset: integer("is_preset", { mode: "boolean" }).notNull().default(false),
 });
 
+// ─── Custom fonts (uploaded woff2/woff, #82) ──────────
+export const customFonts = sqliteTable("custom_fonts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  /** User-supplied display name ("Brand Sans"). */
+  name: text("name").notNull(),
+  /** CSS font-family name: "LB Custom <id>". Numeric, never user-typed. */
+  family: text("family").notNull(),
+  /** Original filename for the UI ("acme-corp.woff2"). */
+  filename: text("filename").notNull(),
+  /** Public URL of the stored file: /api/uploads/<hex>.woff2 */
+  url: text("url").notNull(),
+  /** File size in bytes (for the "heavy font" hint in the UI). */
+  sizeBytes: integer("size_bytes").notNull().default(0),
+  /** woff2 or woff — controls the @font-face format() hint. */
+  format: text("format").notNull().default("woff2"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
 // ─── Analytics ────────────────────────────────────────
 export const analyticsPageviews = sqliteTable("analytics_pageviews", {
   id: integer("id").primaryKey({ autoIncrement: true }),
