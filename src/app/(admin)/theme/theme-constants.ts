@@ -13,6 +13,10 @@ export const FONT_OPTIONS = [
   { id: "outfit", label: "Outfit", sample: "Aa" },
   { id: "nunito", label: "Nunito", sample: "Aa" },
   { id: "press-start", label: "Press Start 2P", sample: "8b" },
+  { id: "montserrat", label: "Montserrat", sample: "Aa" },
+  { id: "caveat", label: "Caveat", sample: "Aa" },
+  { id: "pacifico", label: "Pacifico", sample: "Aa" },
+  { id: "abril", label: "Abril Fatface", sample: "Aa" },
 ];
 
 export const BG_TYPES = [

@@ -399,6 +399,88 @@ const nunito = localFont({
   preload: false,
 });
 
+const montserrat = localFont({
+  src: [
+    {
+      path: "./fonts/google/montserrat-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/montserrat-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/montserrat-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/montserrat-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--lb-font-montserrat",
+  display: "swap",
+  preload: false,
+});
+
+const caveat = localFont({
+  src: [
+    {
+      path: "./fonts/google/caveat-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/caveat-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/caveat-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/google/caveat-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--lb-font-caveat",
+  display: "swap",
+  preload: false,
+});
+
+const pacifico = localFont({
+  src: [
+    {
+      path: "./fonts/google/pacifico-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
+  variable: "--lb-font-pacifico",
+  display: "swap",
+  preload: false,
+});
+
+const abrilFatface = localFont({
+  src: [
+    {
+      path: "./fonts/google/abrilfatface-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
+  variable: "--lb-font-abril",
+  display: "swap",
+  preload: false,
+});
+
 export async function generateMetadata(): Promise<Metadata> {
   // Resolve the origin from request headers (or BASE_URL env) so metadata
   // resolves correctly on every self-hosted instance, not just the demo.
@@ -470,7 +552,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} ${nunito.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} ${nunito.variable} ${montserrat.variable} ${caveat.variable} ${pacifico.variable} ${abrilFatface.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {/*

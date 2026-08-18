@@ -10,6 +10,11 @@
  */
 
 import { truthy } from "@/lib/utils";
+import {
+  CUSTOM_FONT_PREFIX,
+  parseCustomFontId,
+  customFontStack,
+} from "@/lib/custom-fonts";
 
 // ─── Font Registry ──────────────────────────────────────────────────────────
 
@@ -30,6 +35,10 @@ export const FONT_REGISTRY: Record<string, string> = {
   outfit: "var(--lb-font-outfit), sans-serif",
   "press-start": "'Press Start 2P', var(--lb-font-press-start), monospace",
   nunito: "var(--lb-font-nunito), sans-serif",
+  montserrat: "var(--lb-font-montserrat), sans-serif",
+  caveat: "var(--lb-font-caveat), cursive",
+  pacifico: "var(--lb-font-pacifico), cursive",
+  abril: "var(--lb-font-abril), Georgia, serif",
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -140,11 +149,33 @@ export function normalizeOpacity(raw: string | null | undefined): number {
   return Math.min(fraction, 1);
 }
 
+/** Minimal metadata resolveFont needs for an uploaded custom font. */
+export interface CustomFontLookup {
+  family: string;
+}
+
+export interface ResolveThemeOptions {
+  /** Uploaded fonts keyed by row id — enables "custom:<id>" fontFamily refs. */
+  customFonts?: Map<number, CustomFontLookup>;
+}
+
 /** Resolve a font identifier or raw CSS to a font-family stack. */
-export function resolveFont(fontFamily: string | null | undefined): string {
+export function resolveFont(
+  fontFamily: string | null | undefined,
+  customFonts?: Map<number, CustomFontLookup>,
+): string {
   if (!fontFamily || !fontFamily.trim()) return FALLBACKS.font;
   const key = fontFamily.trim().toLowerCase();
   if (FONT_REGISTRY[key]) return FONT_REGISTRY[key];
+  // Uploaded font reference: "custom:<id>". Any value with the custom:
+  // prefix — malformed id, unknown row, deleted font — falls back to the
+  // default font. It must NEVER reach the raw-CSS pass-through below, or a
+  // bad row would hand "custom:abc" to the browser as a font-family.
+  if (key.startsWith(CUSTOM_FONT_PREFIX)) {
+    const customId = parseCustomFontId(key);
+    const meta = customId ? customFonts?.get(customId) : undefined;
+    return meta ? customFontStack(meta.family) : FALLBACKS.font;
+  }
   // Backward compat: old rows store raw CSS like "var(--font-sans), sans-serif"
   return fontFamily;
 }
@@ -378,7 +409,10 @@ export function revealAnimation(
  * The returned cssVars are the raw values — the caller should inject them
  * as `:root { --lb-xxx: value; ... }` inside a <style> block.
  */
-export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
+export function resolveThemeTokens(
+  theme: ThemeInput,
+  options?: ResolveThemeOptions,
+): ThemeTokens {
   const linkStyle = str(theme.linkStyle, "glass");
 
   const accent = str(theme.primaryColor, FALLBACKS.accent);
@@ -399,7 +433,7 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
   const blur = resolveBlur(theme.blur);
   const borderWidth = resolveBorderWidth(theme.borderWidth);
   const alignment = resolveAlignment(theme.alignment);
-  const font = resolveFont(theme.fontFamily);
+  const font = resolveFont(theme.fontFamily, options?.customFonts);
 
   // Glow effect
   const glowEnabled = truthy(theme.glow);
@@ -480,15 +514,23 @@ export function resolveThemeTokens(theme: ThemeInput): ThemeTokens {
 
 /**
  * Build the complete <style> string to inject into the public page.
- * Produces `:root { --lb-*: ... }` from the theme tokens.
+ * Produces `:root { --lb-*: ... }` from the theme tokens, prefixed with the
+ * @font-face rule for the theme's uploaded font (if any).
  */
-export function buildThemeStyleBlock(theme: ThemeInput): string {
-  const { cssVars, keyframes } = resolveThemeTokens(theme);
+export function buildThemeStyleBlock(
+  theme: ThemeInput,
+  options?: ResolveThemeOptions & {
+    /** Pre-built @font-face CSS (from buildFontFaceCss) — optional. */
+    fontFaceCss?: string;
+  },
+): string {
+  const { cssVars, keyframes } = resolveThemeTokens(theme, options);
   const declarations = Object.entries(cssVars)
     .map(([k, v]) => `  ${k}: ${v};`)
     .join("\n");
 
-  return `:root {\n${declarations}\n}${keyframes ? `\n${keyframes}` : ""}`;
+  const prefix = options?.fontFaceCss ? `${options.fontFaceCss}\n` : "";
+  return `${prefix}:root {\n${declarations}\n}${keyframes ? `\n${keyframes}` : ""}`;
 }
 
 // ─── Background resolver (expanded) ─────────────────────────────────────────

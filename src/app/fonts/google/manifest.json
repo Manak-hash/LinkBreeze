@@ -284,5 +284,63 @@
    "weight": "800",
    "style": "normal"
   }
+ ],
+ "Montserrat": [
+  {
+   "file": "montserrat-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "montserrat-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "montserrat-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "montserrat-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Caveat": [
+  {
+   "file": "caveat-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  },
+  {
+   "file": "caveat-500-normal.woff2",
+   "weight": "500",
+   "style": "normal"
+  },
+  {
+   "file": "caveat-600-normal.woff2",
+   "weight": "600",
+   "style": "normal"
+  },
+  {
+   "file": "caveat-700-normal.woff2",
+   "weight": "700",
+   "style": "normal"
+  }
+ ],
+ "Pacifico": [
+  {
+   "file": "pacifico-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  }
+ ],
+ "Abril Fatface": [
+  {
+   "file": "abrilfatface-400-normal.woff2",
+   "weight": "400",
+   "style": "normal"
+  }
  ]
 }
