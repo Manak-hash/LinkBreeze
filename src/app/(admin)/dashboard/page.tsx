@@ -351,7 +351,6 @@ export default async function DashboardPage({
   // an empty dashboard full of zeroes.
   const isEmptyState = links.length === 0 && stats.totalViews === 0;
   const t = await getTranslations("dashboard");
-  const tCommon = await getTranslations("common");
   const locale = await getLocale();
 
   return (

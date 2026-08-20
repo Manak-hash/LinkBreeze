@@ -1,9 +1,11 @@
 // fr-value audit: flags any fr value that is literally identical to its en
 // counterpart (English text hiding in fr.ts passes tsc AND i18n:check).
 // Legit-identical exemptions: brand names, URLs, emails, ICU-only strings.
-const ts = require("typescript");
-const fs = require("fs");
-const path = require("path");
+import ts from "typescript";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
 
 function loadMessages(file) {
   const src = fs.readFileSync(file, "utf8");
@@ -11,10 +13,12 @@ function loadMessages(file) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const mod = { exports: {} };
-  new Function("exports", "require", "module", js)(mod.exports, require, mod);
+  const req = createRequire(import.meta.url);
+  new Function("exports", "require", "module", js)(mod.exports, req, mod);
   return mod.exports;
 }
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const base = path.join(__dirname, "..", "src", "locales");
 const en = loadMessages(path.join(base, "en.ts"));
 const fr = loadMessages(path.join(base, "fr.ts"));

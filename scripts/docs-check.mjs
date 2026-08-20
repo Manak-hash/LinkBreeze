@@ -11,10 +11,12 @@
  *   node scripts/docs-check.js            # check
  *   node scripts/docs-check.js --update   # rewrite hashes in TRANSLATIONS.md
  */
-const { execSync } = require("node:child_process");
-const fs = require("node:fs");
-const path = require("node:path");
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const table = path.join(root, "docs", "TRANSLATIONS.md");
 const update = process.argv.includes("--update");

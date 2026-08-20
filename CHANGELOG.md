@@ -5,12 +5,12 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.1] - Unreleased
+## [1.3.1] - 2026-08-20
 
 ### Added
 
 - **Admin UI in English and French** — The whole admin panel (dashboard, links, theme customizer, settings, migration wizard, setup, onboarding, profile, dialogs, toasts, error screens) now renders fully in French. A language picker in Settings switches instantly; the choice persists per user (cookie + database) with no URL prefix and no page reload juggling. English remains the default; the public link pages stay English by design so shared URLs and SEO never shift with the admin language.
-  - Messages live in typed TypeScript dictionaries (`src/locales/en.ts`, `fr.ts`) — a missing key or a renamed one fails at compile time, not in production. A hash gate (`npm run i18n:check`) refuses to build when the two files drift apart, and a nightly-style sweep script (`scripts/i18n-sweep.js`) catches untranslated literals before review.
+  - Messages live in typed TypeScript dictionaries (`src/locales/en.ts`, `fr.ts`) — a missing key or a renamed one fails at compile time, not in production. A hash gate (`npm run i18n:check`) refuses to build when the two files drift apart, and a nightly-style sweep script (`scripts/i18n-sweep.mjs`) catches untranslated literals before review.
   - Dates, number grouping, and plurals are locale-aware: charts label months in French ("19 août"), counters group the French way ("1 234"), and subscriber counts inflect correctly ("1 abonné", "3 abonnés").
   - Server-side errors translate too: failed actions (upload, import, save) return message keys that render in the active language instead of English strings from the wire.
   - French docs ship alongside: `README.fr.md` (linked from the README language switcher) and `docs/TRANSLATIONS.md` for contributors adding the next languages — Spanish is staged next, then Chinese, Hindi, Arabic (RTL), and Portuguese.

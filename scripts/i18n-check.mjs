@@ -18,10 +18,12 @@
  * of quoted strings in key order, so reformatting en.ts does NOT bump it,
  * but any value/key change does.
  */
-const fs = require("node:fs");
-const path = require("node:path");
-const crypto = require("node:crypto");
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import crypto from "node:crypto";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = path.join(__dirname, "..", "src", "locales");
 const EN_FILE = path.join(LOCALES_DIR, "en.ts");
 const HASH_RE = /lastSyncedHash:\s*([0-9a-f]+)/;

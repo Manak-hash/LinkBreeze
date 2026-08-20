@@ -1,9 +1,9 @@
 // AST-based raw-string detector for JSX/TSX.
 // Finds user-visible string literals NOT going through t()/tX(...).
 // Usage: node scripts/i18n-sweep.js [dir1 dir2 ...]
-const ts = require("typescript");
-const fs = require("fs");
-const path = require("path");
+import ts from "typescript";
+import fs from "node:fs";
+import path from "node:path";
 
 const roots = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -11,18 +11,7 @@ const roots = process.argv.slice(2).length
 
 // strings that are code, not UI copy
 const CODE_PAT = /^(use client|use server|[a-z0-9-]+([.:/][a-zA-Z0-9_~-]+)*|\/[^\s]*|\{[0-9]+\}|#[0-9a-fA-F]{3,8}|--[\w-]+|[\w-]+=[\w-]+)$/;
-// ignorable JSX attributes (identifiers/urls/keys, not visible copy)
-const ATTR_SKIP = new Set([
-  "id","name","type","key","className","htmlFor","autoComplete","autoFocus",
-  "src","href","action","method","form","list","rel","target","role",
-  "data-*","slot","variant","size","align","justify","wrap","direction",
-  "lang","dir","loading","decoding","referrerPolicy","crossOrigin","integrity",
-  "accept","capture","inputMode","pattern","maxLength","minLength","min","max",
-  "step","multiple","required","disabled","checked","selected","value",
-  "defaultValue","suppressHydrationWarning","dangerouslySetInnerHTML",
-]);
 
-const seen = new Set();
 const findings = [];
 
 function isTCall(node) {
@@ -30,13 +19,6 @@ function isTCall(node) {
   let callee = node.expression;
   if (ts.isPropertyAccessExpression(callee)) callee = callee.expression;
   return ts.isIdentifier(callee) && /^t[A-Z]?/.test(callee.text);
-}
-
-function inTArg(node) {
-  // inside a t(...) call's arguments? (e.g. placeholder as t("x") — fine)
-  let p = node.parent;
-  while (p && !ts.isJsxAttribute(p)) p = p.parent;
-  return false;
 }
 
 function checkString(node, ctx) {
@@ -72,15 +54,6 @@ function checkString(node, ctx) {
   findings.push({ file: ctx.file, line: ctx.line, text });
 }
 
-// Render-position wrappers: strings inside these (up to a JSX child/attr) are visible.
-const RENDER_POS = new Set(["ConditionalExpression","LogicalExpression","ParenthesizedExpression","AsExpression","NonNullExpression","ArrayLiteralExpression","JsxElement","JsxFragment","TemplateSpan"]);
-// Logic scopes: strings inside these are NOT rendered copy.
-const LOGIC_SCOPE = new Set(["ArrowFunction","FunctionExpression","FunctionDeclaration","Block","SourceFile","CallExpression","VariableDeclarationList","SwitchStatement","IfStatement","ForStatement","ForOfStatement","WhileStatement","CatchClause","PropertyAccessExpression","ElementAccessExpression","BinaryExpression"]);
-
-function attrIsVisible(name) {
-  return !ATTR_SKIP.has(name) && !name.startsWith("data-") && !name.startsWith("aria-") === false ? false : !ATTR_SKIP.has(name) && !name.startsWith("data-");
-}
-
 function walk(sourceFile, file) {
   function visit(node) {
     const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
@@ -91,7 +64,6 @@ function walk(sourceFile, file) {
       // Otherwise it's a comparison/id/icon name/etc. — logic, not copy.
       let p = node.parent;
       let inRender = false;
-      let scopes = 0;
       while (p) {
         if (ts.isJsxChild(node) || ts.isJsxElement(p) || ts.isJsxFragment(p) || ts.isJsxExpression(p)) { inRender = true; break; }
         if (ts.isFunctionDeclaration(p) || ts.isFunctionExpression(p) || ts.isArrowFunction(p) || ts.isSourceFile(p)) break;

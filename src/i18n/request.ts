@@ -45,5 +45,3 @@ export default getRequestConfig(async () => {
   };
 });
 
-// Import at the bottom to avoid a circular type reference in the editor.
-import type { Messages } from "@/locales/en";

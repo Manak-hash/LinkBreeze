@@ -35,7 +35,6 @@ export function ColorField({
   onChange: (v: string) => void;
   allowRgba?: boolean;
 }) {
-  const t = useTranslations("theme");
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name} className="text-xs text-muted-foreground">
@@ -107,7 +106,6 @@ export function ToggleField({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
-  const t = useTranslations("theme");
   return (
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground">{label}</Label>

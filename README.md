@@ -20,7 +20,7 @@
 
 ---
 
-**[English](README.md)** · Français
+**[English](README.md)** · [Français](README.fr.md)
 
 ---
 
