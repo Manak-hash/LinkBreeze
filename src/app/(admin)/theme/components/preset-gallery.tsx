@@ -4,6 +4,7 @@ import { Check, Trash2 } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Badge } from "@/components/ui/badge";
 import { resolveBackground } from "@/lib/theme-tokens";
+import { useTranslations } from "next-intl";
 
 interface PresetGalleryProps {
   themes: ThemeRow[];
@@ -87,6 +88,7 @@ export function PresetGallery({
   onSelect,
   onDeleteClick,
 }: PresetGalleryProps) {
+  const t = useTranslations("theme");
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {themes.map((theme) => {
@@ -115,7 +117,7 @@ export function PresetGallery({
                       <Check className="size-3" /> Active
                     </Badge>
                   ) : selecting === theme.id ? (
-                    <span className="shrink-0 text-xs text-muted-foreground">Applying...</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{t("applying")}</span>
                   ) : (
                     <span className="shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                       Use
@@ -130,7 +132,7 @@ export function PresetGallery({
                 onClick={() => onDeleteClick(theme.id)}
                 disabled={delPending === theme.id}
                 className="absolute right-1.5 top-1.5 rounded-md bg-black/40 p-1.5 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
-                title="Delete theme"
+                title={t("deleteTheme")}
               >
                 <Trash2 className="size-3.5" />
               </button>

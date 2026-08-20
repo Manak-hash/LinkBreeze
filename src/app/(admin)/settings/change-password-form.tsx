@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
+import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
 import { changePassword } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,8 @@ import {
 } from "@/components/ui/card";
 
 export function ChangePasswordForm() {
+  const t = useTranslations("settings.security");
+  const tErr = useTranslations("errors");
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<
     { ok: true } | { ok: false; error: string } | null
@@ -25,7 +29,7 @@ export function ChangePasswordForm() {
     setResult(null);
     startTransition(async () => {
       const res = await changePassword(formData);
-      setResult(res.success ? { ok: true } : { ok: false, error: res.error });
+      setResult(res.success ? { ok: true } : { ok: false, error: localizeActionError(tErr, res.error) });
     });
   };
 
@@ -33,14 +37,12 @@ export function ChangePasswordForm() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lock className="size-4" />
-          Change password
-        </CardTitle>
-        <CardDescription>Update your admin password.</CardDescription>
+          <Lock className="size-4" />{t("changePassword")}</CardTitle>
+        <CardDescription>{t("desc")}</CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
-          <FormField label="Current password" htmlFor="currentPassword" required>
+          <FormField label={t("currentPassword")} htmlFor="currentPassword" required>
             <Input
               id="currentPassword"
               name="currentPassword"
@@ -50,10 +52,10 @@ export function ChangePasswordForm() {
             />
           </FormField>
           <FormField
-            label="New password"
+            label={t("newPassword")}
             htmlFor="newPassword"
             required
-            hint="At least 8 characters with one uppercase letter and one number."
+            hint={t("passwordHint")}
           >
             <Input
               id="newPassword"
@@ -66,7 +68,7 @@ export function ChangePasswordForm() {
           </FormField>
           {result ? (
             result.ok ? (
-              <p className="text-sm text-success">Password updated.</p>
+              <p className="text-sm text-success">{t("updated")}</p>
             ) : (
               <p className="text-sm text-destructive">{result.error}</p>
             )
@@ -74,7 +76,7 @@ export function ChangePasswordForm() {
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={pending}>
-            {pending ? "Updating…" : "Update password"}
+            {pending ? t("updating") : t("updatePassword")}
           </Button>
         </CardFooter>
       </form>

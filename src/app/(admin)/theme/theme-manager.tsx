@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
 import { useRouter } from "next/navigation";
 import {
   activateTheme,
@@ -11,6 +12,7 @@ import {
 import { setPageThemeAction } from "@/server/actions/pages";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,8 @@ export function ThemeManager({
   pageThemeId,
   customFonts = [],
 }: ThemeManagerProps) {
+  const t = useTranslations("theme");
+  const tErr = useTranslations("errors");
   const { reload: reloadPreview } = usePreview();
   const [selecting, setSelecting] = React.useState<number | null>(null);
   const [customPending, setCustomPending] = React.useState(false);
@@ -72,7 +76,7 @@ export function ThemeManager({
     try {
       const res = await customizeActiveTheme(formData);
       if (!res.success) {
-        setCustomError(res.error);
+        setCustomError(localizeActionError(tErr, res.error));
       } else {
         router.refresh();
         reloadPreview();
@@ -100,7 +104,7 @@ export function ThemeManager({
       fd.set("themeId", String(dup.themeId));
       const res = await customizeActiveTheme(fd);
       if (!res.success) {
-        setCustomError(res.error);
+        setCustomError(localizeActionError(tErr, res.error));
         return;
       }
       // Point this page (or the global default) at the new theme.
@@ -146,10 +150,8 @@ export function ThemeManager({
       {/* Header row: title left, actions top-right */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">Theme</h1>
-          <p className="text-sm text-muted-foreground">
-            Choose a preset or fully customise your page.
-          </p>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("chooseAPresetOrFullyCustomiseYourPage")}</p>
         </div>
         <ThemeActions themes={themes} active={active} />
       </div>
@@ -183,22 +185,18 @@ export function ThemeManager({
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Delete this custom theme?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. The theme will be permanently removed.
-            </DialogDescription>
+            <DialogTitle>{t("deleteCustomConfirm")}</DialogTitle>
+            <DialogDescription>{t("thisActionCannotBeUndoneTheThemeWillBePe")}</DialogDescription>
       </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" type="button" onClick={() => setDeleteTarget(null)}>{t("cancel")}</Button>
             <Button
               variant="destructive"
               type="button"
               disabled={delPending !== null}
               onClick={() => { if (deleteTarget !== null) handleDelete(deleteTarget); }}
             >
-              {delPending !== null ? "Deleting…" : "Delete"}
+              {delPending !== null ? t("deleting") : t("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Save, ExternalLink } from "lucide-react";
@@ -20,6 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { usePreview } from "@/components/admin/PreviewPane";
+import { LanguageCard } from "./language-card";
 
 // ── Favicon upload (used in Appearance tab) ──────────────────────────────
 
@@ -30,6 +33,8 @@ function FaviconUpload({
   faviconUrl: string;
   onUpload: (url: string) => void;
 }) {
+  const t = useTranslations("settings.appearance");
+  const tErr = useTranslations("errors");
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -46,7 +51,7 @@ function FaviconUpload({
       if (res.success) {
         onUpload(res.url);
       } else {
-        setError(res.error);
+        setError(localizeActionError(tErr, res.error));
       }
     } catch {
       setError("Upload failed. Please try again.");
@@ -58,15 +63,15 @@ function FaviconUpload({
 
   return (
     <FormField
-      label="Favicon"
+      label={t("favicon")}
       htmlFor="faviconUpload"
-      hint="Upload .ico, .png, .svg, .gif or .webp (max 1 MB)."
+      hint={t("faviconHint")}
     >
       <div className="flex flex-wrap items-center gap-3">
         {faviconUrl ? (
           <Image
             src={faviconUrl}
-            alt="Current favicon"
+            alt={t("currentFavicon")}
             width={32}
             height={32}
             unoptimized
@@ -74,7 +79,7 @@ function FaviconUpload({
           />
         ) : null}
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
-          {uploading ? "Uploading…" : "Upload favicon"}
+          {uploading ? t("uploading") : t("uploadFavicon")}
           <input
             type="file"
             accept=".ico,.png,.svg,.gif,.webp,image/x-icon,image/png,image/svg+xml,image/gif,image/webp"
@@ -106,6 +111,8 @@ export function GeneralTab({
   footerText,
   privacyPolicy,
 }: GeneralTabProps) {
+  const t = useTranslations("settings.general");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
   const { reload: reloadPreview } = usePreview();
@@ -135,20 +142,21 @@ export function GeneralTab({
   };
 
   return (
+    <div className="flex flex-col gap-6">
     <Card>
       <CardHeader>
-        <CardTitle>General</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Page slug, title, SEO metadata, footer and privacy policy.
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
           <FormField
-            label="Page slug"
+            label={t("pageSlug")}
             htmlFor="slug"
             required
-            hint={<>Your public page lives at <code>/{slug || "u"}</code></>}
+            hint={t.rich("slugHintRich", { slug: slug || "u", code: (chunk) => <code>{chunk}</code> })}
           >
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">/</span>
@@ -166,54 +174,54 @@ export function GeneralTab({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
-                aria-label="View public page"
+                aria-label={t("viewPublicPage")}
               >
                 <ExternalLink className="size-4" />
               </a>
             </div>
           </FormField>
 
-          <FormField label="Page title (SEO)" htmlFor="title">
+          <FormField label={t("pageTitle")} htmlFor="title">
             <Input
               id="title"
               name="title"
               defaultValue={title}
               maxLength={120}
-              placeholder="Jane Doe — Links"
+              placeholder={t("pageTitlePlaceholder")}
             />
           </FormField>
 
-          <FormField label="SEO description" htmlFor="description">
+          <FormField label={t("seoDescription")} htmlFor="description">
             <Input
               id="description"
               name="description"
               defaultValue={description}
               maxLength={300}
-              placeholder="All my links in one place"
+              placeholder={t("seoPlaceholder")}
             />
           </FormField>
 
-          <FormField label="Footer text (optional)" htmlFor="footerText">
+          <FormField label={t("footerText")} htmlFor="footerText">
             <Input
               id="footerText"
               name="footerText"
               defaultValue={footerText}
               maxLength={200}
-              placeholder="© 2026 Jane Doe"
+              placeholder={t("footerPlaceholder")}
             />
           </FormField>
 
           <FormField
-            label="Privacy policy (optional)"
+            label={t("privacyPolicy")}
             htmlFor="privacyPolicy"
-            hint={<>Leave empty to auto-generate from your page settings. Visitors can always access it at <code>/{slug}/privacy</code>. Supports Markdown (headings, lists, <strong>bold</strong>, <em>italic</em>, <code>code</code>).</>}
+            hint={t.rich("privacyHintRich", { slug, code: (chunk) => <code>{chunk}</code>, strong: (chunk) => <strong>{chunk}</strong>, em: (chunk) => <em>{chunk}</em> })}
           >
             <textarea
               id="privacyPolicy"
               name="privacyPolicy"
               defaultValue={privacyPolicy}
               maxLength={20000}
-              placeholder={"# Privacy Policy\n\nThis page uses privacy-respecting analytics..."}
+              placeholder={t("privacyPlaceholder")}
               className="min-h-[160px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               spellCheck={false}
             />
@@ -222,12 +230,14 @@ export function GeneralTab({
         <CardFooter className="gap-3">
           <Button type="submit" disabled={pending}>
             <Save className="size-4" />
-            {pending ? "Saving…" : "Save general settings"}
+            {pending ? t("saving") : t("saveGeneral")}
           </Button>
-          {saved ? <span className="text-sm text-muted-foreground">Saved!</span> : null}
+          {saved ? <span className="text-sm text-muted-foreground">{tCommon("saved")}</span> : null}
         </CardFooter>
       </form>
     </Card>
+    <LanguageCard />
+    </div>
   );
 }
 
@@ -248,6 +258,9 @@ export function IntegrationTab({
   consentText,
   emailCapture,
 }: IntegrationTabProps) {
+  const t = useTranslations("settings.integration");
+  const tInt = t;
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
   const [emailEnabled, setEmailEnabled] = React.useState(emailCapture);
@@ -279,9 +292,9 @@ export function IntegrationTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Integration</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Analytics scripts, email subscription and consent text.
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
@@ -291,9 +304,9 @@ export function IntegrationTab({
           )}
 
           <FormField
-            label="Analytics script (optional)"
+            label={t("analyticsScript")}
             htmlFor="analyticsScript"
-            hint={<>Paste a <code>{"<script>"}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.</>}
+            hint={tInt.rich("analyticsHintRich", { code: (chunk) => <code>{chunk}</code> })}
           >
             <textarea
               id="analyticsScript"
@@ -307,8 +320,8 @@ export function IntegrationTab({
           </FormField>
 
           <FormField
-            label="Email subscription"
-            hint={<>Show an email signup form at the bottom of your public page. Subscribers are stored in your database and can be exported as CSV.</>}
+            label={t("emailCapture")}
+            hint={tInt.rich("emailCaptureHintRich", {})}
           >
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
@@ -318,16 +331,16 @@ export function IntegrationTab({
 
           {emailEnabled ? (
           <FormField
-            label="Email consent text"
+            label={t("consentText")}
             htmlFor="consentText"
-            hint={<>Shown next to the consent checkbox on your email signup form. Leave empty for the default: <em>I agree to receive emails and understand I can unsubscribe at any time.</em></>}
+            hint={tInt.rich("consentHintRich", { em: (chunk) => <em>{chunk}</em> })}
           >
             <Input
               id="consentText"
               name="consentText"
               defaultValue={consentText || ""}
               maxLength={500}
-              placeholder="I agree to receive emails and understand I can unsubscribe at any time."
+              placeholder={t("consentPlaceholder")}
             />
           </FormField>
           ) : null}
@@ -335,9 +348,9 @@ export function IntegrationTab({
         <CardFooter className="gap-3">
           <Button type="submit" disabled={pending}>
             <Save className="size-4" />
-            {pending ? "Saving…" : "Save integration settings"}
+            {pending ? t("saving") : t("saveIntegration")}
           </Button>
-          {saved ? <span className="text-sm text-muted-foreground">Saved!</span> : null}
+          {saved ? <span className="text-sm text-muted-foreground">{tCommon("saved")}</span> : null}
         </CardFooter>
       </form>
     </Card>
@@ -361,6 +374,9 @@ export function AppearanceTab({
   themes,
   activeThemeId,
 }: AppearanceTabProps) {
+  const t = useTranslations("settings.appearance");
+  const tInt = useTranslations("settings.integration");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
   const { reload: reloadPreview } = usePreview();
@@ -401,15 +417,15 @@ export function AppearanceTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Appearance</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Theme selection, favicon and custom CSS.
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="flex flex-col gap-4">
           {themes.length > 0 ? (
-            <FormField label="Active theme">
+            <FormField label={t("activeTheme")}>
               <div className="flex flex-wrap gap-2">
                 {themes.map((t) => {
                   const isActive =
@@ -438,9 +454,9 @@ export function AppearanceTab({
           <FaviconUpload faviconUrl={faviconUrl} onUpload={handleFaviconUploaded} />
 
           <FormField
-            label="Custom CSS (optional)"
+            label={tInt("customCss")}
             htmlFor="customCss"
-            hint={<>Raw CSS injected into a <code>{"<style>"}</code> tag on your public page.</>}
+            hint={tInt.rich("customCssHintRich", { code: (chunk) => <code>{chunk}</code> })}
           >
             <textarea
               id="customCss"
@@ -456,9 +472,9 @@ export function AppearanceTab({
         <CardFooter className="gap-3">
           <Button type="submit" disabled={pending}>
             <Save className="size-4" />
-            {pending ? "Saving…" : "Save appearance"}
+            {pending ? t("saving") : t("saveAppearance")}
           </Button>
-          {saved ? <span className="text-sm text-muted-foreground">Saved!</span> : null}
+          {saved ? <span className="text-sm text-muted-foreground">{tCommon("saved")}</span> : null}
         </CardFooter>
       </form>
     </Card>

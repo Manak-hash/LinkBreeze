@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { QrCode, Download, RotateCcw, Save } from "lucide-react";
@@ -28,6 +29,7 @@ function QrCard({
   faviconAvailable: boolean;
   themePresets: string[];
 }) {
+  const t = useTranslations("settings.qr");
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(false);
@@ -98,14 +100,14 @@ function QrCard({
   ];
 
   return (
-    <FormField label="QR code style">
+    <FormField label={t("styleLabel")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="rounded-xl border border-border p-3" style={{ backgroundColor: style.bg }}>
           {previewSrc ? (
             <Image
               key={previewSrc}
               src={previewSrc}
-              alt="QR code preview"
+              alt={t("previewAlt")}
               width={176}
               height={176}
               unoptimized
@@ -120,36 +122,30 @@ function QrCard({
 
         <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              Code color
-              <span className="flex items-center gap-2">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("codeColor")}<span className="flex items-center gap-2">
                 <input
                   type="color"
                   value={style.fg}
                   onChange={(e) => set({ fg: e.target.value })}
                   className="size-8 cursor-pointer rounded border border-border bg-transparent p-0.5"
-                  aria-label="QR code color"
+                  aria-label={t("colorLabel")}
                 />
                 <code className="text-xs text-foreground">{style.fg}</code>
               </span>
             </label>
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              Background
-              <span className="flex items-center gap-2">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("backgroundColor")}<span className="flex items-center gap-2">
                 <input
                   type="color"
                   value={style.bg}
                   onChange={(e) => set({ bg: e.target.value })}
                   className="size-8 cursor-pointer rounded border border-border bg-transparent p-0.5"
-                  aria-label="QR background color"
+                  aria-label={t("bgLabel")}
                 />
                 <code className="text-xs text-foreground">{style.bg}</code>
               </span>
             </label>
             {themePresets.length > 0 ? (
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                Theme colors
-                <span className="flex gap-1.5">
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">{t("themeColors")}<span className="flex gap-1.5">
                   {themePresets.map((hex) => (
                     <button
                       key={hex}
@@ -167,7 +163,7 @@ function QrCard({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">Center logo</span>
+            <span className="text-xs text-muted-foreground">{t("centerLogo")}</span>
             <div className="flex flex-wrap gap-2">
               {logoOptions.map((opt) => (
                 <label
@@ -193,13 +189,11 @@ function QrCard({
                 </label>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground">
-              With a logo, error correction is raised to High so the code keeps scanning.
-            </span>
+            <span className="text-xs text-muted-foreground">{t("logoHint")}</span>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">PNG export size</span>
+            <span className="text-xs text-muted-foreground">{t("exportSize")}</span>
             <div className="flex gap-2">
               {SIZE_PRESETS.map((s) => (
                 <button
@@ -213,7 +207,7 @@ function QrCard({
                       : "border-border")
                   }
                 >
-                  {s}px
+                  {t("px", { num: s })}
                 </button>
               ))}
             </div>
@@ -224,29 +218,23 @@ function QrCard({
               href={downloadUrl("svg")}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
             >
-              <Download className="size-4" />
-              SVG
-            </a>
+              <Download className="size-4" />{t("svg")}</a>
             <a
               href={downloadUrl("png")}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
             >
-              <Download className="size-4" />
-              PNG
-            </a>
+              <Download className="size-4" />{t("png")}</a>
             <Button
               type="button"
               variant="outline"
               onClick={() => setStyle(defaultQrStyle())}
               className="gap-2"
             >
-              <RotateCcw className="size-4" />
-              Reset
-            </Button>
+              <RotateCcw className="size-4" />{t("reset")}</Button>
             {pageId ? (
               <Button type="button" onClick={handleSave} disabled={pending || !dirty} className="gap-2">
                 <Save className="size-4" />
-                {pending ? "Saving…" : saved ? "Saved!" : "Save style"}
+                {pending ? t("saving") : saved ? t("savedBang") : t("saveStyle")}
               </Button>
             ) : null}
           </div>

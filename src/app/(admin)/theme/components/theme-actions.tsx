@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownUp,
@@ -11,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -36,6 +38,8 @@ export function ThemeActions({
   themes: ThemeRow[];
   active: ThemeRow | null;
 }) {
+  const t = useTranslations("theme");
+  const tErr = useTranslations("errors");
   const router = useRouter();
 
   // ── Duplicate ─────────────────────────────────────────────────────────
@@ -58,14 +62,14 @@ export function ThemeActions({
     try {
       const res = await duplicateActiveTheme(name, active.id);
       if (!res.success) {
-        setDupError(res.error);
+        setDupError(localizeActionError(tErr, res.error));
         return;
       }
       setDupOpen(false);
       setToast(`Theme "${name}" created`);
       router.refresh();
     } catch {
-      setDupError("Failed to duplicate theme. Please try again.");
+      setDupError(t("dupFailed"));
     } finally {
       setDupPending(false);
     }
@@ -93,14 +97,14 @@ export function ThemeActions({
     try {
       const res = await deleteCustomTheme(delTarget.id);
       if (!res.success) {
-        setDelError(res.error);
+        setDelError(localizeActionError(tErr, res.error));
         return;
       }
       setDelOpen(false);
       setToast(`Theme "${delTarget.name}" deleted`);
       router.refresh();
     } catch {
-      setDelError("Failed to delete theme. Please try again.");
+      setDelError(t("delFailed"));
     } finally {
       setDelPending(false);
     }
@@ -167,10 +171,10 @@ export function ThemeActions({
         disabled={!canDeleteActive}
         title={
           canDeleteActive
-            ? `Delete "${active?.name}"`
-            : "Built-in themes cannot be deleted"
+            ? t("deleteNamedTheme", { name: active?.name ?? "" })
+            : t("builtinNoDelete")
         }
-        aria-label="Delete theme"
+        aria-label={t("deleteTheme")}
         className={!canDeleteActive ? "text-muted-foreground" : undefined}
       >
         <Trash2 className="size-3.5" />
@@ -184,9 +188,7 @@ export function ThemeActions({
         disabled={!active}
         title={active ? `Duplicate "${active.name}"` : undefined}
       >
-        <Copy className="size-3.5" />
-        Duplicate theme
-      </Button>
+        <Copy className="size-3.5" />{t("duplicateTheme")}</Button>
 
       <Button
         type="button"
@@ -197,22 +199,18 @@ export function ThemeActions({
           setToolsOpen(true);
         }}
       >
-        <ArrowDownUp className="size-3.5" />
-        Import &amp; export
-      </Button>
+        <ArrowDownUp className="size-3.5" />{t("importAmpExport")}</Button>
 
       {/* Duplicate dialog */}
       <Dialog open={dupOpen} onOpenChange={setDupOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Duplicate theme</DialogTitle>
+            <DialogTitle>{t("duplicateTheme")}</DialogTitle>
             <DialogDescription>
-              Creates an editable copy of{" "}
+              {t("createsCopyOf")}{" "}
               <span className="font-medium text-foreground">
                 {active?.name}
-              </span>
-              . The original stays untouched.
-            </DialogDescription>
+              </span>{t("theOriginalStaysUntouched")}</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -224,15 +222,13 @@ export function ThemeActions({
             <label
               htmlFor="dup-theme-name"
               className="text-xs font-medium text-muted-foreground"
-            >
-              Name of the copy
-            </label>
+            >{t("nameOfTheCopy")}</label>
             <Input
               id="dup-theme-name"
               value={dupName}
               onChange={(e) => setDupName(e.target.value)}
               maxLength={100}
-              placeholder="My theme (copy)"
+              placeholder={t("themeCopyPlaceholder")}
               autoFocus
               disabled={dupPending}
             />
@@ -249,16 +245,14 @@ export function ThemeActions({
               variant="outline"
               onClick={() => setDupOpen(false)}
               disabled={dupPending}
-            >
-              Cancel
-            </Button>
+            >{t("cancel")}</Button>
             <Button
               type="button"
               onClick={handleDuplicate}
               disabled={dupPending || !dupName.trim()}
             >
               <Copy className="size-3.5" />
-              {dupPending ? "Duplicating…" : "Duplicate"}
+              {dupPending ? t("duplicating") : t("duplicate")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -268,7 +262,7 @@ export function ThemeActions({
       <Dialog open={delOpen} onOpenChange={setDelOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Delete theme</DialogTitle>
+            <DialogTitle>{t("deleteTheme")}</DialogTitle>
             <DialogDescription>
               {delTarget
                 ? `This permanently removes "${delTarget.name}" from your themes.`
@@ -287,9 +281,7 @@ export function ThemeActions({
               variant="outline"
               onClick={() => setDelOpen(false)}
               disabled={delPending}
-            >
-              Cancel
-            </Button>
+            >{t("cancel")}</Button>
             <Button
               type="button"
               variant="destructive"
@@ -297,7 +289,7 @@ export function ThemeActions({
               disabled={delPending}
             >
               <Trash2 className="size-3.5" />
-              {delPending ? "Deleting…" : "Delete theme"}
+              {delPending ? t("deleting") : t("deleteTheme")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -307,18 +299,12 @@ export function ThemeActions({
       <Dialog open={toolsOpen} onOpenChange={setToolsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Import &amp; export</DialogTitle>
-            <DialogDescription>
-              Download a theme as a .json file to back it up or share it, then
-              re-import on any LinkBreeze instance. Imports are added as
-              inactive copies.
-            </DialogDescription>
+            <DialogTitle>{t("importExport")}</DialogTitle>
+            <DialogDescription>{t("downloadAThemeAsAJsonFileToBackItUpOrSha")}</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
-            <span className="text-xs font-medium text-muted-foreground">
-              Export
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">{t("export")}</span>
             <div className="max-h-52 overflow-y-auto rounded-lg border border-border">
               {themes.map((t, i) => (
                 <React.Fragment key={t.id}>
@@ -379,9 +365,7 @@ export function ThemeActions({
               ))}
             </div>
 
-            <span className="mt-1 text-xs font-medium text-muted-foreground">
-              Import
-            </span>
+            <span className="mt-1 text-xs font-medium text-muted-foreground">{t("import")}</span>
             <input
               ref={inputRef}
               type="file"
@@ -398,7 +382,7 @@ export function ThemeActions({
               disabled={impBusy}
             >
               <Upload className="size-3.5" />
-              {impBusy ? "Importing…" : "Choose JSON file…"}
+              {impBusy ? t("importing") : t("chooseJsonFile")}
             </Button>
             {impError ? (
               <p className="flex items-center gap-1.5 text-xs text-destructive">

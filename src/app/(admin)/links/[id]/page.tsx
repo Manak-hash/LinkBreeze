@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { getLocale } from "@/i18n/server";
+import { formatNumber } from "@/i18n/format";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MousePointerClick } from "lucide-react";
 import {
@@ -30,6 +33,8 @@ export default async function LinkDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ range?: string }>;
 }) {
+  const t = await getTranslations("linkDetail");
+  const locale = await getLocale();
   const [{ id: idParam }, { range: rangeParam }] = await Promise.all([
     params,
     searchParams,
@@ -53,9 +58,7 @@ export default async function LinkDetailPage({
           href="/links"
           className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" />
-          Back to links
-        </Link>
+          <ArrowLeft className="size-4" />{t("backToLinks")}</Link>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           {link.title}
         </h1>
@@ -66,7 +69,7 @@ export default async function LinkDetailPage({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MousePointerClick className="size-4 text-lavender" />
           <span className="font-medium text-foreground">
-            {totalClicks.toLocaleString()}
+            {formatNumber(totalClicks, locale)}
           </span>{" "}
           {`clicks in the last ${range.replace("d", "")} days${retentionDays > 0 ? ` (data kept ${retentionDays} days)` : ""}`}
         </div>
@@ -75,22 +78,22 @@ export default async function LinkDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Clicks over time</CardTitle>
-          <CardDescription>Daily clicks for this link</CardDescription>
+          <CardTitle>{t("clicksOverTime")}</CardTitle>
+          <CardDescription>{t("dailyClicks")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ClicksChart data={clicksPerDay} />
+          <ClicksChart data={clicksPerDay} locale={locale} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Top referrers</CardTitle>
-          <CardDescription>Where these clicks came from</CardDescription>
+          <CardTitle>{t("topReferrers")}</CardTitle>
+          <CardDescription>{t("referrersDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {topReferrers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No referrer data yet.</p>
+            <p className="text-sm text-muted-foreground">{t("noReferrerData")}</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {topReferrers.map((r) => {

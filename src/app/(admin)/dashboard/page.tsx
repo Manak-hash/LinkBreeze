@@ -41,6 +41,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ViewsChart } from "./views-chart";
 import { RangePicker } from "./range-picker";
 import { ExpandableSection } from "./expandable-section";
+import { getTranslations } from "next-intl/server";
+import { getLocale } from "@/i18n/server";
+import { formatNumber } from "@/i18n/format";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +57,15 @@ function parseRange(value?: string): AnalyticsRange {
 
 // ── Delta badge ──────────────────────────────────────────────────────────
 
-function Delta({ current, previous }: { current: number; previous: number }) {
+function Delta({
+  current,
+  previous,
+  newLabel,
+}: {
+  current: number;
+  previous: number;
+  newLabel: string;
+}) {
   if (previous === 0 && current === 0) {
     return (
       <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
@@ -65,8 +76,7 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
     return (
       <span className="flex items-center gap-0.5 text-xs text-emerald-400">
-        <TrendingUp className="size-3" /> New
-      </span>
+        <TrendingUp className="size-3" />{newLabel}</span>
     );
   }
   const delta = Math.round(((current - previous) / previous) * 100);
@@ -148,6 +158,7 @@ function MetricCard({
   hint,
   delta,
   spark,
+  newLabel,
 }: {
   label: string;
   value: string;
@@ -155,6 +166,7 @@ function MetricCard({
   hint: string;
   delta?: { current: number; previous: number };
   spark?: number[];
+  newLabel: string;
 }) {
   return (
     <SpotlightCard className="bg-card backdrop-blur-xl">
@@ -166,7 +178,7 @@ function MetricCard({
         />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{label}</span>
-          {delta && <Delta current={delta.current} previous={delta.previous} />}
+          {delta && <Delta current={delta.current} previous={delta.previous} newLabel={newLabel} />}
         </div>
         <span className="font-heading text-3xl font-semibold tracking-tight">
           {value}
@@ -216,14 +228,16 @@ function BreakdownList({
   total,
   showFavicons,
   max,
+  noDataLabel,
 }: {
   entries: BreakdownEntry[];
   total: number;
   showFavicons?: boolean;
   max?: number;
+  noDataLabel: string;
 }) {
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">No data yet.</p>;
+    return <p className="text-sm text-muted-foreground">{noDataLabel}</p>;
   }
   return (
     <ul className="flex flex-col gap-2">
@@ -256,12 +270,14 @@ function BreakdownList({
 function TopLinksList({
   links,
   max,
+  noClicksLabel,
 }: {
   links: { id: number; title: string; clicks: number }[];
   max?: number;
+  noClicksLabel: string;
 }) {
   if (links.length === 0) {
-    return <p className="text-sm text-muted-foreground">No clicks yet.</p>;
+    return <p className="text-sm text-muted-foreground">{noClicksLabel}</p>;
   }
   const topMax = links[0]?.clicks || 1;
   return (
@@ -334,6 +350,9 @@ export default async function DashboardPage({
   // Fresh install: no links, no views. Show a welcome hero instead of
   // an empty dashboard full of zeroes.
   const isEmptyState = links.length === 0 && stats.totalViews === 0;
+  const t = await getTranslations("dashboard");
+  const tCommon = await getTranslations("common");
+  const locale = await getLocale();
 
   return (
     <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
@@ -354,19 +373,22 @@ export default async function DashboardPage({
           </div>
           <div>
             <h2 className="font-heading text-xl font-semibold">
-              Welcome to your dashboard
+              {t("welcomeTitle")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your page is live at{" "}
-              <a
-                href={`/${slug ?? "u"}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-violet underline"
-              >
-                /{slug ?? "u"}
-              </a>
-              . Add your first link to start collecting analytics.
+              {t.rich("welcomeBody", {
+                slug: slug ?? "u",
+                a: (chunk) => (
+                  <a
+                    href={`/${slug ?? "u"}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-violet underline"
+                  >
+                    /{chunk}
+                  </a>
+                ),
+              })}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -374,13 +396,13 @@ export default async function DashboardPage({
               href="/links"
               className="inline-flex items-center gap-2 rounded-lg bg-violet px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet/90"
             >
-              <Plus className="size-4" /> Add your first link
+              <Plus className="size-4" /> {t("addFirstLink")}
             </Link>
             <Link
               href="/settings?tab=data"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
             >
-              <DownloadCloud className="size-4" /> Import your existing page
+              <DownloadCloud className="size-4" /> {t("importExisting")}
             </Link>
           </div>
         </div>
@@ -390,22 +412,26 @@ export default async function DashboardPage({
       <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            Dashboard
+            {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {`Analytics for the last ${range.replace("d", "")} days${retentionDays > 0 ? ` (data kept ${retentionDays} days)` : ""}`}
+            {retentionDays > 0
+              ? t("subtitleRetention", {
+                  range: range.replace("d", ""),
+                  retention: retentionDays,
+                })
+              : t("subtitle", { range: range.replace("d", "") })}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {subscriberCount > 0 && (
             <Link
               href="/settings?tab=data"
-              title="Email subscribers — opens Settings → Data"
+              title={t("subscribersTitle")}
               className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <Mail className="size-3.5" />
-              {subscriberCount.toLocaleString()}{" "}
-              {subscriberCount === 1 ? "subscriber" : "subscribers"}
+              {t("subscribersLink", { count: subscriberCount })}
             </Link>
           )}
           <a
@@ -413,7 +439,7 @@ export default async function DashboardPage({
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
           >
             <Download className="size-4" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">{t("exportCsv")}</span>
           </a>
           <RangePicker current={range} />
         </div>
@@ -422,32 +448,36 @@ export default async function DashboardPage({
       {/* Metric cards — fixed height, shrink-0 */}
       <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
-          label="Views"
-          value={stats.totalViews.toLocaleString()}
+          label={t("viewsLabel")}
+          value={formatNumber(stats.totalViews, locale)}
           icon={Eye}
-          hint={`${stats.uniqueVisitors.toLocaleString()} unique visitors`}
+          hint={t("uniqueVisitors", { count: formatNumber(stats.uniqueVisitors, locale) })}
           delta={{ current: stats.totalViews, previous: prevStats.totalViews }}
+          newLabel={t("new")}
           spark={viewSpark}
         />
         <MetricCard
-          label="Clicks"
-          value={stats.totalClicks.toLocaleString()}
+          label={t("clicksLabel")}
+          value={formatNumber(stats.totalClicks, locale)}
           icon={MousePointerClick}
-          hint="Link clicks in range"
+          hint={t("linkClicksInRange")}
           delta={{ current: stats.totalClicks, previous: prevStats.totalClicks }}
+          newLabel={t("new")}
           spark={clickSpark}
         />
         <MetricCard
-          label="Click-through rate"
+          label={t("ctrLabel")}
           value={`${stats.ctr}%`}
           icon={TrendingUp}
-          hint="Clicks / views"
+          hint={t("ctrHint")}
+          newLabel={t("new")}
         />
         <MetricCard
-          label="Active links"
+          label={t("activeLinks")}
           value={activeCount.toString()}
           icon={LinkIcon}
-          hint={`${links.length} total`}
+          hint={t("totalLinks", { count: links.length })}
+          newLabel={t("new")}
         />
       </div>
 
@@ -456,23 +486,23 @@ export default async function DashboardPage({
         <div className="flex shrink-0 items-center justify-between">
           <div className="flex flex-col">
             <span className="font-heading text-base font-medium">
-              Views over time
+              {t("viewsOverTime")}
             </span>
             <span className="text-xs text-muted-foreground">
-              Daily views and clicks
+              {t("dailyViewsClicks")}
             </span>
           </div>
         </div>
         <div className="min-h-0 flex-1">
-          <ViewsChart data={stats.viewsPerDay} />
+          <ViewsChart data={stats.viewsPerDay} locale={locale} />
         </div>
       </div>
 
       {/* Bottom row: top links + referrers + devices + countries */}
       <div className="grid shrink-0 gap-3 lg:grid-cols-4">
         <ExpandableSection
-          title="Top links"
-          description={`${stats.topLinks.length} links with clicks`}
+          title={t("topLinks")}
+          description={t("topLinksDesc", { count: stats.topLinks.length })}
           compact={
             <Card className="h-full">
               <CardContent className="relative flex h-full flex-col gap-3">
@@ -481,23 +511,21 @@ export default async function DashboardPage({
                   strokeWidth={1}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="font-heading text-sm font-medium">
-                    Top links
-                  </span>
+                  <span className="font-heading text-sm font-medium">{t("topLinks")}</span>
                   <span className="text-xs text-muted-foreground">
                     {stats.topLinks.length}
                   </span>
                 </div>
-                <TopLinksList links={stats.topLinks} max={4} />
+                <TopLinksList links={stats.topLinks} max={4} noClicksLabel={t("noClicksYet")} />
               </CardContent>
             </Card>
           }
-          expanded={<TopLinksList links={stats.topLinks} />}
+          expanded={<TopLinksList links={stats.topLinks} noClicksLabel={t("noClicksYet")} />}
         />
 
         <ExpandableSection
-          title="Top referrers"
-          description="Where views came from"
+          title={t("topReferrers")}
+          description={t("referrersDesc")}
           compact={
             <Card className="h-full">
               <CardContent className="relative flex h-full flex-col gap-3">
@@ -506,15 +534,14 @@ export default async function DashboardPage({
                   strokeWidth={1}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="font-heading text-sm font-medium">
-                    Referrers
-                  </span>
+                  <span className="font-heading text-sm font-medium">{t("referrers")}</span>
                 </div>
                 <BreakdownList
                   entries={breakdown.referrers}
                   total={refTotal}
                   showFavicons
                   max={4}
+                  noDataLabel={t("noDataYet")}
                 />
               </CardContent>
             </Card>
@@ -524,13 +551,14 @@ export default async function DashboardPage({
               entries={breakdown.referrers}
               total={refTotal}
               showFavicons
+              noDataLabel={t("noDataYet")}
             />
           }
         />
 
         <ExpandableSection
-          title="Devices"
-          description="Browser types"
+          title={t("devicesTitle")}
+          description={t("devicesDesc")}
           compact={
             <Card className="h-full">
               <CardContent className="relative flex h-full flex-col gap-3">
@@ -539,20 +567,18 @@ export default async function DashboardPage({
                   strokeWidth={1}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="font-heading text-sm font-medium">
-                    Devices
-                  </span>
+                  <span className="font-heading text-sm font-medium">{t("devices")}</span>
                 </div>
-                <BreakdownList entries={breakdown.devices} total={devTotal} max={4} />
+                <BreakdownList entries={breakdown.devices} total={devTotal} max={4} noDataLabel={t("noDataYet")} />
               </CardContent>
             </Card>
           }
-          expanded={<BreakdownList entries={breakdown.devices} total={devTotal} />}
+          expanded={<BreakdownList entries={breakdown.devices} total={devTotal} noDataLabel={t("noDataYet")} />}
         />
 
         <ExpandableSection
-          title="Countries"
-          description="Visitor locations"
+          title={t("countriesTitle")}
+          description={t("countriesDesc")}
           compact={
             <Card className="h-full">
               <CardContent className="relative flex h-full flex-col gap-3">
@@ -561,15 +587,13 @@ export default async function DashboardPage({
                   strokeWidth={1}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="font-heading text-sm font-medium">
-                    Countries
-                  </span>
+                  <span className="font-heading text-sm font-medium">{t("countries")}</span>
                 </div>
-                <BreakdownList entries={breakdown.countries} total={ctryTotal} max={4} />
+                <BreakdownList entries={breakdown.countries} total={ctryTotal} max={4} noDataLabel={t("noDataYet")} />
               </CardContent>
             </Card>
           }
-          expanded={<BreakdownList entries={breakdown.countries} total={ctryTotal} />}
+          expanded={<BreakdownList entries={breakdown.countries} total={ctryTotal} noDataLabel={t("noDataYet")} />}
         />
       </div>
         </>

@@ -1,4 +1,6 @@
 // ─── Constant option arrays ───────────────────────────────────────────────
+// `label` holds a translation key (resolved via useTranslations("theme") at
+// the render site), except FONT_OPTIONS where labels are font brand names.
 
 export const FONT_OPTIONS = [
   { id: "inter", label: "Inter", sample: "Aa" },
@@ -20,112 +22,111 @@ export const FONT_OPTIONS = [
 ];
 
 export const BG_TYPES = [
-  { value: "solid", label: "Solid" },
-  { value: "gradient", label: "Gradient" },
-  { value: "radial", label: "Radial" },
-  { value: "mesh", label: "Mesh" },
-  { value: "aurora", label: "Aurora" },
-  { value: "animatedGradient", label: "Animated Gradient" },
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
-  { value: "gif", label: "Animated GIF" },
-];
+  { value: "solid", label: "bgSolid" },
+  { value: "gradient", label: "bgGradient" },
+  { value: "radial", label: "bgRadial" },
+  { value: "mesh", label: "bgMesh" },
+  { value: "aurora", label: "bgAurora" },
+  { value: "animatedGradient", label: "bgAnimatedGradient" },
+  { value: "image", label: "bgImage" },
+  { value: "video", label: "bgVideo" },
+  { value: "gif", label: "bgGif" },
+] as const;
 
 export const LINK_STYLES = [
-  { value: "pill", label: "Pill" },
-  { value: "rounded", label: "Rounded" },
-  { value: "sharp", label: "Sharp" },
-  { value: "glass", label: "Glass" },
-  { value: "outline", label: "Outline" },
-  { value: "neon", label: "Neon" },
-  { value: "pixel", label: "Pixel" },
-  { value: "gel", label: "Gel" },
-];
+  { value: "pill", label: "lsPill" },
+  { value: "rounded", label: "lsRounded" },
+  { value: "sharp", label: "lsSharp" },
+  { value: "glass", label: "lsGlass" },
+  { value: "outline", label: "lsOutline" },
+  { value: "neon", label: "lsNeon" },
+  { value: "pixel", label: "lsPixel" },
+  { value: "gel", label: "lsGel" },
+] as const;
 
 export const SHADOW_STRENGTHS = [
-  { value: "none", label: "None" },
-  { value: "subtle", label: "Subtle" },
-  { value: "soft", label: "Soft" },
-  { value: "medium", label: "Medium" },
-  { value: "strong", label: "Strong" },
-];
+  { value: "none", label: "shadowNone" },
+  { value: "subtle", label: "shadowSubtle" },
+  { value: "soft", label: "shadowSoft" },
+  { value: "medium", label: "shadowMedium" },
+  { value: "strong", label: "shadowStrong" },
+] as const;
 
 export const HOVER_EFFECTS = [
-  { value: "lift", label: "Lift" },
-  { value: "scale", label: "Scale" },
-  { value: "glow", label: "Glow" },
-  { value: "none", label: "None" },
-];
+  { value: "lift", label: "hoverLift" },
+  { value: "scale", label: "hoverScale" },
+  { value: "glow", label: "hoverGlow" },
+  { value: "none", label: "hoverNone" },
+] as const;
 
 export const BACKGROUND_ANGLES = [
-  { value: "90deg", label: "90° (horizontal)" },
-  { value: "135deg", label: "135° (diagonal)" },
-  { value: "160deg", label: "160° (steep)" },
-  { value: "180deg", label: "180° (vertical)" },
-];
+  { value: "90deg", label: "angle90" },
+  { value: "135deg", label: "angle135" },
+  { value: "160deg", label: "angle160" },
+  { value: "180deg", label: "angle180" },
+] as const;
 
 export const FONT_WEIGHTS = [
-  { value: "300", label: "Light" },
-  { value: "400", label: "Regular" },
-  { value: "500", label: "Medium" },
-  { value: "600", label: "Semibold" },
-  { value: "700", label: "Bold" },
-];
+  { value: "300", label: "weightLight" },
+  { value: "400", label: "weightRegular" },
+  { value: "500", label: "weightMedium" },
+  { value: "600", label: "weightSemibold" },
+  { value: "700", label: "weightBold" },
+] as const;
 
 export const BUTTON_SIZES = [
-  { value: "sm", label: "Small" },
-  { value: "md", label: "Medium" },
-  { value: "lg", label: "Large" },
-];
+  { value: "sm", label: "sizeSm" },
+  { value: "md", label: "sizeMd" },
+  { value: "lg", label: "sizeLg" },
+] as const;
 
 export const ALIGNMENTS = [
-  { value: "left", label: "Left" },
-  { value: "center", label: "Center" },
-  { value: "right", label: "Right" },
-];
+  { value: "left", label: "alignLeft" },
+  { value: "center", label: "alignCenter" },
+  { value: "right", label: "alignRight" },
+] as const;
 
 export const DENSITIES = [
-  { value: "compact", label: "Compact" },
-  { value: "normal", label: "Normal" },
-  { value: "relaxed", label: "Relaxed" },
-];
+  { value: "compact", label: "densityCompact" },
+  { value: "normal", label: "densityNormal" },
+  { value: "relaxed", label: "densityRelaxed" },
+] as const;
 
 export const REVEAL_ANIMATIONS = [
-  { value: "lift", label: "Lift (rise up)" },
-  { value: "scale", label: "Scale (grow in)" },
-  { value: "fade-up", label: "Fade up" },
-  { value: "slide-in", label: "Slide in" },
-  { value: "zoom-in", label: "Zoom in" },
-  { value: "blur-in", label: "Blur in" },
-  { value: "none", label: "None" },
-];
+  { value: "lift", label: "revealLift" },
+  { value: "scale", label: "revealScale" },
+  { value: "fade-up", label: "revealFadeUp" },
+  { value: "slide-in", label: "revealSlideIn" },
+  { value: "zoom-in", label: "revealZoomIn" },
+  { value: "blur-in", label: "revealBlurIn" },
+  { value: "none", label: "revealNone" },
+] as const;
 
 export const AVATAR_SHAPES = [
-  { value: "circle", label: "Circle" },
-  { value: "squircle", label: "Squircle" },
-  { value: "rounded", label: "Rounded square" },
-  { value: "square", label: "Square" },
-];
+  { value: "circle", label: "avCircle" },
+  { value: "squircle", label: "avSquircle" },
+  { value: "rounded", label: "avRounded" },
+  { value: "square", label: "avSquare" },
+] as const;
 
 export const AVATAR_BORDERS = [
-  { value: "solid", label: "Solid accent" },
-  { value: "gradient", label: "Gradient" },
-  { value: "glow", label: "Glow" },
-  { value: "ring", label: "Ring (offset)" },
-  { value: "none", label: "None" },
-];
+  { value: "solid", label: "borderSolid" },
+  { value: "gradient", label: "borderGradient" },
+  { value: "glow", label: "borderGlow" },
+  { value: "ring", label: "borderRing" },
+  { value: "none", label: "borderNone" },
+] as const;
 
 export const PROFILE_LAYOUTS = [
-  { value: "classic", label: "Classic (avatar + name + bio)" },
-  { value: "hero", label: "Hero (image banner, name overlaid)" },
-  { value: "banner", label: "Banner (wide image above classic)" },
-];
+  { value: "classic", label: "layoutClassic" },
+  { value: "hero", label: "layoutHero" },
+  { value: "banner", label: "layoutBanner" },
+] as const;
 
 export const TEXT_ANIMATIONS = [
-  { value: "none", label: "None" },
-  { value: "typewriter", label: "Typewriter (display name)" },
-  { value: "gradient-flow", label: "Gradient flow (display name)" },
-];
+  { value: "none", label: "textAnimNone" },
+  { value: "typewriter", label: "textAnimTypewriter" },
+  { value: "gradient-flow", label: "textAnimGradientFlow" },
+] as const;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-

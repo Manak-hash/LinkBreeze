@@ -6,6 +6,7 @@ import { saveSection } from "@/server/actions/sections";
 import type { LinkSectionRow } from "@/server/queries";
 import { isLucideIconName } from "@/components/public/LucideIcon";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { IconPicker } from "./icon-picker";
@@ -30,6 +31,8 @@ export interface SectionDialogProps {
  * Sections group links under a header on the public page.
  */
 export function SectionDialog({ open, onOpenChange, editing, pageId }: SectionDialogProps) {
+  const t = useTranslations("linksPage");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -65,44 +68,44 @@ export function SectionDialog({ open, onOpenChange, editing, pageId }: SectionDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit section" : "Add section"}</DialogTitle>
+          <DialogTitle>{editing ? t("editSection") : t("addSection")}</DialogTitle>
           <DialogDescription>
             {editing
-              ? "Update this section's header."
-              : "Group links under a titled header on your public page."}
+              ? t("updateSectionDesc")
+              : t("createSectionDesc")}
           </DialogDescription>
         </DialogHeader>
         <form ref={formRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
-          <FormField label="Title" htmlFor="section-title" required>
+          <FormField label={t("title_field")} htmlFor="section-title" required>
             <Input
               id="section-title"
               name="title"
               defaultValue={editing?.title ?? ""}
               required
               maxLength={80}
-              placeholder="My projects"
+              placeholder={t("sectionPlaceholder")}
               autoFocus
             />
           </FormField>
 
-          <FormField label="Icon (optional)">
+          <FormField label={t("iconLabel")}>
             <IconPicker
               value={icon}
               onChange={setIcon}
-              hint="Shown before the section title on your public page."
+              hint={t("iconShownHint")}
             />
             <input type="hidden" name="icon" value={icon} />
           </FormField>
 
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="button" disabled={pending} onClick={handleSubmit}>
-              {pending ? "Saving…" : "Save"}
+              {pending ? tCommon("saving") : tCommon("save")}
             </Button>
           </DialogFooter>
         </form>

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { DownloadCloud, Link2, FileUp, Check, Loader2, AlertCircle } from "lucide-react";
@@ -31,6 +33,8 @@ type Step = "input" | "preview" | "done";
 type Source = "url" | "file";
 
 export function MigrationWizard({ pageId }: MigrationWizardProps) {
+  const t = useTranslations("migration");
+  const tErr = useTranslations("errors");
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("input");
   const [source, setSource] = React.useState<Source>("url");
@@ -54,7 +58,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       const res = await action(null, formData);
 
       if (!res.success || !res.links) {
-        setError(res.error || "Failed to extract links");
+        setError(res.error ? localizeActionError(tErr, res.error) : t("extractFailed"));
         return;
       }
 
@@ -87,7 +91,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       const res = await confirmImport(null, formData);
 
       if (!res.success) {
-        setError(res.error || "Import failed");
+        setError(res.error ? localizeActionError(tErr, res.error) : t("importFailed"));
         return;
       }
 
@@ -118,27 +122,20 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Check className="size-5 text-success" />
-            Import Complete
-          </CardTitle>
+            <Check className="size-5 text-success" />{t("importComplete")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Imported <span className="font-bold text-foreground">{importResult.imported}</span> links
+            {t("importedCounts", { links: importResult.imported })}
             {importResult.social > 0 && (
               <>
-                {" "}and <span className="font-bold text-foreground">{importResult.social}</span> social profiles
-              </>
+                {" "}{t("andSocial", { count: importResult.social })}</>
             )}{" "}
-            into this page.
+            {t("intoThisPage")}
           </p>
           <div className="flex gap-3">
-            <Button onClick={reset} variant="outline" size="sm">
-              Import Another
-            </Button>
-            <Button onClick={() => router.push("/links")} size="sm">
-              View Links
-            </Button>
+            <Button onClick={reset} variant="outline" size="sm">{t("importAnother")}</Button>
+            <Button onClick={() => router.push("/links")} size="sm">{t("viewLinks")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -153,14 +150,12 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Preview Import</span>
+            <span>{t("previewImport")}</span>
             <span className="rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
               {result.platform}
             </span>
           </CardTitle>
-          <CardDescription>
-            Review the extracted links below. Uncheck any you don&apos;t want to import.
-          </CardDescription>
+          <CardDescription>{t("reviewTheExtractedLinksBelowUncheckAnyYo")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error && (
@@ -171,15 +166,13 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
           )}
 
           {links.length === 0 && socialLinks.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No links found on this page. Try a different URL.
-            </p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("noLinksFoundOnThisPageTryADifferentUrl")}</p>
           )}
 
           {/* Page links */}
           {links.length > 0 && (
             <div className="flex flex-col gap-2">
-              <h4 className="text-sm font-medium">Links ({links.filter((l) => l.selected).length}/{links.length})</h4>
+              <h4 className="text-sm font-medium">{t("linksCount", { selected: links.filter((l) => l.selected).length, total: links.length })}</h4>
               <div className="max-h-[300px] space-y-1 overflow-y-auto">
                 {links.map((link, i) => (
                   <label
@@ -220,7 +213,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
           {socialLinks.length > 0 && (
             <div className="flex flex-col gap-2">
               <h4 className="text-sm font-medium">
-                Social Profiles ({socialLinks.filter((l) => l.selected).length}/{socialLinks.length})
+                {t("socialProfilesCount", { selected: socialLinks.filter((l) => l.selected).length, total: socialLinks.length })}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {socialLinks.map((link, i) => (
@@ -246,15 +239,11 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
           )}
 
           <div className="flex items-center justify-between border-t border-border pt-4">
-            <Button variant="outline" size="sm" onClick={reset} disabled={loading}>
-              Back
-            </Button>
+            <Button variant="outline" size="sm" onClick={reset} disabled={loading}>{t("back")}</Button>
             <Button size="sm" onClick={handleConfirm} disabled={loading || totalSelected === 0}>
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Importing...
-                </>
+                  <Loader2 className="mr-2 size-4 animate-spin" />{t("importing")}</>
               ) : (
                 `Import ${totalSelected} ${totalSelected === 1 ? "item" : "items"}`
               )}
@@ -270,12 +259,8 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DownloadCloud className="size-5" />
-          Migration Wizard
-        </CardTitle>
-        <CardDescription>
-          Import links from Linktree, Bento, Lnk.bio, LittleLink, or any other link-in-bio page.
-        </CardDescription>
+          <DownloadCloud className="size-5" />{t("migrationWizard")}</CardTitle>
+        <CardDescription>{t("importLinksFromLinktreeBentoLnkBioLittle")}</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
@@ -294,9 +279,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
               source === "url" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Link2 className="size-4" />
-            URL
-          </button>
+            <Link2 className="size-4" />{t("url")}</button>
           <button
             type="button"
             onClick={() => setSource("file")}
@@ -304,14 +287,12 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
               source === "file" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <FileUp className="size-4" />
-            File
-          </button>
+            <FileUp className="size-4" />{t("file")}</button>
         </div>
 
         {source === "url" ? (
           <form action={handlePreview} className="flex flex-col gap-3">
-            <FormField label="Page URL" htmlFor="import-url" className="mb-2">
+            <FormField label={t("pageUrlLabel")} htmlFor="import-url" className="mb-2">
               <Input
                 id="import-url"
                 name="url"
@@ -325,24 +306,20 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
             <Button type="submit" disabled={loading} size="sm">
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Fetching links...
-                </>
+                  <Loader2 className="mr-2 size-4 animate-spin" />{t("fetchingLinks")}</>
               ) : (
                 <>
-                  <DownloadCloud className="mr-2 size-4" />
-                  Fetch Links
-                </>
+                  <DownloadCloud className="mr-2 size-4" />{t("fetchLinks")}</>
               )}
             </Button>
           </form>
         ) : (
           <form action={handlePreview} className="flex flex-col gap-3">
             <FormField
-              label="HTML or JSON file"
+              label={t("fileLabel")}
               htmlFor="import-file"
               className="mb-2"
-              hint="Save a competitor page as HTML, or upload a JSON export."
+              hint={t("fileHint")}
             >
               <Input
                 id="import-file"
@@ -355,23 +332,19 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
             <Button type="submit" disabled={loading} size="sm">
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Parsing file...
-                </>
+                  <Loader2 className="mr-2 size-4 animate-spin" />{t("parsingFile")}</>
               ) : (
                 <>
-                  <FileUp className="mr-2 size-4" />
-                  Upload & Extract
-                </>
+                  <FileUp className="mr-2 size-4" />{t("uploadExtract")}</>
               )}
             </Button>
           </form>
         )}
 
         <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          <p className="mb-1 font-medium text-foreground">Supported platforms:</p>
-          <p>Linktree, Bento, Lnk.bio, Tap.link, Hopp, LittleLink, Beacons, Solo.to, and more.</p>
-          <p className="mt-2">Social profiles (Instagram, YouTube, etc.) are auto-detected and added as social icons.</p>
+          <p className="mb-1 font-medium text-foreground">{t("supportedPlatforms")}</p>
+          <p>{t("linktreeBentoLnkBioTapLinkHoppLittlelink")}</p>
+          <p className="mt-2">{t("socialProfilesInstagramYoutubeEtcAreAuto")}</p>
         </div>
       </CardContent>
     </Card>

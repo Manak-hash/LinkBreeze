@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { deleteSection } from "@/server/actions/sections";
 import type { LinkSectionRow } from "@/server/queries";
@@ -25,6 +26,7 @@ export interface DeleteSectionDialogProps {
  * uncategorized group at the top of the page.
  */
 export function DeleteSectionDialog({ section, open, onOpenChange }: DeleteSectionDialogProps) {
+  const t = useTranslations("linksPage");
   const [pending, startTransition] = React.useTransition();
   const router = useRouter();
 
@@ -44,7 +46,7 @@ export function DeleteSectionDialog({ section, open, onOpenChange }: DeleteSecti
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete section?</DialogTitle>
+          <DialogTitle>{t("deleteSectionTitle")}</DialogTitle>
           <DialogDescription>
             {section
               ? `"${section.title}" will be removed. Its links move to Uncategorized — nothing is deleted.`
@@ -52,11 +54,9 @@ export function DeleteSectionDialog({ section, open, onOpenChange }: DeleteSecti
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
           <Button variant="destructive" onClick={handleDelete} disabled={pending}>
-            {pending ? "Deleting…" : "Delete section"}
+            {pending ? t("deleting") : t("deleteSection")}
           </Button>
         </DialogFooter>
       </DialogContent>

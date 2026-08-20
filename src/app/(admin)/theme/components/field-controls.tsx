@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
 import { Upload, FileType, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
+import type { Messages } from "@/locales/en";
 import {
   uploadBackgroundMedia,
   uploadCustomFont,
@@ -32,6 +35,7 @@ export function ColorField({
   onChange: (v: string) => void;
   allowRgba?: boolean;
 }) {
+  const t = useTranslations("theme");
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name} className="text-xs text-muted-foreground">
@@ -70,19 +74,20 @@ export function SelectField({
   name: string;
   value: string;
   onChange: (v: string) => void;
-  options: { value: string; label: string }[];
+  options: ReadonlyArray<{ value: string; label: keyof Messages["theme"] & string }>;
 }) {
+  const t = useTranslations("theme");
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <Select name={name} value={value} onValueChange={(v) => v !== null && onChange(v)}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select…" />
+          <SelectValue placeholder={t("selectPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
+              {t(opt.label)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -102,6 +107,7 @@ export function ToggleField({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const t = useTranslations("theme");
   return (
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground">{label}</Label>
@@ -152,6 +158,7 @@ export function SliderField({
   /** When set, an extra "Auto" chip emits this sentinel value. */
   autoValue?: string;
 }) {
+  const t = useTranslations("theme");
   const isAuto = autoValue !== undefined && value === autoValue;
   const numVal = typeof value === "number" ? value : min;
   const emit = (n: number) => onChange(n);
@@ -175,9 +182,7 @@ export function SliderField({
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-muted")
             }
-          >
-            Auto
-          </button>
+          >{t("auto")}</button>
         ) : null}
         <input
           type="range"
@@ -219,6 +224,8 @@ export function MediaUrlField({
   /** Client-side pre-check; the server re-validates regardless. */
   maxSizeMb?: number;
 }) {
+  const t = useTranslations("theme");
+  const tErr = useTranslations("errors");
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -226,7 +233,7 @@ export function MediaUrlField({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > maxSizeMb * 1024 * 1024) {
-      setError(`File too large (max ${maxSizeMb} MB)`);
+      setError(tErr("fileTooLargeMb", { mb: maxSizeMb }));
       e.target.value = "";
       return;
     }
@@ -239,10 +246,10 @@ export function MediaUrlField({
       if (res.success) {
         onChange(res.url);
       } else {
-        setError(res.error);
+        setError(localizeActionError(tErr, res.error));
       }
     } catch {
-      setError("Upload failed. Please try again.");
+      setError(tErr("uploadFailed"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -265,7 +272,7 @@ export function MediaUrlField({
         />
         <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
           <Upload className="size-3.5" />
-          {uploading ? "Uploading…" : "Upload"}
+          {uploading ? t("uploading") : t("uploadMedia")}
           <input
             type="file"
             accept={accept}
@@ -298,6 +305,8 @@ export function FontUploadField({
   /** All themes — used to count which reference each uploaded font. */
   themes: { id: number; name: string; fontFamily: string | null }[];
 }) {
+  const t = useTranslations("theme");
+  const tErr = useTranslations("errors");
   const [uploading, setUploading] = React.useState(false);
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -309,7 +318,7 @@ export function FontUploadField({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      setError("File too large (max 2 MB)");
+      setError(tErr("fileTooLarge2"));
       e.target.value = "";
       return;
     }
@@ -324,10 +333,10 @@ export function FontUploadField({
         onUploaded(res.font);
         setName("");
       } else {
-        setError(res.error);
+        setError(localizeActionError(tErr, res.error));
       }
     } catch {
-      setError("Upload failed. Please try again.");
+      setError(tErr("uploadFailed"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -344,7 +353,7 @@ export function FontUploadField({
         setDeleteTarget(null);
         onDeleted();
       } else {
-        setDeleteError(res.error);
+        setDeleteError(localizeActionError(tErr, res.error));
       }
     } catch {
       setDeleteError("Delete failed. Please try again.");
@@ -363,13 +372,13 @@ export function FontUploadField({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Display name (optional)"
+            placeholder={t("displayNameOptional")}
             maxLength={60}
             className="flex-1"
           />
           <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
             <Upload className="size-3.5" />
-            {uploading ? "Uploading…" : "Upload font"}
+            {uploading ? t("uploading") : t("uploadFont")}
             <input
               type="file"
               accept=".woff2,.woff,font/woff2,font/woff"
@@ -380,10 +389,7 @@ export function FontUploadField({
           </label>
         </div>
         {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
-        <p className="text-[11px] text-muted-foreground">
-          Only upload fonts you have the license to use. Upload happens once; you
-          can then pick it for any theme.
-        </p>
+        <p className="text-[11px] text-muted-foreground">{t("onlyUploadFontsYouHaveTheLicenseToUseUpl")}</p>
       </div>
 
       {fonts.length > 0 ? (
@@ -404,9 +410,9 @@ export function FontUploadField({
                     {f.name}
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
-                    {f.format} · {(f.sizeBytes / 1024).toFixed(0)} KB
+                    {f.format} · {t("kb", { num: (f.sizeBytes / 1024).toFixed(0) })}
                     {users.length > 0
-                      ? ` · used by ${users.length} theme${users.length === 1 ? "" : "s"}`
+                      ? t("usedByThemes", { count: users.length })
                       : ""}
                   </span>
                 </div>
@@ -427,19 +433,16 @@ export function FontUploadField({
       {deleteTarget ? (
         <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
           <p className="text-xs font-medium">
-            Delete &ldquo;{deleteTarget.name}&rdquo;?
+            {t("deleteFontTitle", { name: deleteTarget.name })}
           </p>
           {(() => {
             const users = themes.filter((t) => t.fontFamily === `custom:${deleteTarget.id}`);
             return users.length > 0 ? (
               <p className="text-[11px] text-muted-foreground">
-                {users.length} theme{users.length === 1 ? "" : "s"} use{users.length === 1 ? "s" : ""} it
-                ({users.map((t) => t.name).join(", ")}) and will fall back to Inter.
+                {t("themesUseIt", { count: users.length, names: users.map((t) => t.name).join(", ") })}
               </p>
             ) : (
-              <p className="text-[11px] text-muted-foreground">
-                No themes use this font.
-              </p>
+              <p className="text-[11px] text-muted-foreground">{t("noThemesUseThisFont")}</p>
             );
           })()}
           {deleteError ? (
@@ -451,9 +454,7 @@ export function FontUploadField({
               type="button"
               size="sm"
               onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
-            >
-              Cancel
-            </Button>
+            >{t("cancel")}</Button>
             <Button
               variant="destructive"
               type="button"
@@ -461,7 +462,7 @@ export function FontUploadField({
               disabled={deleting}
               onClick={handleDelete}
             >
-              {deleting ? "Deleting…" : "Delete font"}
+              {deleting ? t("deleting") : t("deleteFont")}
             </Button>
           </div>
         </div>

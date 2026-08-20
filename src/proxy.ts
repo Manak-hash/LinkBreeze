@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/session-token";
+import {
+  LOCALE_COOKIE,
+  LOCALE_HEADER,
+  isAvailableLocale,
+} from "@/i18n/config";
 
 /**
  * Protect admin routes. Public routes, the auth/setup pages, and the public
@@ -37,14 +42,35 @@ const ADMIN_RESERVED = new Set([
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ── i18n: forward the admin UI locale as a request header ─────────────
+  // The lb_locale cookie is the source of truth (set from Settings). The
+  // admin layout/server components read x-lb-locale via headers(); public
+  // [slug] pages never see it, so they stay English regardless of cookie.
+  const isAdminPath =
+    PROTECTED_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(p + "/"),
+    ) ||
+    pathname === "/login" ||
+    pathname === "/setup";
+
+  const localeCookie = request.cookies.get(LOCALE_COOKIE)?.value;
+  const requestHeaders = new Headers(request.headers);
+  if (isAdminPath && isAvailableLocale(localeCookie)) {
+    requestHeaders.set(LOCALE_HEADER, localeCookie);
+  } else {
+    requestHeaders.delete(LOCALE_HEADER); // strip client-supplied spoofing
+  }
+
+  const next = () => NextResponse.next({ request: { headers: requestHeaders } });
+
   // Always allow the explicit public set.
   if (PUBLIC_EXACT.has(pathname)) {
-    return NextResponse.next();
+    return next();
   }
 
   // Allow all API routes (auth is enforced inside server actions / route handlers).
   if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    return next();
   }
 
   // Allow Next internals + static assets.
@@ -53,7 +79,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.includes(".")
   ) {
-    return NextResponse.next();
+    return next();
   }
 
   const isProtected = PROTECTED_PREFIXES.some(
@@ -64,7 +90,7 @@ export function proxy(request: NextRequest) {
     // Demo auto-login: skip the cookie check entirely. The admin layout's
     // getSession() also returns a mock session, so the page renders normally.
     if (process.env.DEMO_AUTO_LOGIN === "true") {
-      return NextResponse.next();
+      return next();
     }
 
     const sessionCookie = request.cookies.get("lb_session")?.value;
@@ -82,7 +108,7 @@ export function proxy(request: NextRequest) {
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
-    return NextResponse.next();
+    return next();
   }
 
   // Everything else (e.g. /<slug>) is treated as a public link page.
@@ -92,7 +118,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return next();
 }
 
 export const config = {

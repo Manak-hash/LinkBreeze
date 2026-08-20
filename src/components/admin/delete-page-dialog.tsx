@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { deletePageAction } from "@/server/actions/pages";
 import type { PageRow } from "@/server/queries";
@@ -27,6 +28,7 @@ export interface DeletePageDialogProps {
  * Sections and per-page view analytics are removed in both modes.
  */
 export function DeletePageDialog({ page, open, onOpenChange }: DeletePageDialogProps) {
+  const t = useTranslations("pages");
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const router = useRouter();
@@ -58,7 +60,7 @@ export function DeletePageDialog({ page, open, onOpenChange }: DeletePageDialogP
     <Dialog open={open} onOpenChange={close}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete page?</DialogTitle>
+          <DialogTitle>{t("deletePageTitle")}</DialogTitle>
           <DialogDescription>
             {page
               ? `"${page.title || page.slug}" will be removed. Choose what happens to its links:`
@@ -75,10 +77,8 @@ export function DeletePageDialog({ page, open, onOpenChange }: DeletePageDialogP
             disabled={pending}
             className="flex flex-col gap-1 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
           >
-            <span className="text-sm font-medium">Keep the links</span>
-            <span className="text-xs text-muted-foreground">
-              Links move to your default page, uncategorized. Nothing is lost.
-            </span>
+            <span className="text-sm font-medium">{t("keepTheLinks")}</span>
+            <span className="text-xs text-muted-foreground">{t("linksMoveToYourDefaultPageUncategorizedN")}</span>
           </button>
           <button
             type="button"
@@ -86,16 +86,12 @@ export function DeletePageDialog({ page, open, onOpenChange }: DeletePageDialogP
             disabled={pending}
             className="flex flex-col gap-1 rounded-lg border border-destructive/40 p-3 text-left transition-colors hover:bg-destructive/10 disabled:opacity-50"
           >
-            <span className="text-sm font-medium text-destructive">Delete everything</span>
-            <span className="text-xs text-muted-foreground">
-              The page&rsquo;s links are deleted with it, including their click history.
-            </span>
+            <span className="text-sm font-medium text-destructive">{t("deleteEverything")}</span>
+            <span className="text-xs text-muted-foreground">{t("thePageRsquoSLinksAreDeletedWithItInclud")}</span>
           </button>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => close(false)} disabled={pending}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => close(false)} disabled={pending}>{t("cancel")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

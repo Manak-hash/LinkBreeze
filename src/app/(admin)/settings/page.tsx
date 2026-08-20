@@ -17,6 +17,7 @@ import { DataManager } from "./data-manager";
 import { SubscribersCard } from "./subscribers-card";
 import { MigrationWizard } from "@/components/admin/MigrationWizard";
 import { SettingsTabs } from "./settings-tabs";
+import { getTranslations } from "next-intl/server";
 import {
   Card,
   CardContent,
@@ -56,6 +57,7 @@ export default async function SettingsPage({
   ]);
 
   const slug = activePage?.slug || "u";
+  const t = await getTranslations("settings");
 
   // Theme accent swatches offered as one-click QR colors (valid hex only).
   const qrThemePresets = Array.from(
@@ -70,11 +72,10 @@ export default async function SettingsPage({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          Settings
+          {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Page configuration, appearance and account security for{" "}
-          <span className="font-medium text-foreground">/{slug}</span>
+          {t("subtitle", { slug })}
         </p>
       </div>
 
@@ -112,12 +113,9 @@ export default async function SettingsPage({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <QrCode className="size-5" />
-                    QR Code
-                  </CardTitle>
+                    <QrCode className="size-5" />{t("qrTitle")}</CardTitle>
                   <CardDescription>
-                    Customize and download the QR for /{slug}. Scan to open your
-                    public page — use it on print or screens.
+                    {t("qrCardDesc", { slug })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

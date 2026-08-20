@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * FocalPointPicker — Squarespace-style draggable dot on a thumbnail of the
@@ -24,6 +25,7 @@ export function FocalPointPicker({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const t = useTranslations("theme");
   const ref = React.useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = React.useState(false);
 
@@ -97,7 +99,7 @@ export function FocalPointPicker({
     <div
       ref={ref}
       role="application"
-      aria-label="Focal point — drag or use arrow keys"
+      aria-label={t("focalPoint")}
       tabIndex={0}
       onKeyDown={onKeyDown}
       onPointerDown={(e) => {
@@ -142,22 +144,21 @@ export function FocalPointPicker({
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onChange("50% 50%")}
-        title="Recenter"
-        aria-label="Recenter focal point"
+        title={t("recenter")}
+        aria-label={t("recenterFocal")}
         className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-lg bg-background/80 px-2 py-1 text-[11px] font-medium text-foreground backdrop-blur transition-colors hover:bg-background"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="8" />
           <path d="M12 8v8M8 12h8" />
-        </svg>
-        Center
-      </button>
+        </svg>{t("center")}</button>
     </div>
   );
 }
 
 /** "x% y%" → {x, y} numbers (defaults 50/50). */
-export function parsePosition(v: string | null | undefined): { x: number; y: number } {
+export function parsePosition(v: string | null | undefined): {
+  x: number; y: number } {
   const m = v?.match(/(-?\d+(?:\.\d+)?)%\s*(-?\d+(?:\.\d+)?)%/);
   if (!m) return { x: 50, y: 50 };
   return { x: clamp(parseFloat(m[1]), 0, 100), y: clamp(parseFloat(m[2]), 0, 100) };
@@ -179,11 +180,12 @@ export function FitPicker({
   onChange: (v: "cover" | "contain" | "tile") => void;
   allowTile?: boolean;
 }) {
+  const t = useTranslations("theme");
   const opts: { value: "cover" | "contain" | "tile"; label: string; title: string; glyph: React.ReactNode }[] = [
     {
       value: "cover",
-      label: "Cover",
-      title: "Fill the page, cropping edges if needed",
+      label: t("focalCover"),
+      title: t("focalCoverTitle"),
       glyph: (
         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden>
           <rect x="0.5" y="0.5" width="15" height="11" rx="2" className="fill-none stroke-current" strokeWidth="1" />
@@ -193,8 +195,8 @@ export function FitPicker({
     },
     {
       value: "contain",
-      label: "Contain",
-      title: "Show the whole image, letterboxed if needed",
+      label: t("focalContain"),
+      title: t("focalContainTitle"),
       glyph: (
         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden>
           <rect x="0.5" y="0.5" width="15" height="11" rx="2" className="fill-none stroke-current" strokeWidth="1" />
@@ -206,8 +208,8 @@ export function FitPicker({
   if (allowTile) {
     opts.push({
       value: "tile",
-      label: "Tile",
-      title: "Repeat at natural size — for patterns and textures",
+      label: t("focalTile"),
+      title: t("focalTileTitle"),
       glyph: (
         <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden>
           <rect x="0.5" y="0.5" width="15" height="11" rx="2" className="fill-none stroke-current" strokeWidth="1" />
@@ -220,7 +222,7 @@ export function FitPicker({
   }
 
   return (
-    <div role="radiogroup" aria-label="Image fit" className="grid grid-cols-3 gap-1.5">
+    <div role="radiogroup" aria-label={t("imageFit")} className="grid grid-cols-3 gap-1.5">
       {opts.map((o) => (
         <button
           key={o.value}

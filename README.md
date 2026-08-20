@@ -20,6 +20,10 @@
 
 ---
 
+**[English](README.md)** · Français
+
+---
+
 > **Stop paying $15/mo for Linktree.** LinkBreeze gives you links, analytics,
 > QR codes, themes, and a real admin panel — free, forever, in one Docker command.
 

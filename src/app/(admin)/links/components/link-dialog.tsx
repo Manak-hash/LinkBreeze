@@ -8,6 +8,7 @@ import {
 } from "@/server/actions/links";
 import type { LinkRow, LinkSectionRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Switch } from "@/components/ui/switch";
@@ -57,17 +58,18 @@ function SectionSelect({
   editing?: LinkRow | null;
   sections: LinkSectionRow[];
 }) {
+  const t = useTranslations("linksPage");
   // Initial value from `editing`; resets via key remount in the parent.
   const [value, setValue] = React.useState(String(editing?.sectionId ?? "none"));
 
   return (
-    <FormField label="Section" hint="Links without a section appear above all sections.">
+    <FormField label={t("section")} hint={t("sectionsHint")}>
       <Select value={value} onValueChange={(v) => setValue(v ?? "none")}>
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">No section</SelectItem>
+          <SelectItem value="none">{t("noSection")}</SelectItem>
           {sections.map((s) => (
             <SelectItem key={s.id} value={String(s.id)}>
               {isLucideIconName(s.icon) ? (
@@ -85,6 +87,8 @@ function SectionSelect({
 }
 
 export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] }: LinkDialogProps) {
+  const t = useTranslations("linksPage");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = React.useTransition();
   const [type, setType] = React.useState(editing?.type ?? "url");
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
@@ -124,8 +128,8 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   // If user switches away from "url" type, collapse UTM (values preserved).
   const utmVisible = isUrlType && showUTM;
 
-  const urlLabel = getUrlLabel(type);
-  const urlPlaceholder = getUrlPlaceholder(type);
+  const urlLabel = t(getUrlLabel(type));
+  const urlPlaceholder = t(getUrlPlaceholder(type));
 
   // For the URL field default: show the clean URL (UTM stripped) so the
   // user sees the base URL separately from the UTM builder.
@@ -186,23 +190,23 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit link" : "Add link"}</DialogTitle>
+          <DialogTitle>{editing ? t("editLink") : t("addLink")}</DialogTitle>
           <DialogDescription>
-            {editing ? "Update the details of this link." : "Create a new link for your page."}
+            {editing ? t("updateDescription") : t("createDescription")}
           </DialogDescription>
         </DialogHeader>
         <form action={handleSubmit} className="flex flex-col gap-4">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
-          <FormField label="Title" htmlFor="title" required>
+          <FormField label={t("title_field")} htmlFor="title" required>
             <Input
               id="title"
               name="title"
               defaultValue={editing?.title ?? ""}
               required
               maxLength={120}
-              placeholder="My website"
+              placeholder={t("titlePlaceholder")}
             />
           </FormField>
 
@@ -217,17 +221,17 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             />
           </FormField>
 
-          <FormField label="Description (optional)" htmlFor="description">
+          <FormField label={t("description")} htmlFor="description">
             <Input
               id="description"
               name="description"
               defaultValue={editing?.description ?? ""}
               maxLength={300}
-              placeholder="A short subtitle"
+              placeholder={t("descriptionPlaceholder")}
             />
           </FormField>
 
-          <FormField label="Thumbnail image URL (optional)" htmlFor="imageUrl">
+          <FormField label={t("thumbnail")} htmlFor="imageUrl">
             <Input
               id="imageUrl"
               name="imageUrl"
@@ -237,15 +241,15 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             />
           </FormField>
 
-          <FormField label="Type">
+          <FormField label={t("typeLabel")}>
             <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {LINK_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
+                {LINK_TYPES.map((lt) => (
+                  <SelectItem key={lt.value} value={lt.value}>
+                    {t(lt.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -257,7 +261,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
           ) : null}
 
           {isUrlType ? (
-            <FormField label="Card style" hint={cardStyle === "rich" ? "Thumbnail + auto preview from the link's Open Graph data. Falls back to compact if no image is found." : "Icon + title. Clean and simple."}>
+            <FormField label={t("cardStyle")} hint={cardStyle === "rich" ? t("richHint") : t("iconHint")}>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -265,10 +269,8 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
                   className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "compact" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
                 >
                   <div className="flex items-center gap-2 font-medium">
-                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "compact" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />
-                    Compact
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Icon + title</p>
+                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "compact" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />{t("compact")}</div>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("iconTitle")}</p>
                 </button>
                 <button
                   type="button"
@@ -276,10 +278,8 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
                   className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "rich" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
                 >
                   <div className="flex items-center gap-2 font-medium">
-                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "rich" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />
-                    Rich preview
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Thumbnail + description</p>
+                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "rich" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />{t("richPreview")}</div>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("thumbnailDescription")}</p>
                 </button>
               </div>
             </FormField>
@@ -287,33 +287,25 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
 
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={highlighted} onCheckedChange={setHighlighted} />
-              Featured
-            </label>
+              <Switch checked={highlighted} onCheckedChange={setHighlighted} />{t("featured")}</label>
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={active} onCheckedChange={setActive} />
-              Active
-            </label>
+              <Switch checked={active} onCheckedChange={setActive} />{t("active")}</label>
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={autoIcon} onCheckedChange={setAutoIcon} />
-              Auto icon
-            </label>
+              <Switch checked={autoIcon} onCheckedChange={setAutoIcon} />{t("autoIcon")}</label>
           </div>
 
           {/* UTM builder — only for URL-type links */}
           {isUrlType ? (
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-sm">
-                <Switch checked={showUTM} onCheckedChange={setShowUTM} />
-                UTM parameters
-              </label>
+                <Switch checked={showUTM} onCheckedChange={setShowUTM} />{t("utmParameters")}</label>
               {utmVisible ? (
                 <div className="flex flex-col gap-2 rounded-md border border-border p-3">
-                  <UTMField label="Source" name="utm_source" placeholder="instagram" defaultValue={utmDefaults.source} />
-                  <UTMField label="Medium" name="utm_medium" placeholder="social" defaultValue={utmDefaults.medium} />
-                  <UTMField label="Campaign" name="utm_campaign" placeholder="spring_sale" defaultValue={utmDefaults.campaign} />
-                  <UTMField label="Term (optional)" name="utm_term" placeholder="running_shoes" defaultValue={utmDefaults.term} />
-                  <UTMField label="Content (optional)" name="utm_content" placeholder="banner_ad_1" defaultValue={utmDefaults.content} />
+                  <UTMField label={t("utmSource")} name="utm_source" placeholder="instagram" defaultValue={utmDefaults.source} />
+                  <UTMField label={t("utmMedium")} name="utm_medium" placeholder="social" defaultValue={utmDefaults.medium} />
+                  <UTMField label={t("utmCampaign")} name="utm_campaign" placeholder="spring_sale" defaultValue={utmDefaults.campaign} />
+                  <UTMField label={t("utmTerm")} name="utm_term" placeholder="running_shoes" defaultValue={utmDefaults.term} />
+                  <UTMField label={t("utmContent")} name="utm_content" placeholder="banner_ad_1" defaultValue={utmDefaults.content} />
                 </div>
               ) : null}
             </div>
@@ -321,13 +313,11 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
 
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={scheduled} onCheckedChange={setScheduled} />
-              Schedule
-            </label>
+              <Switch checked={scheduled} onCheckedChange={setScheduled} />{t("schedule")}</label>
             {scheduled ? (
               <div className="flex flex-col gap-2">
                 <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Show from</span>
+                  <span className="text-xs text-muted-foreground">{t("showFrom")}</span>
                   <Input
                     type="datetime-local"
                     name="scheduleStart"
@@ -339,7 +329,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
                   />
                 </div>
                 <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Hide after</span>
+                  <span className="text-xs text-muted-foreground">{t("hideAfter")}</span>
                   <Input
                     type="datetime-local"
                     name="scheduleEnd"
@@ -356,10 +346,10 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
 
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save"}
+              {pending ? tCommon("saving") : tCommon("save")}
             </Button>
           </DialogFooter>
         </form>

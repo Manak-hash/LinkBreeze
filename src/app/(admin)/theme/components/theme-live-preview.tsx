@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import * as React from "react";
 import {
   resolveThemeTokens,
@@ -15,7 +17,7 @@ import type { CustomizerState } from "./theme-customizer";
 import { parseCustomFontId, buildFontFaceCss, type CustomFontMeta } from "@/lib/custom-fonts";
 
 /** Fake rows so the preview renders realistic link cards. */
-function mockLinks(): LinkRow[] {
+function mockLinks(tDemo: ReturnType<typeof useTranslations>): LinkRow[] {
   const base = {
     pageId: 1,
     sectionId: null,
@@ -34,8 +36,8 @@ function mockLinks(): LinkRow[] {
     createdAt: "2026-01-01 00:00:00",
   };
   return [
-    { ...base, id: 1, title: "My website", url: "https://example.com", isHighlighted: false },
-    { ...base, id: 2, title: "Latest video", url: "https://youtube.com", isHighlighted: true },
+    { ...base, id: 1, title: tDemo("mockWebsite"), url: "https://example.com", isHighlighted: false },
+    { ...base, id: 2, title: tDemo("mockVideo"), url: "https://youtube.com", isHighlighted: true },
   ];
 }
 
@@ -57,6 +59,7 @@ export function ThemeLivePreview({
   /** Uploaded fonts (#82) so the preview renders the selected custom font. */
   customFonts?: CustomFontMeta[];
 }) {
+  const tDemo = useTranslations("theme");
   const theme = React.useMemo<ThemeInput>(() => ({ ...state }), [state]);
 
   // Uploaded-font lookup for the resolver + the matching @font-face rule.
@@ -85,11 +88,11 @@ export function ThemeLivePreview({
   const fontFaceCss = customFont ? buildFontFaceCss(customFont) : "";
 
   const cards = React.useMemo(() => {
-    const links = mockLinks();
+    const links = mockLinks(tDemo);
     return links
       .map((link, i) => buildLinkCardHtml({ link, theme, index: i }))
       .join("");
-  }, [theme]);
+  }, [theme, tDemo]);
 
   const varStyle = Object.entries(cssVars)
     .map(([k, v]) => `${k}:${v};`)
@@ -204,9 +207,7 @@ export function ThemeLivePreview({
                 justifyContent: "center",
                 fontSize: 22,
               }}
-            >
-              A
-            </div>
+            >{tDemo("demoAvatarInitial")}</div>
           </div>
           <div
             style={{
@@ -215,9 +216,7 @@ export function ThemeLivePreview({
               fontSize: "calc(var(--lb-font-size) * 1.4)",
               marginBottom: 4,
             }}
-          >
-            Your Name
-          </div>
+          >{tDemo("demoName")}</div>
           <div
             style={{
               color: "var(--lb-text-muted)",
@@ -225,9 +224,7 @@ export function ThemeLivePreview({
               marginBottom: 18,
               textAlign: "center",
             }}
-          >
-            Designer &amp; creator
-          </div>
+          >{tDemo("demoBio")}</div>
           <div
             className="lb-preview-cards flex w-full flex-col gap-2"
             data-alignment={theme.alignment}

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
+import { LocalePicker } from "@/components/admin/LocalePicker";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -45,6 +47,8 @@ export function SetupWizard({
   themes,
   activeThemeId,
 }: SetupWizardProps) {
+  const t = useTranslations("setup");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("credentials");
   const [selectedTheme, setSelectedTheme] = React.useState<number | null>(
@@ -79,7 +83,7 @@ export function SetupWizard({
         setCredError(data.error);
       }
     } catch {
-      setCredError("Network error. Please try again.");
+      setCredError(t("networkError"));
     } finally {
       setCredPending(false);
     }
@@ -111,7 +115,7 @@ export function SetupWizard({
         setProfileError(data.error);
       }
     } catch {
-      setProfileError("Network error. Please try again.");
+      setProfileError(t("networkError"));
     } finally {
       setProfilePending(false);
     }
@@ -141,7 +145,7 @@ export function SetupWizard({
         setThemeError(data.error);
       }
     } catch {
-      setThemeError("Network error. Please try again.");
+      setThemeError(t("networkError"));
     } finally {
       setThemePending(false);
     }
@@ -158,6 +162,8 @@ export function SetupWizard({
   return (
     <div className="flex min-h-screen w-full items-center justify-center px-5 py-10">
       <div className="w-full max-w-md aurora-rise">
+        {/* Pre-auth language selector — first thing a new user can act on */}
+        <LocalePicker className="mb-6" />
         {/* Header */}
         <header className="mb-6 flex flex-col items-center text-center">
           <Image
@@ -171,7 +177,7 @@ export function SetupWizard({
             style={{ filter: "drop-shadow(0 0 24px rgba(124,58,237,0.45))" }}
           />
           <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            Welcome to LinkBreeze
+            {t("welcomeTitle")}
           </h1>
         </header>
 
@@ -215,14 +221,12 @@ export function SetupWizard({
         {step === "credentials" && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Create your admin account</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                This is the only account. You&apos;ll use it to manage everything.
-              </p>
+              <CardTitle className="text-base">{t("createAdminTitle")}</CardTitle>
+              <p className="text-sm text-muted-foreground">{t("thisIsTheOnlyAccount")}</p>
             </CardHeader>
             <form onSubmit={handleCredSubmit}>
               <CardContent className="flex flex-col gap-4">
-                <FormField label="Username" htmlFor="username" required>
+                <FormField label={t("username")} htmlFor="username" required>
                   <Input
                     id="username"
                     name="username"
@@ -235,10 +239,10 @@ export function SetupWizard({
                   />
                 </FormField>
                 <FormField
-                  label="Password"
+                  label={t("password")}
                   htmlFor="password"
                   required
-                  hint="At least 8 characters with one uppercase letter and one number."
+                  hint={t("passwordHint")}
                   className="mb-4"
                 >
                   <Input
@@ -258,16 +262,16 @@ export function SetupWizard({
                 <Button type="submit" className="w-full" disabled={credPending}>
                   {credPending ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Creating account…
+                      <Loader2 className="size-4 animate-spin" /> {t("creatingAccount")}
                     </>
                   ) : (
                     <>
-                      Create account <ChevronRight className="size-4" />
+                      {t("createAccount")} <ChevronRight className="size-4" />
                     </>
                   )}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Takes 30 seconds. No email required.
+                  {t("noEmailNote")}
                 </p>
               </CardFooter>
             </form>
@@ -278,38 +282,38 @@ export function SetupWizard({
         {step === "profile" && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Set up your page</CardTitle>
+              <CardTitle className="text-base">{t("setUpPage")}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                This is what visitors see. You can change everything later.
+                {t("profileStepNote")}
               </p>
             </CardHeader>
             <form onSubmit={handleProfileSubmit}>
               <CardContent className="flex flex-col gap-4">
-                <FormField label="Display name" htmlFor="displayName" required>
+                <FormField label={t("displayName")} htmlFor="displayName" required>
                   <Input
                     id="displayName"
                     name="displayName"
                     type="text"
-                    placeholder="Jane Doe"
+                    placeholder={t("displayNamePlaceholder")}
                     required
                     maxLength={80}
                     autoFocus
                   />
                 </FormField>
-                <FormField label="Bio" htmlFor="bio" hint="One line about you (optional)">
+                <FormField label={t("bio")} htmlFor="bio" hint={t("bioHint")}>
                   <Input
                     id="bio"
                     name="bio"
                     type="text"
-                    placeholder="Designer, developer, creator"
+                    placeholder={t("bioPlaceholder")}
                     maxLength={300}
                   />
                 </FormField>
                 <FormField
-                  label="Page URL"
+                  label={t("pageUrl")}
                   htmlFor="slug"
                   required
-                  hint="Your page will be at /your-slug"
+                  hint={t("pageUrlHint")}
                 >
                   <Input
                     id="slug"
@@ -331,16 +335,16 @@ export function SetupWizard({
                   variant="ghost"
                   onClick={() => setStep("credentials")}
                 >
-                  <ChevronLeft className="size-4" /> Back
+                  <ChevronLeft className="size-4" /> {tCommon("back")}
                 </Button>
                 <Button type="submit" className="flex-1" disabled={profilePending}>
                   {profilePending ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Saving…
+                      <Loader2 className="size-4 animate-spin" /> {t("saving")}
                     </>
                   ) : (
                     <>
-                      Continue <ChevronRight className="size-4" />
+                      {tCommon("next")} <ChevronRight className="size-4" />
                     </>
                   )}
                 </Button>
@@ -353,10 +357,8 @@ export function SetupWizard({
         {step === "theme" && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pick a theme</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Choose a starting point. Customize everything later.
-              </p>
+              <CardTitle className="text-base">{t("pickTheme")}</CardTitle>
+              <p className="text-sm text-muted-foreground">{t("chooseStartingPoint")}</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
@@ -422,7 +424,7 @@ export function SetupWizard({
                 variant="ghost"
                 onClick={() => setStep("profile")}
               >
-                <ChevronLeft className="size-4" /> Back
+                <ChevronLeft className="size-4" /> {tCommon("back")}
               </Button>
               <Button
                 type="button"
@@ -432,11 +434,11 @@ export function SetupWizard({
               >
                 {themePending ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" /> Saving…
+                    <Loader2 className="size-4 animate-spin" /> {t("saving")}
                   </>
                 ) : (
                   <>
-                    Finish setup <Check className="size-4" />
+                    {t("finishSetup")} <Check className="size-4" />
                   </>
                 )}
               </Button>
@@ -453,23 +455,22 @@ export function SetupWizard({
               </div>
               <div>
                 <h2 className="font-heading text-xl font-semibold">
-                  You&apos;re all set!
+                  {t('allSet')}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Your page is live. Add your first link to get started.
+                  {t("pageLiveDesc")}
                 </p>
               </div>
               <div className="flex w-full flex-col gap-2">
                 <Button onClick={finishOnboarding} className="w-full">
-                  <Link2 className="size-4" /> Go to dashboard
+                  <Link2 className="size-4" /> {t("goToDashboard")}
                 </Button>
                 <Button
                   variant="ghost"
                   className="w-full"
                   onClick={() => router.push("/settings?tab=data")}
                 >
-                  <DownloadCloud className="size-4" /> Import your existing page
-                </Button>
+                  <DownloadCloud className="size-4" />{t("importYourExistingPage")}</Button>
               </div>
             </CardContent>
           </Card>

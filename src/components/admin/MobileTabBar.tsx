@@ -12,17 +12,24 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PreviewButton } from "@/components/admin/PreviewPane";
+import { useTranslations } from "next-intl";
+import type { Messages } from "@/locales/en";
 
-const TABS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/links", label: "Links", icon: LinkIcon },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/theme", label: "Theme", icon: Palette },
-  { href: "/settings", label: "Settings", icon: Settings },
+const TABS: {
+  href: string;
+  label: keyof Messages["nav"] & string;
+  icon: LucideIcon;
+}[] = [
+  { href: "/dashboard", label: "dashboard", icon: LayoutDashboard },
+  { href: "/links", label: "links", icon: LinkIcon },
+  { href: "/profile", label: "profile", icon: User },
+  { href: "/theme", label: "theme", icon: Palette },
+  { href: "/settings", label: "settings", icon: Settings },
 ];
 
 /** Fixed opaque bottom tab bar (mobile only). Thumb-reachable, always visible. */
 export function MobileTabBar() {
+  const t = useTranslations("nav");
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pageParam = searchParams.get("page");
@@ -30,7 +37,7 @@ export function MobileTabBar() {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t("primary")}
       className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-lavender/12 bg-background px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_-12px_rgba(5,3,20,0.85)] md:hidden"
     >
       {TABS.map(({ href, label, icon: Icon }) => {
@@ -49,7 +56,7 @@ export function MobileTabBar() {
               <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[var(--aurora-grad)]" />
             ) : null}
             <Icon className="size-5" />
-            <span>{label}</span>
+            <span>{t(label)}</span>
           </Link>
         );
       })}

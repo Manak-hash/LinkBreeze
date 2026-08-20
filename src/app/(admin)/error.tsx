@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
@@ -18,6 +19,8 @@ export default function AdminError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("errors.errorBoundary");
+
   useEffect(() => {
     // Log to console for operator debugging. In production, the structured
     // error logger in src/lib/errors.ts handles server-side errors.
@@ -30,14 +33,13 @@ export default function AdminError({
         <div className="flex size-14 items-center justify-center rounded-full bg-red-500/10">
           <AlertTriangle className="size-7 text-red-400" />
         </div>
-        <h2 className="text-lg font-semibold">Something went wrong</h2>
+        <h2 className="text-lg font-semibold">{t("title")}</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
-          An unexpected error occurred while loading this page. Try again, and if
-          the problem persists, check the server logs or restart the container.
+          {t("description")}
         </p>
         {error.digest && (
           <p className="font-mono text-xs text-muted-foreground">
-            Error ID: {error.digest}
+            {t("errorId")}: {error.digest}
           </p>
         )}
       </div>
@@ -48,13 +50,13 @@ export default function AdminError({
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
         >
           <RotateCcw className="size-4" />
-          Try again
+          {t("retry")}
         </button>
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted"
         >
-          Back to dashboard
+          {t("backToDashboard")}
         </Link>
       </div>
     </div>

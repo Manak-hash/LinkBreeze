@@ -21,6 +21,7 @@ import { toggleLink } from "@/server/actions/links";
 import { useRouter } from "next/navigation";
 import type { LinkRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,7 @@ export interface SortableLinkProps {
 }
 
 export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
+  const t = useTranslations("linksPage");
   const { reload: reloadPreview } = usePreview();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: link.id });
@@ -94,7 +96,7 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
         className="flex cursor-grab items-center px-1 text-muted-foreground active:cursor-grabbing"
         {...attributes}
         {...listeners}
-        aria-label="Drag to reorder"
+        aria-label={t("dragReorder")}
         type="button"
       >
         <GripVertical className="size-4" />
@@ -133,27 +135,21 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
             <div className="flex items-center gap-2">
               <span className="truncate text-sm font-medium">{link.title}</span>
               {link.isHighlighted ? (
-                <Badge className="shrink-0 border-transparent bg-[var(--aurora-grad)] text-white">
-                  Star
-                </Badge>
+                <Badge className="shrink-0 border-transparent bg-[var(--aurora-grad)] text-white">{t("star")}</Badge>
               ) : null}
               {!link.isActive ? (
-                <Badge variant="outline" className="shrink-0">
-                  Hidden
-                </Badge>
+                <Badge variant="outline" className="shrink-0">{t("hidden")}</Badge>
               ) : null}
               {link.scheduleStart || link.scheduleEnd ? (
                 <Badge variant="outline" className="shrink-0 gap-1">
-                  <Clock className="size-3" />
-                  Scheduled
-                </Badge>
+                  <Clock className="size-3" />{t("scheduled")}</Badge>
               ) : null}
             </div>
             <p className="truncate text-xs text-muted-foreground">{link.url}</p>
           </div>
 
           <span className="hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:inline">
-            {link.clicksCount} clicks
+            {t("clicksCount", { count: link.clicksCount })}
           </span>
 
           <a
@@ -161,7 +157,7 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="hidden shrink-0 text-muted-foreground hover:text-foreground sm:inline-flex"
-            aria-label="Open link"
+            aria-label={t("openLinkAria")}
           >
             <ExternalLink className="size-4" />
           </a>
@@ -169,7 +165,7 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
           <Link
             href={`/links/${link.id}`}
             className="shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label="Link analytics"
+            aria-label={t("linkAnalyticsAria")}
           >
             <BarChart3 className="size-4" />
           </Link>
@@ -178,14 +174,14 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
             checked={link.isActive}
             onCheckedChange={handleToggle}
             disabled={toggling}
-            aria-label="Toggle link visibility"
+            aria-label={t("toggleVisibilityAria")}
           />
 
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={() => onEdit(link)}
-            aria-label="Edit link"
+            aria-label={t("editLinkAria")}
           >
             <Pencil className="size-4" />
           </Button>
@@ -194,7 +190,7 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
             variant="ghost"
             size="icon-sm"
             onClick={() => onDelete(link)}
-            aria-label="Delete link"
+            aria-label={t("deleteLinkAria")}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="size-4" />

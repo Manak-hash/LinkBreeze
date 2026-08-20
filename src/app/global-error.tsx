@@ -1,16 +1,49 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Global error boundary — catches errors that escape route-level boundaries.
  *
  * This replaces the entire <html> and <body>, so it must include its own
- * minimal HTML shell. Keep it dependency-free (no Tailwind classes, no icons)
- * because the global error could be caused by a CSS/JS loading failure.
+ * minimal HTML shell. Keep it dependency-free (no Tailwind classes, no icons,
+ * no next-intl — if the i18n layer itself caused the crash, a translator
+ * hook here would recurse). Locale is read straight from the lb_locale
+ * cookie with a tiny inline dictionary instead.
  *
  * https://nextjs.org/docs/app/api-reference/file-conventions/error#global-error
  */
+
+// Inline copy for the two Tier-1 locales. Keyed by cookie value.
+const COPY: Record<string, Record<string, string>> = {
+  en: {
+    lang: "en",
+    title: "Something went wrong",
+    description:
+      "A critical error occurred. Try reloading the page. If the problem persists, restart the container or check the server logs.",
+    errorId: "Error ID",
+    retry: "Try again",
+  },
+  fr: {
+    lang: "fr",
+    title: "Une erreur est survenue",
+    description:
+      "Une erreur critique s'est produite. Essayez de recharger la page. Si le problème persiste, redémarrez le conteneur ou consultez les logs du serveur.",
+    errorId: "ID d'erreur",
+    retry: "Réessayer",
+  },
+};
+
+function copyFor(): Record<string, string> {
+  try {
+    const m = /(?:^|;\s*)lb_locale=([^;]+)/.exec(document.cookie);
+    const loc = m ? decodeURIComponent(m[1]) : "en";
+    return COPY[loc] ?? COPY.en;
+  } catch {
+    return COPY.en;
+  }
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -18,12 +51,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Read after mount so SSR/prerender always gets the safe default.
+  const [c] = useState(copyFor);
+
   useEffect(() => {
     console.error("[global-error-boundary]", error);
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang={c.lang}>
       <body>
         <div
           style={{
@@ -40,7 +76,7 @@ export default function GlobalError({
           }}
         >
           <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
-            Something went wrong
+            {c.title}
           </h2>
           <p
             style={{
@@ -50,8 +86,7 @@ export default function GlobalError({
               marginBottom: "1.5rem",
             }}
           >
-            A critical error occurred. Try reloading the page. If the problem
-            persists, restart the container or check the server logs.
+            {c.description}
           </p>
           {error.digest && (
             <p
@@ -62,7 +97,7 @@ export default function GlobalError({
                 marginBottom: "1.5rem",
               }}
             >
-              Error ID: {error.digest}
+              {c.errorId}: {error.digest}
             </p>
           )}
           <button
@@ -79,7 +114,7 @@ export default function GlobalError({
               cursor: "pointer",
             }}
           >
-            Try again
+            {c.retry}
           </button>
         </div>
       </body>

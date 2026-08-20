@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,6 +36,7 @@ import {
 export type SetFn = (patch: Partial<CustomizerState>) => void;
 
 export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   const type = s.backgroundType;
   const showAngle =
     type === "gradient" ||
@@ -53,10 +55,10 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
 
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Background</h3>
+      <h3 className="text-sm font-semibold">{t("background")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SelectField
-          label="Type"
+          label={t("typeLabel")}
           name="backgroundType"
           value={s.backgroundType}
           onChange={(v) => set({ backgroundType: v })}
@@ -64,9 +66,7 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
         />
         {showValue ? (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="backgroundValue" className="text-xs text-muted-foreground">
-              Colors (comma-separated)
-            </Label>
+            <Label htmlFor="backgroundValue" className="text-xs text-muted-foreground">{t("colorsCommaSeparated")}</Label>
             <Input
               id="backgroundValue"
               name="backgroundValue"
@@ -79,7 +79,7 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
         ) : null}
         {showAngle ? (
           <SelectField
-            label="Angle"
+            label={t("angle")}
             name="backgroundAngle"
             value={s.backgroundAngle}
             onChange={(v) => set({ backgroundAngle: v })}
@@ -93,33 +93,33 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {type === "image" ? (
               <MediaUrlField
-                label="Image URL"
+                label={t("imageUrl")}
                 name="backgroundImageUrl"
                 value={s.backgroundImageUrl}
                 onChange={(v) => set({ backgroundImageUrl: v })}
                 accept="image/*"
-                hint="Max 2 MB. JPG, PNG, WebP."
+                hint={t("avatarHint")}
               />
             ) : null}
             {type === "gif" ? (
               <MediaUrlField
-                label="Animated GIF URL"
+                label={t("animatedGif")}
                 name="backgroundImageUrl"
                 value={s.backgroundImageUrl}
                 onChange={(v) => set({ backgroundImageUrl: v })}
                 accept="image/gif"
-                hint="Max 2 MB. Keep loops short — big GIFs are heavy for mobile visitors."
+                hint={t("gifHint")}
               />
             ) : null}
             {type === "video" ? (
               <MediaUrlField
-                label="Video URL (.mp4 / .webm)"
+                label={t("videoUrl")}
                 name="backgroundImageUrl"
                 value={s.backgroundImageUrl}
                 onChange={(v) => set({ backgroundImageUrl: v })}
                 accept="video/mp4,video/webm"
                 maxSizeMb={5}
-                hint="Max 5 MB, muted autoplay loop. Fallback: your background colors paint the page when the video can't load."
+                hint={t("videoHint")}
               />
             ) : null}
           </div>
@@ -134,24 +134,19 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
                 onChange={(v) => set({ backgroundPosition: v })}
               />
               <div className="flex flex-col gap-2">
-                <Label className="text-xs text-muted-foreground">
-                  How the media fills the page
-                </Label>
+                <Label className="text-xs text-muted-foreground">{t("howTheMediaFillsThePage")}</Label>
                 <FitPicker
                   value={fit}
                   onChange={(v) => set({ backgroundFit: v })}
                   allowTile={!isVideo}
                 />
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  Drag the dot to set the focal point — the part that stays
-                  visible when screens crop it.
+                  {t("focalHint")}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground">
-              Upload media or paste a URL to unlock display controls (fit and focal point).
-            </p>
+            <p className="text-[11px] text-muted-foreground">{t("uploadMediaOrPasteAUrlToUnlockDisplayCon")}</p>
           )}
         </div>
       ) : null}
@@ -159,13 +154,13 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
       {showOverlay ? (
         <div className="grid grid-cols-2 gap-3">
           <ColorField
-            label="Overlay color"
+            label={t("overlayColor")}
             name="overlayColor"
             value={s.overlayColor}
             onChange={(v) => set({ overlayColor: v })}
           />
           <SliderField
-            label="Overlay opacity"
+            label={t("overlayOpacity")}
             name="overlayOpacity"
             value={parseInt(s.overlayOpacity, 10) || 0}
             onChange={(v) => set({ overlayOpacity: String(v) })}
@@ -176,26 +171,24 @@ export function BackgroundSection({ s, set }: { s: CustomizerState; set: SetFn }
         </div>
       ) : null}
       {type === "aurora" ? (
-        <p className="text-[11px] text-muted-foreground">
-          Aurora is driven by your colors: accent (primary) and secondary tint the
-          moving blobs, and the first background color sets the base.
-        </p>
+        <p className="text-[11px] text-muted-foreground">{t("auroraIsDrivenByYourColorsAccentPrimaryA")}</p>
       ) : null}
     </section>
   );
 }
 
 export function ColorsSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Colors</h3>
+      <h3 className="text-sm font-semibold">{t("colors")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <ColorField label="Accent (primary)" name="primaryColor" value={s.primaryColor} onChange={(v) => set({ primaryColor: v })} />
-        <ColorField label="Secondary" name="secondaryColor" value={s.secondaryColor} onChange={(v) => set({ secondaryColor: v })} />
-        <ColorField label="Text" name="textColor" value={s.textColor} onChange={(v) => set({ textColor: v })} />
-        <ColorField label="Muted text" name="mutedTextColor" value={s.mutedTextColor} onChange={(v) => set({ mutedTextColor: v })} />
-        <ColorField label="Card background" name="cardBackground" value={s.cardBackground} onChange={(v) => set({ cardBackground: v })} allowRgba />
-        <ColorField label="Card border" name="cardBorderColor" value={s.cardBorderColor} onChange={(v) => set({ cardBorderColor: v })} allowRgba />
+        <ColorField label={t("accent")} name="primaryColor" value={s.primaryColor} onChange={(v) => set({ primaryColor: v })} />
+        <ColorField label={t("secondary")} name="secondaryColor" value={s.secondaryColor} onChange={(v) => set({ secondaryColor: v })} />
+        <ColorField label={t("text")} name="textColor" value={s.textColor} onChange={(v) => set({ textColor: v })} />
+        <ColorField label={t("mutedText")} name="mutedTextColor" value={s.mutedTextColor} onChange={(v) => set({ mutedTextColor: v })} />
+        <ColorField label={t("cardBackground")} name="cardBackground" value={s.cardBackground} onChange={(v) => set({ cardBackground: v })} allowRgba />
+        <ColorField label={t("cardBorder")} name="cardBorderColor" value={s.cardBorderColor} onChange={(v) => set({ cardBorderColor: v })} allowRgba />
       </div>
     </section>
   );
@@ -217,6 +210,7 @@ export function TypographySection({
   onFontUploaded?: () => void;
   onFontDeleted?: () => void;
 }) {
+  const t = useTranslations("theme");
   // Uploaded fonts render in their own typeface via per-font @font-face rules
   // (admin-side only — the public page injects the same CSS server-side).
   const fontFaceCss = React.useMemo(
@@ -226,7 +220,7 @@ export function TypographySection({
 
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Typography</h3>
+      <h3 className="text-sm font-semibold">{t("typography")}</h3>
       <div className="flex flex-wrap gap-1.5">
         {FONT_OPTIONS.map((font) => (
           <label key={font.id} className="cursor-pointer">
@@ -281,7 +275,7 @@ export function TypographySection({
       />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <SliderField
-          label="Font scale"
+          label={t("fontScale")}
           name="fontScale"
           value={parseInt(s.fontScale, 10) || 100}
           onChange={(v) => set({ fontScale: String(v) })}
@@ -290,14 +284,14 @@ export function TypographySection({
           unit="%"
         />
         <SelectField
-          label="Weight"
+          label={t("weight")}
           name="fontWeight"
           value={s.fontWeight}
           onChange={(v) => set({ fontWeight: v })}
           options={FONT_WEIGHTS}
         />
         <SliderField
-          label="Letter spacing"
+          label={t("letterSpacing")}
           name="letterSpacing"
           value={parseFloat(s.letterSpacing) || 0}
           onChange={(v) => set({ letterSpacing: String(v) })}
@@ -311,33 +305,34 @@ export function TypographySection({
 }
 
 export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Card Style</h3>
+      <h3 className="text-sm font-semibold">{t("cardStyle")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SelectField
-          label="Link style"
+          label={t("linkStyle")}
           name="linkStyle"
           value={s.linkStyle}
           onChange={(v) => set({ linkStyle: v })}
           options={LINK_STYLES}
         />
         <SelectField
-          label="Hover effect"
+          label={t("hoverEffect")}
           name="hoverEffect"
           value={s.hoverEffect}
           onChange={(v) => set({ hoverEffect: v })}
           options={HOVER_EFFECTS}
         />
         <SelectField
-          label="Button size"
+          label={t("buttonSize")}
           name="buttonSize"
           value={s.buttonSize}
           onChange={(v) => set({ buttonSize: v })}
           options={BUTTON_SIZES}
         />
         <SliderField
-          label="Corner radius"
+          label={t("cornerRadius")}
           name="radius"
           value={s.radius === "auto" ? "auto" : parseInt(s.radius, 10) || 0}
           onChange={(v) => set({ radius: v === "auto" ? "auto" : `${v}px` })}
@@ -347,7 +342,7 @@ export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn })
           autoValue="auto"
         />
         <SliderField
-          label="Border width"
+          label={t("borderWidth")}
           name="borderWidth"
           value={parseInt(s.borderWidth, 10) || 0}
           onChange={(v) => set({ borderWidth: `${v}px` })}
@@ -357,7 +352,7 @@ export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn })
           unit="px"
         />
         <SelectField
-          label="Shadow"
+          label={t("shadow")}
           name="shadowStrength"
           value={s.shadowStrength}
           onChange={(v) => set({ shadowStrength: v })}
@@ -366,7 +361,7 @@ export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn })
       </div>
       {s.linkStyle === "glass" || s.linkStyle === "neon" ? (
         <SliderField
-          label="Glass blur"
+          label={t("glassBlur")}
           name="blur"
           value={parseInt(s.blur, 10) || 0}
           onChange={(v) => set({ blur: `${v}px` })}
@@ -380,12 +375,13 @@ export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn })
 }
 
 export function LayoutSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Layout</h3>
+      <h3 className="text-sm font-semibold">{t("layout")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <SliderField
-          label="Container width"
+          label={t("containerWidth")}
           name="containerWidth"
           value={parseInt(s.containerWidth, 10) || 540}
           onChange={(v) => set({ containerWidth: `${v}px` })}
@@ -395,14 +391,14 @@ export function LayoutSection({ s, set }: { s: CustomizerState; set: SetFn }) {
           unit="px"
         />
         <SelectField
-          label="Alignment"
+          label={t("alignment")}
           name="alignment"
           value={s.alignment}
           onChange={(v) => set({ alignment: v })}
           options={ALIGNMENTS}
         />
         <SelectField
-          label="Density"
+          label={t("density")}
           name="density"
           value={s.density}
           onChange={(v) => set({ density: v })}
@@ -410,32 +406,30 @@ export function LayoutSection({ s, set }: { s: CustomizerState; set: SetFn }) {
         />
       </div>
       <SelectField
-        label="Profile layout"
+        label={t("profileLayout")}
         name="profileLayout"
         value={s.profileLayout}
         onChange={(v) => set({ profileLayout: v })}
         options={PROFILE_LAYOUTS}
       />
       {s.profileLayout === "hero" || s.profileLayout === "banner" ? (
-        <p className="text-[11px] text-muted-foreground">
-          Set the banner image on the Profile page (Banner image field). Hero and
-          Banner layouts use it as the cover.
-        </p>
+        <p className="text-[11px] text-muted-foreground">{t("setTheBannerImageOnTheProfilePageBannerI")}</p>
       ) : null}
     </section>
   );
 }
 
 export function EffectsSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Effects</h3>
+      <h3 className="text-sm font-semibold">{t("effects")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ToggleField label="Glow" name="glow" checked={s.glow === "true"} onChange={(v) => set({ glow: v ? "true" : "false" })} />
-        <ToggleField label="Noise texture" name="noise" checked={s.noise === "true"} onChange={(v) => set({ noise: v ? "true" : "false" })} />
-        <ColorField label="Glow color" name="glowColor" value={s.glowColor} onChange={(v) => set({ glowColor: v })} />
+        <ToggleField label={t("glow")} name="glow" checked={s.glow === "true"} onChange={(v) => set({ glow: v ? "true" : "false" })} />
+        <ToggleField label={t("noiseTexture")} name="noise" checked={s.noise === "true"} onChange={(v) => set({ noise: v ? "true" : "false" })} />
+        <ColorField label={t("glowColor")} name="glowColor" value={s.glowColor} onChange={(v) => set({ glowColor: v })} />
         <SelectField
-          label="Reveal animation"
+          label={t("revealAnimation")}
           name="animationType"
           value={s.animationType}
           onChange={(v) => set({ animationType: v })}
@@ -447,32 +441,33 @@ export function EffectsSection({ s, set }: { s: CustomizerState; set: SetFn }) {
 }
 
 export function ProfileSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold">Profile</h3>
+      <h3 className="text-sm font-semibold">{t("profileSectionLabel")}</h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <SelectField
-          label="Avatar shape"
+          label={t("avatarShape")}
           name="avatarShape"
           value={s.avatarShape}
           onChange={(v) => set({ avatarShape: v })}
           options={AVATAR_SHAPES}
         />
         <SelectField
-          label="Avatar border"
+          label={t("avatarBorder")}
           name="avatarBorder"
           value={s.avatarBorder}
           onChange={(v) => set({ avatarBorder: v })}
           options={AVATAR_BORDERS}
         />
         <ToggleField
-          label="Floating avatar"
+          label={t("floatingAvatar")}
           name="avatarFloat"
           checked={s.avatarFloat === "true"}
           onChange={(v) => set({ avatarFloat: v ? "true" : "false" })}
         />
         <SelectField
-          label="Display name animation"
+          label={t("displayNameAnimation")}
           name="textAnimation"
           value={s.textAnimation}
           onChange={(v) => set({ textAnimation: v })}

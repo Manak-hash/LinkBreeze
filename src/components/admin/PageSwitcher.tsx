@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, Plus, FileText, Star, Globe, Trash2 } from "lucide-react";
@@ -13,6 +14,7 @@ interface PageSwitcherProps {
 }
 
 export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
+  const t = useTranslations("pageSwitcher");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -119,7 +121,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
                     setPageToDelete(page);
                   }}
                   className="mr-1 shrink-0 text-muted-foreground transition-colors hover:text-destructive"
-                  aria-label={`Delete page ${page.title || page.slug}`}
+                  aria-label={t("deletePage", { name: page.title || page.slug })}
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -129,7 +131,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-lavender"
-                aria-label={`View public page /${page.slug}`}
+                aria-label={t("viewPage", { slug: page.slug })}
               >
                 /{page.slug}
               </a>
@@ -141,7 +143,7 @@ export function PageSwitcher({ pages, variant = "full" }: PageSwitcherProps) {
               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             >
               <Plus className="size-3.5" />
-              New page
+              {t("newPage")}
             </Link>
           </div>
         </div>

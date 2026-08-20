@@ -8,6 +8,7 @@ import {
   getAllCustomFonts,
 } from "@/server/queries";
 import type { CustomFontMeta } from "@/lib/custom-fonts";
+import { getTranslations } from "next-intl/server";
 import { ThemeManager } from "./theme-manager";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export default async function ThemePage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  const t = await getTranslations("theme");
   // Ensure presets exist, then load.
   await seedThemesIfEmpty();
 

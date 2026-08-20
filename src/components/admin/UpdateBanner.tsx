@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { ArrowUpCircle, X, RefreshCw } from "lucide-react";
 import type { UpdateCheckResult } from "@/lib/update-check";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ interface UpdateBannerProps {
 }
 
 export function UpdateBanner({ result, onDismiss, onRefresh, refreshing }: UpdateBannerProps) {
+  const t = useTranslations("update");
   if (!result.hasUpdate) return null;
 
   return (
@@ -21,10 +23,10 @@ export function UpdateBanner({ result, onDismiss, onRefresh, refreshing }: Updat
         <ArrowUpCircle className="size-5 shrink-0 text-warning" />
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-medium text-foreground">
-            LinkBreeze v{result.latestVersion} is available
+            {t("available", { version: result.latestVersion ?? "" })}
           </span>
           <span className="text-xs text-muted-foreground">
-            You&apos;re running v{result.currentVersion}
+            {t("running", { version: result.currentVersion })}
           </span>
         </div>
       </div>
@@ -36,7 +38,7 @@ export function UpdateBanner({ result, onDismiss, onRefresh, refreshing }: Updat
             rel="noopener noreferrer"
             className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            View release notes
+            {t("viewReleaseNotes")}
           </a>
         ) : null}
         <Button
@@ -44,7 +46,7 @@ export function UpdateBanner({ result, onDismiss, onRefresh, refreshing }: Updat
           size="icon-sm"
           onClick={onRefresh}
           disabled={refreshing}
-          aria-label="Check again"
+          aria-label={t("checkAgain")}
         >
           <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
         </Button>
@@ -52,7 +54,7 @@ export function UpdateBanner({ result, onDismiss, onRefresh, refreshing }: Updat
           variant="ghost"
           size="icon-sm"
           onClick={onDismiss}
-          aria-label="Dismiss update notification"
+          aria-label={t("dismiss")}
         >
           <X className="size-4" />
         </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { icons } from "lucide-react";
 import { ICON_CATEGORIES, keyToIconName, resolveIcon } from "@/lib/icon-registry";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,7 @@ function IconPreview({ Comp }: { Comp: React.ComponentType<{ size?: number; clas
  * Client component — admin only, never imported by the public page.
  */
 export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
+  const t = useTranslations("linksPage");
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<string>("All");
@@ -166,7 +168,7 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
               <span className="truncate">{value}</span>
             </>
           ) : (
-            <span className="text-muted-foreground">Choose an icon…</span>
+            <span className="text-muted-foreground">{t("chooseIcon")}</span>
           )}
         </Button>
         {value ? (
@@ -175,7 +177,7 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
             size="icon"
             type="button"
             className="size-9 shrink-0"
-            aria-label="Remove icon"
+            aria-label={t("removeIcon")}
             onClick={() => { onChange(""); setOpen(false); }}
           >
             <X size={15} />
@@ -190,7 +192,7 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
               autoFocus
               value={query}
               onChange={(e) => { setQuery(e.target.value); setVisibleCount(PAGE_SIZE); }}
-              placeholder="Search icons…"
+              placeholder={t("searchIcons")}
               className="h-8 pl-8 text-sm"
             />
           </div>
@@ -233,7 +235,7 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
               })}
               {filtered.length === 0 ? (
                 <p className="col-span-8 py-6 text-center text-sm text-muted-foreground">
-                  No icons match &quot;{query}&quot;.
+                  {t("noIconsMatch", { query })}
                 </p>
               ) : null}
             </div>
@@ -243,7 +245,7 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
                 onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
                 className="mt-2 w-full rounded-md border border-border py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
-                Show more ({filtered.length - visibleCount} remaining)
+                {t("showMore", { count: filtered.length - visibleCount })}
               </button>
             ) : null}
           </div>

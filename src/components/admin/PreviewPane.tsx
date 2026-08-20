@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Eye, X, RefreshCw, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,7 @@ function ActivePageResolver({
 
 export function PreviewButton({ className }: { className?: string }) {
   const { open, setOpen } = React.useContext(PreviewContext);
+  const t = useTranslations("preview");
   return (
     <button
       type="button"
@@ -109,8 +111,8 @@ export function PreviewButton({ className }: { className?: string }) {
       )}
     >
       <Eye className="size-4" />
-      <span className="hidden lg:inline">Preview</span>
-      <span className="lg:hidden">Preview</span>
+      <span className="hidden lg:inline">{t("livePreview")}</span>
+      <span className="lg:hidden">{t("livePreview")}</span>
     </button>
   );
 }
@@ -160,17 +162,18 @@ function PreviewHeader({
   reload: () => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("preview");
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-3">
       <div className="flex items-center gap-2">
         <Eye className="size-4 text-lavender" />
-        <span className="text-sm font-medium">Live Preview</span>
+        <span className="text-sm font-medium">{t("livePreview")}</span>
       </div>
       <div className="flex items-center gap-1">
         <button
           onClick={reload}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Refresh preview"
+          aria-label={t("refresh")}
         >
           <RefreshCw className="size-4" />
         </button>
@@ -179,14 +182,14 @@ function PreviewHeader({
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Open in new tab"
+          aria-label={t("openNewTab")}
         >
           <ExternalLink className="size-4" />
         </a>
         <button
           onClick={onClose}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Close preview"
+          aria-label={t("close")}
         >
           <X className="size-4" />
         </button>
@@ -198,13 +201,14 @@ function PreviewHeader({
 // ── Phone Frame ─────────────────────────────────────────────────────────
 
 function PhoneFrame({ src }: { src: string }) {
+  const t = useTranslations("preview");
   return (
     <div className="flex h-full items-center justify-center p-4">
       <div className="relative flex h-full max-h-[720px] aspect-[9/19.5] w-auto overflow-hidden rounded-[2.5rem] border-[8px] border-night-900 bg-night-950 shadow-[0_0_60px_-12px_rgba(124,58,237,0.3)]">
         <div className="absolute left-1/2 top-0 z-10 h-6 w-28 -translate-x-1/2 rounded-b-2xl bg-night-900" />
         <iframe
           src={src}
-          title="Live preview"
+          title={t("livePreview")}
           className="h-full w-full border-0"
           loading="lazy"
           sandbox="allow-scripts allow-forms allow-popups allow-same-origin"

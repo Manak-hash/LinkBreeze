@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { localizeActionError } from "@/lib/action-error-i18n";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { Trash2, Save, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +55,9 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ profile, pageId }: ProfileFormProps) {
+  const t = useTranslations("profile");
+  const tErr = useTranslations("errors");
+  const tCommon = useTranslations("common");
   const { reload: reloadPreview } = usePreview();
   const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>(
     profile?.socialLinks ?? [],
@@ -79,7 +84,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
         setAvatarUrl(res.url);
         reloadPreview();
       } else {
-        setUploadError(res.error);
+        setUploadError(localizeActionError(tErr, res.error));
       }
     } catch {
       setUploadError("Upload failed. Please try again.");
@@ -102,7 +107,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
         setBannerUrl(res.url);
         reloadPreview();
       } else {
-        setBannerError(res.error);
+        setBannerError(localizeActionError(tErr, res.error));
       }
     } catch {
       setBannerError("Upload failed. Please try again.");
@@ -155,17 +160,15 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground">
-          This information appears on your public page.
-        </p>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("thisInformationAppearsOnYourPublicPage")}</p>
       </div>
 
       <form action={handleSubmit} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Details</CardTitle>
-            <CardDescription>Your public identity</CardDescription>
+            <CardTitle>{t("details")}</CardTitle>
+            <CardDescription>{t("identityDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
@@ -188,7 +191,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 )}
               </div>
               <div className="flex-1">
-                <FormField label="Avatar URL" htmlFor="avatarUrl">
+                <FormField label={t("avatar")} htmlFor="avatarUrl">
                   <Input
                     id="avatarUrl"
                     name="avatarUrl"
@@ -200,7 +203,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
                     <Upload className="size-4" />
-                    {uploading ? "Uploading…" : "Upload image"}
+                    {uploading ? t("uploading") : t("uploadImage")}
                     <input
                       type="file"
                       accept="image/*"
@@ -216,7 +219,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
               </div>
             </div>
 
-            <FormField label="Banner image (optional)" htmlFor="bannerUrl">
+            <FormField label={t("banner")} htmlFor="bannerUrl">
               <Input
                 id="bannerUrl"
                 name="bannerUrl"
@@ -228,7 +231,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
             <div className="-mt-2 flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
                 <Upload className="size-4" />
-                {bannerUploading ? "Uploading…" : "Upload banner"}
+                {bannerUploading ? t("uploading") : t("uploadBanner")}
                 <input
                   type="file"
                   accept="image/*"
@@ -239,7 +242,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
               </label>
               {bannerUrl ? (
                 <span className="text-xs text-muted-foreground">
-                  {bannerUrl.startsWith("/api/uploads/") ? "Uploaded ✓" : "Custom URL"}
+                  {bannerUrl.startsWith("/api/uploads/") ? t("uploadedCheck") : t("customUrl")}
                 </span>
               ) : null}
               {bannerError ? (
@@ -247,34 +250,34 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
               ) : null}
             </div>
 
-            <FormField label="Display name" htmlFor="displayName" required>
+            <FormField label={t("displayName")} htmlFor="displayName" required>
               <Input
                 id="displayName"
                 name="displayName"
                 defaultValue={profile?.displayName ?? ""}
                 required
                 maxLength={80}
-                placeholder="Jane Doe"
+                placeholder={t("displayNamePlaceholder")}
               />
             </FormField>
 
-            <FormField label="Bio" htmlFor="bio">
+            <FormField label={t("bio")} htmlFor="bio">
               <Input
                 id="bio"
                 name="bio"
                 defaultValue={profile?.bio ?? ""}
                 maxLength={300}
-                placeholder="A short description"
+                placeholder={t("bioPlaceholder")}
               />
             </FormField>
 
-            <FormField label="Badge text (optional)" htmlFor="badgeText">
+            <FormField label={t("badge")} htmlFor="badgeText">
               <Input
                 id="badgeText"
                 name="badgeText"
                 defaultValue={profile?.badgeText ?? ""}
                 maxLength={40}
-                placeholder="✨ Available for work"
+                placeholder={t("availableForWork")}
               />
             </FormField>
           </CardContent>
@@ -282,9 +285,9 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Social links</CardTitle>
+            <CardTitle>{t("socialLinks")}</CardTitle>
             <CardDescription>
-              Icons appear above your link cards. Tap a platform to add it.
+              {t("socialLinksHint")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -292,7 +295,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
             {socialLinks.length > 0 && (
               <div className="flex flex-col gap-2">
                 {socialLinks.map((item, i) => (
-                  <div key={`${item.platform}-${item.url}`} className="flex items-center gap-2">
+                  <div key={`${item.platform}-${i}`} className="flex items-center gap-2">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet/15 text-lavender">
                       <PlatformIcon platform={item.platform as SocialPlatform} />
                     </div>
@@ -308,7 +311,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
                       type="button"
                       onClick={() => removeSocial(i)}
                       className="text-destructive"
-                      aria-label="Remove social link"
+                      aria-label={t("removeSocial")}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -319,9 +322,7 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
 
             {/* Platform picker — icon chips grid */}
             <Separator className="my-1" />
-            <p className="text-xs font-medium text-muted-foreground">
-              Add a platform
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">{t("addAPlatform")}</p>
             <div className="flex flex-wrap gap-1.5">
               {SUPPORTED_PLATFORMS.map((p) => {
                 const alreadyAdded = socialLinks.some((s) => s.platform === p);
@@ -346,10 +347,10 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
           <CardFooter className="gap-3">
             <Button type="submit" disabled={pending}>
               <Save className="size-4" />
-              {pending ? "Saving…" : "Save profile"}
+              {pending ? tCommon("saving") : t("saveProfile")}
             </Button>
             {saved ? (
-              <span className="text-sm text-muted-foreground">Saved!</span>
+              <span className="text-sm text-muted-foreground">{t("savedToast")}</span>
             ) : null}
           </CardFooter>
         </Card>

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { chartLocaleTag } from "@/app/(admin)/dashboard/views-chart-inner";
 import { useRouter } from "next/navigation";
 import { Mail, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,8 @@ export function SubscribersCard({
   subscribers: SubscriberRow[];
   emailCaptureEnabled: boolean;
 }) {
+  const t = useTranslations("settings.data");
+  const locale = useLocale();
   const router = useRouter();
   const [clearOpen, setClearOpen] = React.useState(false);
   const [clearPending, setClearPending] = React.useState(false);
@@ -58,13 +62,11 @@ export function SubscribersCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="size-5" />
-          Email subscribers
-        </CardTitle>
+          <Mail className="size-5" />{t("emailSubscribers")}</CardTitle>
         <CardDescription>
           {subscribers.length === 0
-            ? "No subscribers yet. Your signup form is live on your public page."
-            : `${subscribers.length} subscriber${subscribers.length === 1 ? "" : "s"}.`}
+            ? t("noSubscribers")
+            : t("subscriberCount", { count: subscribers.length })}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -73,9 +75,9 @@ export function SubscribersCard({
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">Email</th>
-                  <th className="px-3 py-2 text-left font-medium">Subscribed</th>
-                  <th className="px-3 py-2 text-left font-medium">Consent</th>
+                  <th className="px-3 py-2 text-left font-medium">{t("colEmail")}</th>
+                  <th className="px-3 py-2 text-left font-medium">{t("colSubscribed")}</th>
+                  <th className="px-3 py-2 text-left font-medium">{t("colConsent")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -83,10 +85,14 @@ export function SubscribersCard({
                   <tr key={s.id} className="border-t border-border">
                     <td className="px-3 py-2">{s.email}</td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {new Date(s.createdAt).toLocaleDateString()}
+                      {new Date(s.createdAt).toLocaleDateString(chartLocaleTag(locale), {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {s.consentAt ? "Yes" : "N/A"}
+                      {s.consentAt ? t("consentYes") : t("notAvailable")}
                     </td>
                   </tr>
                 ))}
@@ -94,9 +100,7 @@ export function SubscribersCard({
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            When visitors subscribe on your page, their emails appear here.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("subscribersDesc")}</p>
         )}
 
         <div className="flex flex-wrap items-center gap-2">
@@ -105,9 +109,7 @@ export function SubscribersCard({
             href="/api/subscribers/export"
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
           >
-            <Download className="size-4" />
-            Export CSV
-          </a>
+            <Download className="size-4" />{t("exportCsv")}</a>
           {subscribers.length > 0 ? (
             <Button
               type="button"
@@ -117,7 +119,7 @@ export function SubscribersCard({
               className="text-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" />
-              {clearPending ? "Clearing..." : "Clear all"}
+              {clearPending ? t("clearing") : t("clearAll")}
             </Button>
           ) : null}
         </div>
@@ -131,19 +133,14 @@ export function SubscribersCard({
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Clear all subscribers?</DialogTitle>
+            <DialogTitle>{t("clearTitle")}</DialogTitle>
             <DialogDescription>
-              Permanently delete all {subscribers.length} subscriber{" "}
-              {subscribers.length === 1 ? "email" : "emails"}. This cannot be undone.
+              {t("deleteConfirmIcu", { count: subscribers.length })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setClearOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" type="button" onClick={handleClear}>
-              Clear
-            </Button>
+            <Button variant="outline" type="button" onClick={() => setClearOpen(false)}>{t("cancel")}</Button>
+            <Button variant="destructive" type="button" onClick={handleClear}>{t("clear")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

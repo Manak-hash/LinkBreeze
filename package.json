@@ -14,7 +14,9 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "db:migrate": "drizzle-kit migrate",
-    "seed": "tsx src/scripts/seed-demo.ts"
+    "seed": "tsx src/scripts/seed-demo.ts",
+    "i18n:check": "node scripts/i18n-check.js",
+    "docs:check": "node scripts/docs-check.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -29,6 +31,7 @@
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
+    "next-intl": "^4.13.7",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",

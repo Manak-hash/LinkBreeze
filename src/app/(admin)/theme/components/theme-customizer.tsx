@@ -4,6 +4,7 @@ import * as React from "react";
 import { Save } from "lucide-react";
 import type { ThemeRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -125,11 +126,11 @@ function normalizeOverlayScale(raw: string | null | undefined): string {
 }
 
 const TABS = [
-  { id: "background", label: "Background" },
-  { id: "typography", label: "Typography" },
-  { id: "links", label: "Links" },
-  { id: "profile", label: "Profile" },
-  { id: "effects", label: "Effects" },
+  { id: "background", label: "tabBackground" },
+  { id: "typography", label: "tabTypography" },
+  { id: "links", label: "tabLinks" },
+  { id: "profile", label: "tabProfile" },
+  { id: "effects", label: "tabEffects" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -162,6 +163,7 @@ export function ThemeCustomizer({
   onFontUploaded?: () => void;
   onFontDeleted?: () => void;
 }) {
+  const t = useTranslations("theme");
   const [state, setState] = React.useState<CustomizerState>(() => stateFromTheme(active));
   const [forkOpen, setForkOpen] = React.useState(false);
   const [forkName, setForkName] = React.useState("");
@@ -204,30 +206,28 @@ export function ThemeCustomizer({
     <>
       <Card className="w-full">
         <CardHeader className="pb-4">
-          <CardTitle>Customise &ldquo;{active.name}&rdquo;</CardTitle>
-          <CardDescription>
-            Every change previews live. Changes apply on save.
-          </CardDescription>
+          <CardTitle>{t("customiseTitle", { name: active.name })}</CardTitle>
+          <CardDescription>{t("everyChangePreviewsLiveChangesApplyOnSav")}</CardDescription>
         </CardHeader>
         <div className="flex flex-col gap-6 px-6 pb-4 xl:flex-row">
           {/* Vertical tab rail (horizontal strip below xl) */}
           <nav
-            aria-label="Customizer sections"
+            aria-label={t("customizerSections")}
             className="flex shrink-0 gap-1 overflow-x-auto pb-1 xl:w-40 xl:flex-col xl:pb-0"
           >
-            {TABS.map((t) => (
+            {TABS.map((tabDef) => (
               <button
-                key={t.id}
+                key={tabDef.id}
                 type="button"
-                onClick={() => setTab(t.id)}
-                aria-current={tab === t.id}
+                onClick={() => setTab(tabDef.id)}
+                aria-current={tab === tabDef.id}
                 className={`flex shrink-0 items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                  tab === t.id
+                  tab === tabDef.id
                     ? "bg-[var(--aurora-grad)] text-white shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                {t.label}
+                {t(tabDef.label)}
               </button>
             ))}
           </nav>
@@ -275,13 +275,11 @@ export function ThemeCustomizer({
           ) : null}
           <div className="flex w-full items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              {isCustom
-                ? "Editing a custom theme"
-                : "Preset — saving creates your own copy"}
+              {isCustom ? t("editingCustom") : t("presetCopyNote")}
             </p>
             <Button type="button" onClick={handleSave} disabled={customPending || forkPending || !dirty}>
               <Save className="size-4" />
-              {customPending || forkPending ? "Saving…" : dirty ? "Save changes" : "Saved"}
+              {customPending || forkPending ? t("saving") : dirty ? t("saveChanges") : t("saved")}
             </Button>
           </div>
         </CardFooter>
@@ -291,29 +289,25 @@ export function ThemeCustomizer({
       <Dialog open={forkOpen} onOpenChange={setForkOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Save as your own theme?</DialogTitle>
+            <DialogTitle>{t("saveAsOwn")}</DialogTitle>
             <DialogDescription>
-              &ldquo;{active.name}&rdquo; is a shared preset — changing it would
-              restyle every page using that preset. Save your customisations as a
-              new theme instead.
+              {t("sharedPresetWarning", { name: active.name })}
             </DialogDescription>
           </DialogHeader>
           <Input
             value={forkName}
             onChange={(e) => setForkName(e.target.value)}
-            placeholder="New theme name"
+            placeholder={t("newThemeName")}
             maxLength={100}
           />
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setForkOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" type="button" onClick={() => setForkOpen(false)}>{t("cancel")}</Button>
             <Button
               type="button"
               disabled={forkPending || !forkName.trim()}
               onClick={() => onFork(forkName.trim().slice(0, 100), formData())}
             >
-              {forkPending ? "Creating…" : "Create & save"}
+              {forkPending ? t("creating") : t("createSave")}
             </Button>
           </DialogFooter>
         </DialogContent>

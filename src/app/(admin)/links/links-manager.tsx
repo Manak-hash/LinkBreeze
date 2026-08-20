@@ -24,6 +24,7 @@ import type { LinkRow, LinkSectionRow } from "@/server/queries";
 import { groupLinksBySection } from "@/lib/link-sections";
 import { LucideIcon, isLucideIconName } from "@/components/public/LucideIcon";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePreview } from "@/components/admin/PreviewPane";
 import { SortableLink } from "./components/sortable-link";
@@ -51,6 +52,7 @@ function SectionGroup({
   onDeleteSection: (s: LinkSectionRow) => void;
   children: React.ReactNode;
 }) {
+  const t = useTranslations("linksPage");
   const dndId = sectionDndId(section?.id ?? null);
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: dndId });
   const {
@@ -87,7 +89,7 @@ function SectionGroup({
               className="flex cursor-grab items-center px-1 text-muted-foreground active:cursor-grabbing"
               {...attributes}
               {...listeners}
-              aria-label="Drag to reorder section"
+              aria-label={t("dragReorderSection")}
               type="button"
             >
               <FolderOpen className="size-4 shrink-0" />
@@ -115,7 +117,7 @@ function SectionGroup({
               variant="ghost"
               size="icon-sm"
               onClick={() => onEditSection(section)}
-              aria-label="Edit section"
+              aria-label={t("editSectionAria")}
             >
               <Pencil className="size-4" />
             </Button>
@@ -123,7 +125,7 @@ function SectionGroup({
               variant="ghost"
               size="icon-sm"
               onClick={() => onDeleteSection(section)}
-              aria-label="Delete section"
+              aria-label={t("deleteSectionAria")}
               className="text-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" />
@@ -134,9 +136,7 @@ function SectionGroup({
       <div className="flex flex-col gap-2">
         {children}
         {links.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-center text-xs text-muted-foreground">
-            Drop links here
-          </p>
+          <p className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-center text-xs text-muted-foreground">{t("dropLinksHere")}</p>
         ) : null}
       </div>
     </div>
@@ -152,6 +152,7 @@ export function LinksManager({
   sections: LinkSectionRow[];
   pageId?: number;
 }) {
+  const t = useTranslations("linksPage");
   const { reload: reloadPreview } = usePreview();
   const [items, setItems] = React.useState<LinkRow[]>(initialLinks);
   const [sectionList, setSectionList] = React.useState<LinkSectionRow[]>(sections);
@@ -297,22 +298,14 @@ export function LinksManager({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            Links
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Add, edit, and reorder the links on your page. Group them under section headers.
-          </p>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">{t("links")}</h1>
+          <p className="text-sm text-muted-foreground">{t("addEditAndReorder")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={openCreateSection}>
-            <FolderOpen className="size-4" />
-            Add section
-          </Button>
+            <FolderOpen className="size-4" />{t("addSection")}</Button>
           <Button onClick={openCreate}>
-            <Plus className="size-4" />
-            Add link
-          </Button>
+            <Plus className="size-4" />{t("addLink")}</Button>
         </div>
       </div>
 
@@ -323,27 +316,19 @@ export function LinksManager({
               <Plus className="size-5 text-violet" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">
-                No links yet
-              </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Add a link or import from an existing page.
-              </p>
+              <p className="text-sm font-medium text-foreground">{t("noLinksYet")}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t("addALinkOrImport")}</p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button onClick={openCreate}>
-                <Plus className="size-4" />
-                Add your first link
-              </Button>
+                <Plus className="size-4" />{t("addYourFirstLink")}</Button>
               <a
                 href="/settings?tab=data"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
               >
-                <DownloadCloud className="size-4" />
-                Import your existing page
-              </a>
+                <DownloadCloud className="size-4" />{t("importYourExistingPage")}</a>
             </div>
           </CardContent>
         </Card>

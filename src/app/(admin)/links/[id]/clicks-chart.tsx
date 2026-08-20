@@ -13,6 +13,7 @@ const ClicksChartInner = dynamic(
 
 interface ChartProps {
   data: Array<{ date: string; clicks: number }>;
+  locale?: string;
 }
 
 /** Clicks-only area chart for the per-link drill-down. */

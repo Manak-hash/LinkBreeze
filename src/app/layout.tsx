@@ -555,42 +555,6 @@ export default function RootLayout({
       className={`${clashDisplay.variable} ${satoshi.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${playfair.variable} ${jetbrains.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${lora.variable} ${bebas.variable} ${sora.variable} ${outfit.variable} ${pressStart2P.variable} ${nunito.variable} ${montserrat.variable} ${caveat.variable} ${pacifico.variable} ${abrilFatface.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/*
-         * Guard against a benign-but-noisy Next.js dev-overlay bug (Next 16,
-         * still present in 16.3.1): when a tab is backgrounded during load,
-         * browser timer throttling makes the hydration performance marks land
-         * out of order, and the dev overlay's `performance.measure(name,
-         * navigationStart, beforeRender)` call throws
-         *   "TypeError: Failed to execute 'measure' on 'Performance':
-         *    '<Page>' cannot have a negative time stamp"
-         * on routes that redirect (e.g. /login -> /dashboard). The error is
-         * cosmetic (it only kills the metric logging), but it surfaces as a
-         * red overlay that looks like a real crash. This inline script runs
-         * before any framework code and hardens `performance.measure` so a
-         * negative duration is clamped to 0 instead of throwing. Framework
-         * PR merged upstream; remove when a stable release carries it.
-         */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function () {
-              var pm = performance.measure.bind(performance);
-              performance.measure = function (name, start, end) {
-                try { return pm(name, start, end); }
-                catch (e) {
-                  // Negative-duration measure (dev overlay timing bug) —
-                  // return an empty PerformanceMeasure so callers expecting
-                  // an object don't crash on property access.
-                  return {
-                    name: typeof name === "string" ? name : String(name?.name ?? name),
-                    entryType: "measure",
-                    startTime: 0,
-                    duration: 0,
-                  };
-                }
-              };
-            })();`,
-          }}
-        />
         {children}
       </body>
     </html>

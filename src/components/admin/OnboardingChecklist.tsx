@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Check, Link2, User, Palette, X } from "lucide-react";
 
@@ -23,6 +24,7 @@ export function OnboardingChecklist({
   hasDisplayName,
   hasTheme,
 }: OnboardingChecklistProps) {
+  const t = useTranslations("onboarding");
   // Hydration-safe localStorage read: useSyncExternalStore renders the
   // server snapshot (false) during hydration, then re-renders with the real
   // client value — no hydration mismatch and no setState-in-effect.
@@ -58,21 +60,21 @@ export function OnboardingChecklist({
   const items: ChecklistItem[] = [
     {
       id: "profile",
-      label: "Set your name and bio",
+      label: t("setProfile"),
       href: "/profile",
       icon: User,
       done: hasDisplayName,
     },
     {
       id: "theme",
-      label: "Pick a theme",
+      label: t("setTheme"),
       href: "/theme",
       icon: Palette,
       done: hasTheme,
     },
     {
       id: "links",
-      label: "Add your first link",
+      label: t("setLinks"),
       href: "/links",
       icon: Link2,
       done: hasLinks,
@@ -102,19 +104,19 @@ export function OnboardingChecklist({
       <button
         onClick={handleDismiss}
         className="absolute right-3 top-3 text-muted-foreground transition-colors hover:text-foreground"
-        aria-label="Dismiss"
+        aria-label={t("dismiss")}
       >
         <X className="size-4" />
       </button>
 
       <div className="mb-3">
         <h2 className="font-heading text-sm font-semibold">
-          Getting started
+          {t("heading")}
         </h2>
         <p className="text-xs text-muted-foreground">
           {completedCount === 0
-            ? "A few steps to get your page ready."
-            : `${completedCount} of ${items.length} done — keep going!`}
+            ? t("subtitleStart")
+            : t("subtitleProgress", { done: completedCount, total: items.length })}
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { deleteLink } from "@/server/actions/links";
 import type { LinkRow } from "@/server/queries";
@@ -25,6 +26,7 @@ export function DeleteLinkDialog({
   open,
   onOpenChange,
 }: DeleteLinkDialogProps) {
+  const t = useTranslations("linksPage");
   const [pending, startTransition] = React.useTransition();
   const router = useRouter();
 
@@ -43,21 +45,19 @@ export function DeleteLinkDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete link?</DialogTitle>
+          <DialogTitle>{t("deleteLinkTitle")}</DialogTitle>
           <DialogDescription>
-            “{link?.title}” will be permanently removed. This cannot be undone.
+            {t("willBeRemoved", { title: link?.title ?? "" })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? t("deleting") : t("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

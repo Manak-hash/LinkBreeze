@@ -13,6 +13,7 @@ const ViewsChartInner = dynamic(
 
 interface ChartProps {
   data: Array<{ date: string; views: number; clicks: number }>;
+  locale?: string;
 }
 
 export function ViewsChart(props: ChartProps) {

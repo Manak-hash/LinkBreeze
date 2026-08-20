@@ -12,17 +12,20 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PreviewButton } from "@/components/admin/PreviewPane";
+import { useTranslations } from "next-intl";
+import type { Messages } from "@/locales/en";
 
-const NAV: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/links", label: "Links", icon: LinkIcon },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/theme", label: "Theme", icon: Palette },
-  { href: "/settings", label: "Settings", icon: Settings },
+const NAV: { href: string; label: keyof Messages["nav"] & string; icon: LucideIcon }[] = [
+  { href: "/dashboard", label: "dashboard", icon: LayoutDashboard },
+  { href: "/links", label: "links", icon: LinkIcon },
+  { href: "/profile", label: "profile", icon: User },
+  { href: "/theme", label: "theme", icon: Palette },
+  { href: "/settings", label: "settings", icon: Settings },
 ];
 
 /** Sidebar nav that preserves the ?page= param across admin sections. */
 export function AdminNav() {
+  const t = useTranslations("nav");
   const searchParams = useSearchParams();
   const pageParam = searchParams.get("page");
   const query = pageParam ? `?page=${pageParam}` : "";
@@ -36,7 +39,7 @@ export function AdminNav() {
           className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[color,background-color,transform] hover:translate-x-0.5 hover:bg-violet/15 hover:text-lavender"
         >
           <item.icon className="size-4" />
-          {item.label}
+          {t(item.label)}
         </Link>
       ))}
       <div className="mt-1 border-t border-border pt-1">

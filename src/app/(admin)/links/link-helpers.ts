@@ -5,37 +5,44 @@
  * instance. `prefixLinkUrl` is also reused by the migration wizard.
  */
 
+export type LinkTypeKey =
+  | "ltUrl" | "ltEmail" | "ltPhone" | "ltWhatsapp" | "ltSms"
+  | "ltVcard" | "ltFile" | "ltEmbed";
+
 export const LINK_TYPES = [
-  { value: "url", label: "URL" },
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Phone" },
-  { value: "whatsapp", label: "WhatsApp" },
-  { value: "sms", label: "SMS" },
-  { value: "vcard", label: "vCard (contact card)" },
-  { value: "file", label: "File download" },
-  { value: "embed", label: "Embed (YouTube, Spotify, etc.)" },
+  { value: "url", label: "ltUrl" },
+  { value: "email", label: "ltEmail" },
+  { value: "phone", label: "ltPhone" },
+  { value: "whatsapp", label: "ltWhatsapp" },
+  { value: "sms", label: "ltSms" },
+  { value: "vcard", label: "ltVcard" },
+  { value: "file", label: "ltFile" },
+  { value: "embed", label: "ltEmbed" },
 ] as const;
 
-const LINK_LABELS: Record<string, string> = {
-  email: "Email address",
-  phone: "Phone number",
-  whatsapp: "WhatsApp number",
-  sms: "Phone number",
+const LINK_LABELS: Record<string, LinkLabelKey> = {
+  email: "ltEmailLabel",
+  phone: "ltPhoneLabel",
+  whatsapp: "ltWhatsappLabel",
+  sms: "ltPhoneLabel",
 };
 
-const LINK_PLACEHOLDERS: Record<string, string> = {
-  email: "you@example.com",
-  phone: "+1 (555) 000-0000",
-  whatsapp: "+1 (555) 000-0000",
-  sms: "+1 (555) 000-0000",
+const LINK_PLACEHOLDERS: Record<string, LinkPhKey> = {
+  email: "phEmail",
+  phone: "phPhone",
+  whatsapp: "phPhone",
+  sms: "phPhone",
 };
 
-export function getUrlLabel(type: string): string {
-  return LINK_LABELS[type] ?? "URL";
+export type LinkLabelKey = "ltEmailLabel" | "ltPhoneLabel" | "ltWhatsappLabel" | "ltUrl";
+export type LinkPhKey = "phEmail" | "phPhone" | "phUrl";
+
+export function getUrlLabel(type: string): LinkLabelKey {
+  return LINK_LABELS[type] ?? "ltUrl";
 }
 
-export function getUrlPlaceholder(type: string): string {
-  return LINK_PLACEHOLDERS[type] ?? "https://example.com";
+export function getUrlPlaceholder(type: string): LinkPhKey {
+  return LINK_PLACEHOLDERS[type] ?? "phUrl";
 }
 
 /**

@@ -1,0 +1,24 @@
+name: docs-stale
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "README.*.md"
+      - "docs/TRANSLATIONS.md"
+  pull_request:
+    paths:
+      - "README.md"
+      - "README.*.md"
+      - "docs/TRANSLATIONS.md"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/docs-check.js

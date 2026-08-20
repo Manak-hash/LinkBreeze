@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface Tab {
   id: string;
@@ -30,6 +31,7 @@ export function SettingsTabs({
 }: {
   tabs: Record<string, React.ReactNode>;
 }) {
+  const t = useTranslations("settings.tabs");
   const [active, setActive] = React.useState("general");
 
   return (
@@ -49,7 +51,7 @@ export function SettingsTabs({
             )}
           >
             <tab.icon className="size-4" />
-            {tab.label}
+            {t(tab.id as never)}
           </button>
         ))}
       </div>

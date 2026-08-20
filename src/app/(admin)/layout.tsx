@@ -3,6 +3,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
+import { NextIntlClientProvider } from "next-intl";
 import { getSession } from "@/lib/auth";
 import { isDemoMode } from "@/lib/demo";
 import { logout } from "@/server/actions/auth";
@@ -13,25 +14,49 @@ import { MobileTabBar } from "@/components/admin/MobileTabBar";
 import { PageSwitcher } from "@/components/admin/PageSwitcher";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PreviewProvider } from "@/components/admin/PreviewPane";
+import { getLocale } from "@/i18n/server";
+import { LOCALE_HTML_LANG, localeDir } from "@/i18n/config";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
+
+/** Translated tab title for every admin page (root metadata stays English/SEO). */
+export async function generateMetadata() {
+  const t = await getTranslations("meta");
+  return { title: t("adminTitle") };
+}
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
+  const [session, locale] = await Promise.all([getSession(), getLocale()]);
+  const t = await getTranslations("shell");
+  const dir = localeDir(locale);
+  const htmlLang = LOCALE_HTML_LANG[locale];
+
+  // i18n provider wraps the whole admin shell (both branches) so the
+  // login/setup screens are translated too. messages are resolved from
+  // the request config; NextIntlClientProvider inherits them server-side
+  // and serializes the needed namespaces to the client automatically.
+  const shell = (inner: React.ReactNode) => (
+    <NextIntlClientProvider>
+      <div
+        lang={htmlLang}
+        dir={dir}
+        className="min-h-dvh w-full dark"
+      >
+        <AuroraBackground />
+        {inner}
+      </div>
+    </NextIntlClientProvider>
+  );
 
   // Route protection is handled by middleware. Here we only decide whether to
   // render the admin chrome (authed) or a bare shell (login / setup).
   if (!session) {
-    return (
-      <div className="min-h-dvh w-full dark">
-        <AuroraBackground />
-        {children}
-      </div>
-    );
+    return shell(children);
   }
 
   // Load pages for the page switcher (only when authed).
@@ -45,9 +70,14 @@ export default async function AdminLayout({
   }));
 
   return (
+    <NextIntlClientProvider>
     <PreviewProvider pages={pageList}>
       <React.Suspense fallback={null}>
-      <div className="dark relative min-h-dvh bg-background text-foreground">
+      <div
+        lang={htmlLang}
+        dir={dir}
+        className="dark relative min-h-dvh bg-background text-foreground"
+      >
         <AuroraBackground />
         {/* Full-bleed row: sidebar anchors to the left edge instead of floating
             in a centered box, so the layout stays grounded at every resolution. */}
@@ -56,9 +86,7 @@ export default async function AdminLayout({
           <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar p-4 md:flex md:sticky md:top-0 md:h-dvh md:self-start">
             <div className="mb-8 flex items-center gap-2 px-2">
               <Image src="/logo-mark.svg" alt="LinkBreeze" width={24} height={24} unoptimized />
-              <span className="font-heading text-lg font-semibold">
-                LinkBreeze
-              </span>
+              <span className="font-heading text-lg font-semibold">LinkBreeze</span>
             </div>
 
             <React.Suspense fallback={null}>
@@ -67,7 +95,7 @@ export default async function AdminLayout({
 
             <div className="border-t border-border pt-3 mb-3">
               <p className="mb-1.5 px-2.5 text-xs font-medium text-muted-foreground">
-                Pages
+                {t("pagesSection")}
               </p>
               <React.Suspense fallback={null}>
                 <PageSwitcher pages={pageList} />
@@ -76,7 +104,12 @@ export default async function AdminLayout({
 
             <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
               <span className="px-2.5 text-xs text-muted-foreground">
-                Signed in as <span className="font-medium text-foreground">{session.username}</span>
+                {t.rich("signedInAs", {
+                  name: session.username,
+                  b: (chunk) => (
+                    <span className="font-medium text-foreground">{chunk}</span>
+                  ),
+                })}
               </span>
               <form action={logout}>
                 <Button
@@ -86,7 +119,7 @@ export default async function AdminLayout({
                   className="w-full justify-start gap-2"
                 >
                   <LogOut className="size-4" />
-                  Sign out
+                  {t("signOut")}
                 </Button>
               </form>
             </div>
@@ -118,13 +151,13 @@ export default async function AdminLayout({
               <div className="w-full">
                 {isDemoMode && (
                   <div className="mb-4 shrink-0 rounded-lg border border-violet/30 bg-violet/10 px-4 py-3 text-sm text-lavender">
-                    <strong>Live demo.</strong>{" "}
+                    <strong>{t("demoBannerLead")}</strong>{" "}
                     <a href="https://linkbreeze.omnirise.dev/" className="underline hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                      Visit LinkBreeze
+                      {t("demoBannerVisit")}
                     </a>
                     {" · "}
                     <a href="https://github.com/Manak-hash/LinkBreeze" className="underline hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                      Deploy your own instance
+                      {t("demoBannerDeploy")}
                     </a>
                   </div>
                 )}
@@ -138,6 +171,7 @@ export default async function AdminLayout({
         </div>
       </div>
       </React.Suspense>
-    </PreviewProvider>
+      </PreviewProvider>
+    </NextIntlClientProvider>
   );
 }

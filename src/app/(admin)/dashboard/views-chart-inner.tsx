@@ -4,19 +4,36 @@ import * as React from "react";
 
 interface ChartProps {
   data: Array<{ date: string; views: number; clicks: number }>;
+  locale?: string;
 }
 
-function formatDate(iso: string): string {
+/** BCP-47 tag for chart/date rendering, mapped from the active locale. */
+export function chartLocaleTag(locale: string | undefined): string {
+  switch (locale) {
+    case "fr": return "fr-FR";
+    case "es": return "es-ES";
+    case "zh": return "zh-CN";
+    case "hi": return "hi-IN";
+    case "ar": return "ar-MA"; // Latin digits forced below
+    case "pt-BR": return "pt-BR";
+    default: return "en";
+  }
+}
+
+function formatDate(iso: string, locale: string | undefined): string {
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-US", {
+  const tag = chartLocaleTag(locale);
+  // All supported locales use Latin digits in LinkBreeze (per i18n policy).
+  const nf = new Intl.DateTimeFormat(tag + "-u-nu-latn", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   });
+  return nf.format(d);
 }
 
 /** Inner chart. Loads recharts on demand via dynamic import. */
-export function ViewsChartInner({ data }: ChartProps) {
+export function ViewsChartInner({ data, locale }: ChartProps) {
   const mod = React.use(
     React.useMemo(() => import("recharts"), []),
   );
@@ -25,7 +42,7 @@ export function ViewsChartInner({ data }: ChartProps) {
 
   const chartData = data.map((d) => ({
     ...d,
-    label: formatDate(d.date),
+    label: formatDate(d.date, locale),
   }));
 
   return (
