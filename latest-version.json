@@ -1,6 +1,6 @@
 {
-  "version": "1.3.1",
-  "releasedAt": "2026-08-20",
-  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.3.1",
-  "notes": "Admin UI in English and French with per-user language persistence and locale-aware dates, numbers and plurals; custom theme fonts (#82) — upload your own woff/woff2 plus four new bundled families (Montserrat, Caveat, Pacifico, Abril Fatface); page and theme deletion (#84); link creation FOREIGN KEY fix (#86); social icons editor focus loss fix; analytics retention and dependency bumps."
+  "version": "1.3.2",
+  "releasedAt": "2026-08-22",
+  "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.3.2",
+  "notes": "Set a default page and keep it pinned first everywhere (#90); per-link icons (#91) — auto favicon, picked icons from the built-in gallery rendered as theme-aware inline SVG, or your own uploaded image (PNG/JPG/GIF/WebP/AVIF/ICO/SVG up to 512 KB, magic-byte validated, SVGs sanitized); upload errors now surface inline in the link dialog."
 }

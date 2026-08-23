@@ -4,7 +4,7 @@
 
 ---
 
-**Français** · [English](README.md)
+[English](README.md) · **Français**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -20,11 +20,11 @@
 
 </div>
 
----
-
 > [!NOTE]
 > La [version anglaise](README.md) fait référence. Cette traduction peut prendre
 > du retard sur l'original.
+
+---
 
 > **Arrêtez de payer 15 $/mois pour Linktree.** LinkBreeze vous donne des liens,
 > des statistiques, des QR codes, des thèmes et un vrai panneau d'administration —

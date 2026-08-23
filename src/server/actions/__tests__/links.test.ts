@@ -12,11 +12,30 @@ const mocks = vi.hoisted(() => ({
   extractDomain: vi.fn((url: string): string | null => {
     try { return new URL(url).hostname; } catch { return null; }
   }),
+  saveIconUpload: vi.fn(async (file: File): Promise<{ ok: true; url: string } | { ok: false; error: string }> => {
+    // Mirror the real behavior enough for action tests: reject junk,
+    // accept PNG/SVG-shaped buffers with a plausible uploads URL.
+    const buf = Buffer.from(await file.arrayBuffer());
+    if (buf.length < 12) return { ok: false, error: "bad-format" };
+    if (buf[0] === 0x89 && buf[1] === 0x50) return { ok: true, url: "/api/uploads/icon-0123456789abcdef.png" };
+    const text = buf.toString("utf8");
+    if (text.includes("<svg")) return { ok: true, url: "/api/uploads/icon-test.svg" };
+    return { ok: false, error: "bad-format" };
+  }),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/auth", () => ({ getSession: mocks.getSession }));
 vi.mock("@/lib/demo", () => ({ demoBlock: mocks.demoBlock }));
+// link-icons writes uploads to disk — stub saveIconUpload so tests never
+// touch the filesystem, while keeping the sanitizer importable.
+vi.mock("@/lib/link-icons", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/link-icons")>();
+  return {
+    ...actual,
+    saveIconUpload: mocks.saveIconUpload,
+  };
+});
 vi.mock("@/lib/favicon", () => ({
   fetchAndCacheFavicon: mocks.fetchAndCacheFavicon,
   extractDomain: mocks.extractDomain,
@@ -144,5 +163,107 @@ describe("deleteLink", () => {
   it("rejects non-numeric id", async () => {
     const res = await deleteLink(makeFormData({ id: "abc" }));
     expect(res.success).toBe(false);
+  });
+});
+
+// ─── Icon system (#91) ─────────────────────────────────────────────
+
+describe("createLink icon modes (#91)", () => {
+  it("lucide mode: stores the picked name and skips favicon fetch", async () => {
+    const res = await createLink(makeFormData({
+      title: "Rocket", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "lucide", icon: "rocket",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      iconMode: "lucide", icon: "rocket", iconUrl: null, customIconUrl: null,
+    }));
+    expect(mocks.fetchAndCacheFavicon).not.toHaveBeenCalled();
+  });
+
+  it("auto mode: keeps existing favicon behavior", async () => {
+    const res = await createLink(makeFormData({
+      title: "Auto", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "auto", autoIcon: "on",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.fetchAndCacheFavicon).toHaveBeenCalled();
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      iconMode: "auto", iconUrl: "/api/uploads/favicon-test.png",
+    }));
+  });
+
+  it("rejects unknown lucide names", async () => {
+    const res = await createLink(makeFormData({
+      title: "Bad", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "lucide", icon: "not-a-real-icon-xyz",
+    }));
+    expect(res.success).toBe(false);
+  });
+
+  it("custom mode without a file or stored URL is rejected", async () => {
+    const res = await createLink(makeFormData({
+      title: "No file", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "custom",
+    }));
+    expect(res.success).toBe(false);
+  });
+
+  it("custom mode with an uploaded PNG persists the uploads URL", async () => {
+    const fd = makeFormData({
+      title: "Custom", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "custom",
+    });
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1b, 0x0a, 0, 0, 0, 0, 0, 0, 0, 0]);
+    fd.set("iconFile", new File([png], "icon.png", { type: "image/png" }));
+    const res = await createLink(fd);
+    expect(res.success).toBe(true);
+    const calls = mocks.createLink.mock.calls as unknown as Array<[Record<string, unknown>]>;
+    const call = calls[0]?.[0];
+    expect(call).toBeDefined();
+    expect(String(call?.customIconUrl)).toMatch(/^\/api\/uploads\/icon-[0-9a-f]+\.png$/);
+    expect(call?.iconMode).toBe("custom");
+  });
+
+  it("rejects a fake extension (malicious content sniffed as junk)", async () => {
+    const fd = makeFormData({
+      title: "Evil", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "custom",
+    });
+    fd.set("iconFile", new File([Buffer.from("unmask-these-bytes-as-html")], "icon.png", { type: "image/png" }));
+    const res = await createLink(fd);
+    expect(res.success).toBe(false);
+  });
+
+  it("sanitizes an uploaded SVG (script stripped, svg root kept)", async () => {
+    const fd = makeFormData({
+      title: "Svg", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "custom",
+    });
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M5 12h14"/></svg>`;
+    fd.set("iconFile", new File([Buffer.from(svg)], "icon.svg", { type: "image/svg+xml" }));
+    const res = await createLink(fd);
+    expect(res.success).toBe(true);
+    expect(mocks.fetchAndCacheFavicon).not.toHaveBeenCalled();
+  });
+
+  it("updateLink keeps the stored custom icon when no new file is sent", async () => {
+    const fd = makeFormData({
+      id: "1", title: "Keep", url: "https://example.com", type: "url",
+      isHighlighted: "off", isActive: "on",
+      iconMode: "custom", iconCustomUrl: "/api/uploads/icon-abc.png",
+    });
+    const res = await updateLink(fd);
+    expect(res.success).toBe(true);
+    expect(mocks.updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+      customIconUrl: "/api/uploads/icon-abc.png", iconMode: "custom",
+    }));
   });
 });

@@ -178,17 +178,20 @@ const en = {
 
     compact: "Compact",
 
-    iconTitle: "Icon + title",
 
     richPreview: "Rich preview",
 
-    thumbnailDescription: "Thumbnail + description",
 
     featured: "Featured",
 
     active: "Active",
 
-    autoIcon: "Auto icon",
+    iconSection: "Icon",
+    iconAutoHint: "Fetches the site's favicon automatically.",
+    iconModeAuto: "Auto",
+    iconModeLucide: "Pick",
+    iconModeCustom: "Upload",
+    iconUploadSelected: "Selected: {name}",
 
     utmParameters: "UTM parameters",
 
@@ -269,14 +272,13 @@ const en = {
     utmCampaign: "Campaign",
     utmTerm: "Term (optional)",
     utmContent: "Content (optional)",
-    sectionsHint: "Links without a section appear above all sections.",
     url: "URL",
     title_field: "Title",
     titlePlaceholder: "My website",
     description: "Description (optional)",
     descriptionPlaceholder: "All my links in one place",
     animatedGif: "Animated GIF URL",
-    thumbnail: "Thumbnail image URL (optional)",
+    thumbnail: "Thumbnail URL (optional)",
     icon: "Icon + title",
     iconHint: "Icon + title. Clean and simple.",
     thumbStyle: "Thumbnail + description",
@@ -666,9 +668,9 @@ const en = {
       title: "Integration",
       description: "Analytics, custom CSS and email capture.",
       analyticsScript: "Analytics script (optional)",
-      analyticsHintRich: "Paste a <code>{'<script>'}</code> snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.",
+      analyticsHintRich: "Paste a script snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.",
       customCss: "Custom CSS (optional)",
-      customCssHintRich: "Raw CSS injected into a <code>{'<style>'}</code> tag on your public page.",
+      customCssHintRich: "Raw CSS injected into a <code>&lt;style&gt;</code> tag on your public page.",
       customCssHint: "Raw CSS injected into a <style> tag on your public page.",
       emailCapture: "Email subscription",
       emailCaptureHintRich: "Show an email signup form at the bottom of your public page. Subscribers are stored in your database and can be exported as CSV.",
@@ -825,6 +827,8 @@ const en = {
     newPage: "New page",
     deletePage: "Delete page {name}",
     viewPage: "View public page /{slug}",
+    makeDefault: "Set {name} as the default page",
+    nowDefault: "\"{name}\" is now your default page",
   },
 
   linkDetail: {

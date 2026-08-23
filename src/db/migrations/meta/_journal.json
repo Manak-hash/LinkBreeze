@@ -127,6 +127,13 @@
       "when": 1966777400000,
       "tag": "0017_custom_fonts",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1966777500000,
+      "tag": "0018_link_icons",
+      "breakpoints": true
     }
   ]
 }

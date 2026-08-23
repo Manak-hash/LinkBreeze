@@ -5,6 +5,29 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - Unreleased
+
+### Added
+
+- **Set a default page and keep it first (#90)** — Every page switcher row now has a star: click it on any page to make that page the default, confirmed by a toast. The default page always sorts to the top of the switcher, the links page, the theme page, settings, and the dashboard, so it stops wandering as you add pages. The switcher's closed button shows a filled star next to the default page's name — the outline star stays an action, the filled one an indicator, same shape language as the rows. Flipping the default is a single transaction: the old default is cleared and the new one set together, and the star moves with you to the page you just promoted. The default page can't be deleted from the switcher (it's the fallback target when other pages are deleted with their links kept); its delete button is hidden rather than disabled-then-explained. The public root `/` redirects to the default page as before — the concept finally has a face in the admin.
+
+- **Per-link icons: auto, picked, or uploaded (#91)** — Links are no longer stuck with whatever favicon a site serves (or none, for email, phone, WhatsApp, and vCard links). The link dialog has a compact new Icon section: a live preview chip (it shows the favicon sparkle, the picked icon, or the uploaded thumbnail) beside a one-line Auto / Pick / Upload segmented control, styled after the card style picker above it:
+  - **Auto** keeps today's behavior: fetch and cache the site's favicon when the link is saved. The old separate "Auto icon" switch is gone — the segment is the toggle.
+  - **Pick** opens the same categorized icon gallery sections use — search, categories, live highlight — and stores the choice as data, not an image: the public page renders the icon as an inline SVG that inherits the theme's text color, so it matches every theme and card style for free. Manual picks stop refetching favicons on every URL edit.
+  - **Upload** takes a PNG, JPG, GIF, WebP, AVIF, ICO, or SVG up to 512 KB. Files are validated by magic bytes, not by their name — a renamed PNG is rejected — and SVGs pass through a sanitizer that strips scripts, event handlers, foreign objects, and external references before the file is ever stored. Uploads land in the same volume as custom fonts and are served same-origin with `nosniff` and a locked-down CSP.
+  - Saving without picking a new file keeps the current icon; switching back to Auto returns to favicon behavior. The admin link list shows picked and uploaded icons too, and errors (file too large, unsupported content) now surface inline in the dialog instead of failing silently.
+  - Migration `0018` adds the two new columns additively; every existing link keeps exactly the icon it renders today. The previously stored-but-never-rendered emoji field is repurposed to hold the picked icon's name.
+- **A tighter Add Link dialog (#91)** — The dialog grew a new Icon section, so everything around it got denser without losing meaning: Card Style shrank from three-line tiles with radio dots to a one-line segmented control with mini glyphs (a compact icon row vs. a rich thumbnail block); the separate "Auto icon" switch is gone (the icon mode is the toggle); Description and Thumbnail share one row; Type and Section share one row; and Featured / Active / UTM / Schedule sit as a 2-column toggle strip instead of four stacked rows. The full dialog now fits in 697px — inside a 90%-height capped, scrollable dialog on any screen.
+
+### Fixed
+
+- **Upload failures were silent** — The link dialog discarded failed action results without a message. A rejected icon upload (wrong format, too large) looked like the button ignored you. The dialog now shows the action's error inline above the footer.
+- **Uploads never reached the server** — The icon file input carried no field name, so the selected file was dropped from the submitted form data. The dialog showed the filename, the save succeeded, and the icon silently never arrived. Caught live against the running app; unit tests build their form data directly and never exercised the real input.
+- **Long dialogs stranded their buttons** — Dialogs taller than the viewport (the link dialog with its new Icon section on short screens) pushed Save/Cancel off-screen with no way to scroll. The shared dialog container is now capped at 90% of the viewport height and scrolls its body.
+- **Uploaded files were served under the page CSP** — The public page CSP rule also matched `/api/uploads/*`, overriding the stricter headers the uploads route sets for itself. Uploaded files now always ship with `default-src 'none'`, closing the gap between the route's intent and what actually hit the wire.
+- **Settings → Integrations crashed with INVALID_MESSAGE** — The analytics hint embedded a literal `<script>` tag inside a rich-text translation message, which next-intl's message parser rejects (MALFORMED_ARGUMENT) whenever the Integrations tab renders. The hint now words it without the bracket literal and the tab opens cleanly.
+- **docs-stale workflow lacked a permissions block (code scanning #18)** — The docs-stale workflow ran with the repository's default token permissions, wider than its read-only job needs. It now declares `permissions: contents: read`, same least-privilege block the other workflows already carry.
+
 ## [1.3.1] - 2026-08-20
 
 ### Added

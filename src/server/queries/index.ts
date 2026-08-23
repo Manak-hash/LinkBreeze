@@ -118,7 +118,11 @@ export async function ensureDefaultPage(): Promise<PageRow> {
 
 export async function getAllPages(): Promise<PageRow[]> {
   await ensureDefaultPage();
-  return db.select().from(pages).orderBy(asc(pages.orderIndex), asc(pages.id));
+  // Default page pinned first; the rest keep their manual order.
+  return db
+    .select()
+    .from(pages)
+    .orderBy(desc(pages.isDefault), asc(pages.orderIndex), asc(pages.id));
 }
 
 export async function getDefaultPage(): Promise<PageRow> {
@@ -279,6 +283,8 @@ export async function createLink(
         | "description"
         | "icon"
         | "iconUrl"
+        | "customIconUrl"
+        | "iconMode"
         | "autoIcon"
         | "imageUrl"
         | "isHighlighted"
@@ -307,6 +313,8 @@ export async function createLink(
       description: data.description ?? null,
       icon: data.icon ?? null,
       iconUrl: data.iconUrl ?? null,
+      customIconUrl: data.customIconUrl ?? null,
+      iconMode: data.iconMode ?? "auto",
       autoIcon: data.autoIcon ?? true,
       imageUrl: data.imageUrl ?? null,
       isHighlighted: data.isHighlighted ?? false,
@@ -332,6 +340,8 @@ export async function updateLink(
       | "description"
       | "icon"
       | "iconUrl"
+      | "customIconUrl"
+      | "iconMode"
       | "autoIcon"
       | "imageUrl"
       | "isHighlighted"

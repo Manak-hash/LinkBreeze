@@ -163,6 +163,23 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Uploaded icon/avatar/font files: served as attachments' sources,
+        // never as documents. A strict CSP (no scripts, no frames, no
+        // origins) means even a malicious SVG executes nothing if opened
+        // directly — defense in depth behind the upload sanitizer.
+        // NOTE: this rule MUST come AFTER /:slug* — when several header
+        // rules match, the last one wins, so this overrides the broad
+        // page CSP for upload files.
+        source: "/api/uploads/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; media-src 'self'; font-src 'self'",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+      {
         // Cache QR codes aggressively.
         source: "/api/qr",
         headers: [

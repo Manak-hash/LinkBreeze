@@ -72,6 +72,12 @@ describe("updatePageAction", () => {
     expect(res.success).toBe(true);
   });
 
+  it("passes isDefault=true through to the query layer", async () => {
+    const res = await updatePageAction(fd({ pageId: "3", isDefault: "true" }));
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(3, expect.objectContaining({ isDefault: true }));
+  });
+
   it("rejects when unauthenticated", async () => {
     mocks.getSession.mockResolvedValue(null);
     const res = await updatePageAction(fd({ pageId: "1" }));

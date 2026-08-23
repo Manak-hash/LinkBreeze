@@ -13,6 +13,9 @@ on:
       - "README.*.md"
       - "docs/TRANSLATIONS.md"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

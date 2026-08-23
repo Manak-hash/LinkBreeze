@@ -80,8 +80,10 @@ export const links = sqliteTable("links", {
   title: text("title").notNull(),
   description: text("description"),
   url: text("url").notNull(),
-  icon: text("icon"),
-  iconUrl: text("icon_url"),
+  icon: text("icon"), // dashed lucide name when icon_mode='lucide' (#91)
+  iconUrl: text("icon_url"), // cached favicon (auto mode)
+  customIconUrl: text("custom_icon_url"), // uploaded icon (custom mode)
+  iconMode: text("icon_mode").notNull().default("auto"), // auto | lucide | custom
   autoIcon: integer("auto_icon", { mode: "boolean" }).notNull().default(true),
   imageUrl: text("image_url"),
   isHighlighted: integer("is_highlighted", { mode: "boolean" }).notNull().default(false),

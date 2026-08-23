@@ -1,7 +1,76 @@
 import type { LinkRow } from "@/server/queries";
 import { revealAnimation, type ThemeInput } from "@/lib/theme-tokens";
+import { resolveIcon } from "@/lib/icon-registry";
 
 export type LinkCardTheme = ThemeInput;
+
+/**
+ * Render a picked lucide icon as an inline SVG string (#91) — no
+ * react-dom/server (forbidden in client bundles) and no DOM. lucide's
+ * forwardRef render function is pure: calling it directly yields the
+ * element tree's props, including the raw iconNode ([tag, attrs][]),
+ * which we serialize to plain SVG markup ourselves. Works identically
+ * on the server (public page) and in a client bundle (theme preview).
+ */
+const LUCIDE_SVG_ATTRS = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+
+/** Serialize one iconNode attribute bag to an attribute string. */
+function svgAttrs(attrs: Record<string, string>): string {
+  return Object.entries(attrs)
+    .filter(([k]) => k !== "key") // react bookkeeping, not SVG
+    .map(([k, v]) => `${k}="${esc(String(v))}"`)
+    .join(" ");
+}
+
+function lucideIconSvg(name: string, size = 20): string | null {
+  const Component = resolveIcon(name);
+  if (!Component) return null;
+  // forwardRef.render(props, ref) → element with { iconNode, className }.
+  const el = (Component as unknown as { render: (p: Record<string, unknown>, ref: null) => { props: { iconNode?: Array<[string, Record<string, string>]> } } }).render(
+    { size },
+    null,
+  );
+  const node = el.props.iconNode;
+  if (!node) return null;
+  const inner = node
+    .map(([tag, attrs]) => `<${tag} ${svgAttrs(attrs)}></${tag}>`)
+    .join("");
+  return `<svg ${LUCIDE_SVG_ATTRS} width="${size}" height="${size}" aria-hidden="true">${inner}</svg>`;
+}
+
+const ICON_SLOT_STYLE =
+  "width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center";
+
+/**
+ * Build the icon element shown before the title.
+ * Priority (#91): uploaded icon → picked lucide icon → cached favicon →
+ * first-letter avatar. Uploaded/lucide choices override auto behavior.
+ * Only shown for cards WITHOUT a thumbnail (thumbnail cards use the
+ * full-bleed image at the top instead).
+ */
+function buildIcon(link: LinkRow): string {
+  // Operator-chosen lucide icon — inherits theme text color via currentColor.
+  if (link.iconMode === "lucide" && link.icon) {
+    const svg = lucideIconSvg(link.icon);
+    if (svg) {
+      return `<span aria-hidden="true" style="${ICON_SLOT_STYLE};color:var(--lb-text)">${svg}</span>`;
+    }
+  }
+
+  // Operator-uploaded icon image — same-origin, from the uploads volume.
+  if (link.iconMode === "custom" && link.customIconUrl) {
+    return `<img src="${esc(link.customIconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
+  }
+
+  // Cached favicon from fetchAndCacheFavicon — always preferred when present.
+  if (link.iconUrl) {
+    return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
+  }
+
+  // First-letter fallback using the title's initial.
+  const letter = (link.title || "?").trim().charAt(0).toUpperCase();
+  return `<span aria-hidden="true" style="${ICON_SLOT_STYLE};font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-btn-text, #fff)">${esc(letter)}</span>`;
+}
 
 /** Escape attribute/HTML text for safe inline-HTML injection (output encoding). */
 function esc(s: string): string {
@@ -39,27 +108,6 @@ function resolveLinkUrl(link: LinkRow): {
   const onclickAttr = clickHandler ? `\n  onclick="${clickHandler}"` : "";
 
   return { href, targetAttr, onclickAttr };
-}
-
-/**
- * Build the icon element shown before the title.
- * Priority: cached favicon (iconUrl) → first-letter avatar.
- * Only shown for cards WITHOUT a thumbnail (thumbnail cards use the
- * full-bleed image at the top instead).
- *
- * No external fallback — loading favicons from a third-party domain
- * (previously Google S2) leaks the visitor's IP and browser data to that
- * third party. Links without a cached favicon show a letter avatar instead.
- */
-function buildIcon(link: LinkRow): string {
-  // Cached favicon from fetchAndCacheFavicon — always preferred when present.
-  if (link.iconUrl) {
-    return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
-  }
-
-  // First-letter fallback using the title's initial.
-  const letter = (link.title || "?").trim().charAt(0).toUpperCase();
-  return `<span aria-hidden="true" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-btn-text, #fff)">${esc(letter)}</span>`;
 }
 
 /**

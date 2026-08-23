@@ -166,6 +166,8 @@ describe("gel link style", () => {
         url: "https://example.com",
         icon: null,
         iconUrl: null,
+        customIconUrl: null,
+        iconMode: "auto",
         description: null,
         scheduleStart: null,
         scheduleEnd: null,

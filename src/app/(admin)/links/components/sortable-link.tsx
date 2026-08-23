@@ -18,6 +18,7 @@ import {
   Code2,
 } from "lucide-react";
 import { toggleLink } from "@/server/actions/links";
+import { resolveIcon, isLucideIconName } from "@/lib/icon-registry";
 import { useRouter } from "next/navigation";
 import type { LinkRow } from "@/server/queries";
 import { Button } from "@/components/ui/button";
@@ -52,10 +53,18 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
       : {}),
   };
 
-  // Resolve favicon/icon: prefer stored iconUrl (cached by favicon lib).
-  // No network fallback — uncached http(s) links get a first-letter avatar,
-  // matching the public page behavior. Special protocols get their own icon.
+  // Resolve favicon/icon: manual choices (#91) first — picked lucide icon,
+  // then uploaded image — then the cached favicon, then type icons and the
+  // first-letter avatar, matching the public page's resolution order.
   const { displayIcon, displaySrc, letter } = React.useMemo(() => {
+    // Picked lucide icon stored as a dashed name.
+    if (link.iconMode === "lucide" && link.icon && isLucideIconName(link.icon)) {
+      return { displayIcon: resolveIcon(link.icon), displaySrc: null, letter: null };
+    }
+    // Uploaded custom icon.
+    if (link.iconMode === "custom" && link.customIconUrl) {
+      return { displayIcon: null, displaySrc: link.customIconUrl, letter: null };
+    }
     if (link.type === "embed") return { displayIcon: Code2, displaySrc: null, letter: null };
     if (link.url.startsWith("mailto:")) return { displayIcon: Mail, displaySrc: null, letter: null };
     if (link.url.startsWith("tel:")) return { displayIcon: Phone, displaySrc: null, letter: null };
@@ -73,7 +82,7 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
       // not a parseable URL
     }
     return { displayIcon: ImageIcon, displaySrc: null, letter: null };
-  }, [link.url, link.type, link.iconUrl, link.title]);
+  }, [link.url, link.type, link.iconUrl, link.title, link.iconMode, link.icon, link.customIconUrl]);
 
   const Icon = displayIcon;
 

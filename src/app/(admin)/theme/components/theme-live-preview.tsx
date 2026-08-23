@@ -28,6 +28,8 @@ function mockLinks(tDemo: ReturnType<typeof useTranslations>): LinkRow[] {
     iconUrl: null,
     autoIcon: true,
     imageUrl: null,
+    customIconUrl: null,
+    iconMode: "auto",
     isActive: true,
     scheduleStart: null,
     scheduleEnd: null,

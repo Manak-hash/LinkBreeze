@@ -34,6 +34,16 @@ import {
   prefixLinkUrl,
 } from "../link-helpers";
 import { LucideIcon, isLucideIconName } from "@/components/public/LucideIcon";
+import { ImagePlus, Sparkles } from "lucide-react";
+import { IconPicker } from "./icon-picker";
+import type { IconMode } from "@/lib/link-icons";
+
+/** Derive the dialog's initial icon mode from an editing row (#91). */
+function initialIconMode(editing?: LinkRow | null): IconMode {
+  if (editing?.iconMode === "lucide" && isLucideIconName(editing.icon)) return "lucide";
+  if (editing?.iconMode === "custom" && editing.customIconUrl) return "custom";
+  return "auto";
+}
 import {
   parseUTM,
   stripUTM,
@@ -63,7 +73,7 @@ function SectionSelect({
   const [value, setValue] = React.useState(String(editing?.sectionId ?? "none"));
 
   return (
-    <FormField label={t("section")} hint={t("sectionsHint")}>
+    <FormField label={t("section")}>
       <Select value={value} onValueChange={(v) => setValue(v ?? "none")}>
         <SelectTrigger className="w-full">
           <SelectValue />
@@ -94,7 +104,21 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   const [highlighted, setHighlighted] = React.useState(editing?.isHighlighted ?? false);
   const [active, setActive] = React.useState(editing?.isActive ?? true);
   const [scheduled, setScheduled] = React.useState(!!editing?.scheduleStart || !!editing?.scheduleEnd);
-  const [autoIcon, setAutoIcon] = React.useState(editing?.autoIcon ?? true);
+  // Icon mode (#91): auto favicon / lucide pick / uploaded image.
+  const [iconMode, setIconMode] = React.useState<IconMode>(initialIconMode(editing));
+  // autoIcon is no longer a separate toggle (#91 redesign): the Icon section's
+  // Auto segment IS the toggle. autoIcon derives from the mode — only "auto"
+  // fetches favicons — while `editing.autoIcon === false` (explicitly
+  // switched off before this redesign) still round-trips: the stored value
+  // seeds the mode for old rows and is preserved on save.
+  const [autoIconPrefOff] = React.useState(editing?.autoIcon === false);
+  const autoIcon = iconMode === "auto" && !autoIconPrefOff;
+  const [lucidePick, setLucidePick] = React.useState(editing?.iconMode === "lucide" ? editing.icon ?? "" : "");
+  const [customIconUrl, setCustomIconUrl] = React.useState(editing?.iconMode === "custom" ? editing.customIconUrl ?? "" : "");
+  const [iconFileName, setIconFileName] = React.useState("");
+  const iconFileRef = React.useRef<HTMLInputElement>(null);
+  // True once a NEW file is chosen in this session (drives preview swap).
+  const [hasNewIconFile, setHasNewIconFile] = React.useState(false);
   const [cardStyle, setCardStyle] = React.useState<"compact" | "rich">(
     editing?.cardStyle === "rich" ? "rich" : "compact",
   );
@@ -106,6 +130,8 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   const [showUTM, setShowUTM] = React.useState(hadUTM);
 
   const router = useRouter();
+  // Action error surfaced inline (upload too large, bad SVG, unknown icon…).
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   // Reset local form state whenever the dialog opens (or switches target).
   const sessionKey = open ? `open:${editing?.id ?? "new"}` : "closed";
@@ -117,7 +143,12 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
       setHighlighted(editing?.isHighlighted ?? false);
       setActive(editing?.isActive ?? true);
       setScheduled(!!editing?.scheduleStart || !!editing?.scheduleEnd);
-      setAutoIcon(editing?.autoIcon ?? true);
+      setIconMode(initialIconMode(editing));
+      setLucidePick(editing?.iconMode === "lucide" ? editing.icon ?? "" : "");
+      setCustomIconUrl(editing?.iconMode === "custom" ? editing.customIconUrl ?? "" : "");
+      setIconFileName("");
+      setHasNewIconFile(false);
+      setActionError(null);
       setCardStyle(editing?.cardStyle === "rich" ? "rich" : "compact");
 
       const had = editing?.type === "url" && hasUTM(editing?.url ?? "");
@@ -172,6 +203,19 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
     formData.set("autoIcon", autoIcon ? "on" : "off");
     formData.set("cardStyle", cardStyle);
 
+    // Icon system (#91): send the mode + its payload. Uploads ride along
+    // as a File in the same FormData — no separate upload endpoint.
+    formData.set("iconMode", iconMode);
+    if (iconMode === "lucide") {
+      formData.set("icon", lucidePick);
+    } else {
+      formData.delete("icon");
+    }
+    if (iconMode === "custom" && !iconFileRef.current?.files?.length) {
+      // Editing without re-uploading: keep the stored URL.
+      formData.set("iconCustomUrl", customIconUrl);
+    }
+
     // If scheduling is toggled off, clear any stale schedule values.
     if (!scheduled) {
       formData.delete("scheduleStart");
@@ -180,7 +224,11 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
 
     startTransition(async () => {
       const result = editing ? await updateLink(formData) : await createLink(formData);
-      if (!result.success) return;
+      if (!result.success) {
+        setActionError(result.error ?? null);
+        return;
+      }
+      setActionError(null);
       router.refresh();
       onOpenChange(false);
     });
@@ -195,7 +243,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             {editing ? t("updateDescription") : t("createDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form action={handleSubmit} className="flex flex-col gap-4">
+        <form action={handleSubmit} className="flex flex-col gap-3.5">
           {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
           {pageId ? <input type="hidden" name="pageId" value={pageId} /> : null}
 
@@ -221,128 +269,269 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             />
           </FormField>
 
-          <FormField label={t("description")} htmlFor="description">
-            <Input
-              id="description"
-              name="description"
-              defaultValue={editing?.description ?? ""}
-              maxLength={300}
-              placeholder={t("descriptionPlaceholder")}
-            />
-          </FormField>
+          {/* Description + Thumbnail: both optional one-liners — natural peers
+              on a shared row (stacked on narrow screens). */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr]">
+            <FormField label={t("description")} htmlFor="description">
+              <Input
+                id="description"
+                name="description"
+                defaultValue={editing?.description ?? ""}
+                maxLength={300}
+                placeholder={t("descriptionPlaceholder")}
+              />
+            </FormField>
 
-          <FormField label={t("thumbnail")} htmlFor="imageUrl">
-            <Input
-              id="imageUrl"
-              name="imageUrl"
-              defaultValue={editing?.imageUrl ?? ""}
-              maxLength={2048}
-              placeholder="https://example.com/image.jpg"
-            />
-          </FormField>
+            <FormField label={t("thumbnail")} htmlFor="imageUrl">
+              <Input
+                id="imageUrl"
+                name="imageUrl"
+                defaultValue={editing?.imageUrl ?? ""}
+                maxLength={2048}
+                placeholder="https://example.com/image.jpg"
+              />
+            </FormField>
+          </div>
 
-          <FormField label={t("typeLabel")}>
-            <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LINK_TYPES.map((lt) => (
-                  <SelectItem key={lt.value} value={lt.value}>
-                    {t(lt.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
+          {/* Type + Section share a row — both single-select metadata, natural
+              peers. Collapse to a column when the dialog is narrow (mobile). */}
           {sections.length > 0 ? (
-            <SectionSelect key={editing?.id ?? "new"} editing={editing} sections={sections} />
-          ) : null}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr]">
+              <FormField label={t("typeLabel")}>
+                <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LINK_TYPES.map((lt) => (
+                      <SelectItem key={lt.value} value={lt.value}>
+                        {t(lt.label)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <SectionSelect key={editing?.id ?? "new"} editing={editing} sections={sections} />
+            </div>
+          ) : (
+            <FormField label={t("typeLabel")}>
+              <Select value={type} onValueChange={(v) => setType(v ?? "url")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LINK_TYPES.map((lt) => (
+                    <SelectItem key={lt.value} value={lt.value}>
+                      {t(lt.label)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          )}
 
           {isUrlType ? (
             <FormField label={t("cardStyle")} hint={cardStyle === "rich" ? t("richHint") : t("iconHint")}>
-              <div className="flex gap-2">
+              {/* Slim segmented control: mini glyphs stand in for the card
+                  layouts so the choice reads at a glance without three rows
+                  of description text. */}
+              <div
+                role="radiogroup"
+                aria-label={t("cardStyle")}
+                className="grid grid-cols-2 gap-2"
+              >
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={cardStyle === "compact"}
                   onClick={() => setCardStyle("compact")}
-                  className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "compact" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
+                  className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    cardStyle === "compact"
+                      ? "border-violet bg-violet/5 text-foreground"
+                      : "border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+                  }`}
                 >
-                  <div className="flex items-center gap-2 font-medium">
-                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "compact" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />{t("compact")}</div>
-                  <p className="mt-1 text-xs text-muted-foreground">{t("iconTitle")}</p>
+                  {/* compact glyph: icon + text lines */}
+                  <span aria-hidden className="flex size-7 items-center justify-center rounded-md border border-current/20 bg-background/60">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                      <rect x="0" y="4" width="4" height="4" rx="1" fill="currentColor" opacity="0.7" />
+                      <rect x="5.5" y="4.9" width="7" height="1.4" rx="0.7" fill="currentColor" opacity="0.45" />
+                      <rect x="5.5" y="7.7" width="5" height="1.4" rx="0.7" fill="currentColor" opacity="0.3" />
+                    </svg>
+                  </span>
+                  <span className="font-medium">{t("compact")}</span>
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={cardStyle === "rich"}
                   onClick={() => setCardStyle("rich")}
-                  className={`flex-1 rounded-lg border-2 p-3 text-left text-sm transition-colors ${cardStyle === "rich" ? "border-violet bg-violet/5 ring-1 ring-violet/30" : "border-border hover:border-muted-foreground/50"}`}
+                  className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    cardStyle === "rich"
+                      ? "border-violet bg-violet/5 text-foreground"
+                      : "border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+                  }`}
                 >
-                  <div className="flex items-center gap-2 font-medium">
-                    <span className={`flex size-4 items-center justify-center rounded-full border-2 transition-colors ${cardStyle === "rich" ? "border-violet bg-violet" : "border-muted-foreground/40"}`} />{t("richPreview")}</div>
-                  <p className="mt-1 text-xs text-muted-foreground">{t("thumbnailDescription")}</p>
+                  {/* rich glyph: image block + text lines */}
+                  <span aria-hidden className="flex size-7 items-center justify-center rounded-md border border-current/20 bg-background/60">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                      <rect x="0" y="2" width="12.5" height="6" rx="1" fill="currentColor" opacity="0.25" />
+                      <circle cx="3" cy="4" r="1" fill="currentColor" opacity="0.7" />
+                      <path d="M1 7.4 L4.5 5 L7 7 L9.5 4.6 L12.5 8" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
+                      <rect x="0" y="9.6" width="9" height="1.4" rx="0.7" fill="currentColor" opacity="0.45" />
+                    </svg>
+                  </span>
+                  <span className="font-medium">{t("richPreview")}</span>
                 </button>
               </div>
             </FormField>
           ) : null}
 
-          <div className="flex items-center gap-6">
+          {/* Icon system (#91): auto favicon / lucide pick / upload.
+              One-line segmented control with a live preview chip — the chip
+              shows WHAT is selected (favicon sparkle, picked icon, uploaded
+              image) so the mode names don't carry the meaning alone. */}
+          <FormField
+            label={t("iconSection")}
+            hint={iconMode === "auto" ? t("iconAutoHint") : undefined}
+          >
+            <div className="flex items-stretch gap-2">
+              {/* Preview chip: 32px square showing the current icon */}
+              <span
+                aria-hidden
+                className={`flex size-10 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                  iconMode === "auto"
+                    ? "border-border bg-muted/40 text-muted-foreground"
+                    : "border-violet/40 bg-violet/5 text-foreground"
+                }`}
+              >
+                {iconMode === "lucide" && lucidePick && isLucideIconName(lucidePick) ? (
+                  <LucideIcon name={lucidePick} size={18} />
+                ) : iconMode === "custom" && (customIconUrl && !hasNewIconFile) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={customIconUrl} alt="" className="size-5 rounded object-cover" />
+                ) : iconMode === "custom" && iconFileName ? (
+                  <ImagePlus size={18} className="text-muted-foreground" />
+                ) : (
+                  <Sparkles size={18} className="text-muted-foreground" />
+                )}
+              </span>
+
+              {/* Segmented Auto / Pick / Upload */}
+              <div
+                role="radiogroup"
+                aria-label={t("iconSection")}
+                className="grid flex-1 grid-cols-3 gap-1 rounded-lg border border-border bg-muted/30 p-1"
+              >
+                {(["auto", "lucide", "custom"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={iconMode === mode}
+                    onClick={() => setIconMode(mode)}
+                    className={`rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+                      iconMode === mode
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {mode === "auto" ? t("iconModeAuto") : mode === "lucide" ? t("iconModeLucide") : t("iconModeCustom")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mode payloads */}
+            {iconMode === "lucide" ? (
+              <div className="mt-2">
+                <IconPicker value={lucidePick} onChange={setLucidePick} />
+              </div>
+            ) : null}
+            {iconMode === "custom" ? (
+              <div className="mt-2 flex items-center gap-3">
+                {customIconUrl && !hasNewIconFile ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={customIconUrl} alt="" className="size-8 rounded-md border border-border object-cover" />
+                ) : null}
+                <Input
+                  ref={iconFileRef}
+                  type="file"
+                  name="iconFile"
+                  accept=".png,.jpg,.jpeg,.webp,.gif,.ico,.svg"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setIconFileName(f?.name ?? "");
+                    setHasNewIconFile(!!f);
+                  }}
+                  className="flex-1 text-xs"
+                />
+              </div>
+            ) : null}
+            {iconMode === "custom" && iconFileName ? (
+              <p className="mt-1 text-xs text-muted-foreground">{t("iconUploadSelected", { name: iconFileName })}</p>
+            ) : null}
+          </FormField>
+
+          {/* Toggle strip: boolean-ish options in one 2-col grid — peers, not
+              a vertical list. UTM only exists for URL-type links. */}
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={highlighted} onCheckedChange={setHighlighted} />{t("featured")}</label>
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={active} onCheckedChange={setActive} />{t("active")}</label>
-            <label className="flex items-center gap-2 text-sm">
-              <Switch checked={autoIcon} onCheckedChange={setAutoIcon} />{t("autoIcon")}</label>
-          </div>
-
-          {/* UTM builder — only for URL-type links */}
-          {isUrlType ? (
-            <div className="flex flex-col gap-2">
+            {isUrlType ? (
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={showUTM} onCheckedChange={setShowUTM} />{t("utmParameters")}</label>
-              {utmVisible ? (
-                <div className="flex flex-col gap-2 rounded-md border border-border p-3">
-                  <UTMField label={t("utmSource")} name="utm_source" placeholder="instagram" defaultValue={utmDefaults.source} />
-                  <UTMField label={t("utmMedium")} name="utm_medium" placeholder="social" defaultValue={utmDefaults.medium} />
-                  <UTMField label={t("utmCampaign")} name="utm_campaign" placeholder="spring_sale" defaultValue={utmDefaults.campaign} />
-                  <UTMField label={t("utmTerm")} name="utm_term" placeholder="running_shoes" defaultValue={utmDefaults.term} />
-                  <UTMField label={t("utmContent")} name="utm_content" placeholder="banner_ad_1" defaultValue={utmDefaults.content} />
-                </div>
-              ) : null}
+            ) : null}
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={scheduled} onCheckedChange={setScheduled} />{t("schedule")}</label>
+          </div>
+
+          {/* UTM builder — expands under the toggle strip (URL links only) */}
+          {utmVisible ? (
+            <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+              <UTMField label={t("utmSource")} name="utm_source" placeholder="instagram" defaultValue={utmDefaults.source} />
+              <UTMField label={t("utmMedium")} name="utm_medium" placeholder="social" defaultValue={utmDefaults.medium} />
+              <UTMField label={t("utmCampaign")} name="utm_campaign" placeholder="spring_sale" defaultValue={utmDefaults.campaign} />
+              <UTMField label={t("utmTerm")} name="utm_term" placeholder="running_shoes" defaultValue={utmDefaults.term} />
+              <UTMField label={t("utmContent")} name="utm_content" placeholder="banner_ad_1" defaultValue={utmDefaults.content} />
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-sm">
-              <Switch checked={scheduled} onCheckedChange={setScheduled} />{t("schedule")}</label>
-            {scheduled ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">{t("showFrom")}</span>
-                  <Input
-                    type="datetime-local"
-                    name="scheduleStart"
-                    defaultValue={
-                      editing?.scheduleStart
-                        ? editing.scheduleStart.replace(" ", "T").slice(0, 16)
-                        : ""
-                    }
-                  />
-                </div>
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">{t("hideAfter")}</span>
-                  <Input
-                    type="datetime-local"
-                    name="scheduleEnd"
-                    defaultValue={
-                      editing?.scheduleEnd
-                        ? editing.scheduleEnd.replace(" ", "T").slice(0, 16)
-                        : ""
-                    }
-                  />
-                </div>
+          {/* Schedule builder — expands under the toggle strip */}
+          {scheduled ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{t("showFrom")}</span>
+                <Input
+                  type="datetime-local"
+                  name="scheduleStart"
+                  defaultValue={
+                    editing?.scheduleStart
+                      ? editing.scheduleStart.replace(" ", "T").slice(0, 16)
+                      : ""
+                  }
+                />
               </div>
-            ) : null}
-          </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{t("hideAfter")}</span>
+                <Input
+                  type="datetime-local"
+                  name="scheduleEnd"
+                  defaultValue={
+                    editing?.scheduleEnd
+                      ? editing.scheduleEnd.replace(" ", "T").slice(0, 16)
+                      : ""
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {actionError ? (
+            <p role="alert" className="text-sm text-destructive">{actionError}</p>
+          ) : null}
 
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>

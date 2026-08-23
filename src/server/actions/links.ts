@@ -7,6 +7,7 @@ import { demoGuard } from "@/lib/demo-guard";
 import { isAllowedLinkUrl } from "@/lib/link-url";
 import { truthy } from "@/lib/utils";
 import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
+import { saveIconUpload, isLucideName, type IconMode } from "@/lib/link-icons";
 import { fetchOgData } from "@/lib/og-fetcher";
 import {
   createLink as createLinkQuery,
@@ -27,6 +28,69 @@ import {
 async function requireAuth(): Promise<boolean> {
   const session = await getSession();
   return !!session;
+}
+
+/**
+ * Resolve the icon fields for a link save (#91).
+ *
+ * auto   → favicon fetch (existing behavior, unchanged)
+ * lucide → validate the picked name, store it in links.icon
+ * custom → persist the uploaded file, store its URL
+ *
+ * Returns null on validation failure so callers can return a typed error
+ * without duplicating messages.
+ */
+async function resolveIconFields(
+  formData: FormData,
+  d: { iconMode: IconMode; icon?: string | null; type: string; url: string; autoIcon: boolean },
+): Promise<
+  | {
+      ok: true;
+      icon: string | null;
+      iconUrl: string | null;
+      customIconUrl: string | null;
+      iconMode: IconMode;
+    }
+  | { ok: false; error: string }
+> {
+  if (d.iconMode === "lucide") {
+    const name = (d.icon ?? "").trim();
+    if (!isLucideName(name)) return { ok: false, error: "Unknown icon selected" };
+    return { ok: true, icon: name, iconUrl: null, customIconUrl: null, iconMode: "lucide" };
+  }
+
+  if (d.iconMode === "custom") {
+    const file = formData.get("iconFile");
+    if (file instanceof File && file.size > 0) {
+      const saved = await saveIconUpload(file);
+      if (!saved.ok) {
+        return {
+          ok: false,
+          error:
+            saved.error === "too-large"
+              ? "Icon exceeds 512 KB"
+              : saved.error === "bad-svg"
+                ? "Icon SVG could not be sanitized"
+                : "Unsupported icon format",
+        };
+      }
+      return { ok: true, icon: null, iconUrl: null, customIconUrl: saved.url, iconMode: "custom" };
+    }
+    // No new file: keep any existing custom icon (edit dialog sends the
+    // current URL back via iconCustomUrl).
+    const existing = String(formData.get("iconCustomUrl") || "");
+    if (existing.startsWith("/api/uploads/") && !existing.includes("..")) {
+      return { ok: true, icon: null, iconUrl: null, customIconUrl: existing, iconMode: "custom" };
+    }
+    return { ok: false, error: "Upload an icon image or pick another mode" };
+  }
+
+  // auto (default): existing favicon behavior, unchanged.
+  let iconUrl: string | null = null;
+  if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
+    iconUrl = await fetchAndCacheFavicon(d.url);
+  }
+  return { ok: true, icon: null, iconUrl, customIconUrl: null, iconMode: "auto" };
 }
 
 const linkSchema = z
@@ -52,6 +116,10 @@ const linkSchema = z
       .union([z.string(), z.boolean()])
       .transform(truthy)
       .default(true),
+    // Icon system (#91): auto = favicon fetch, lucide = picked icon name,
+    // custom = uploaded image (file arrives as "iconFile" in FormData).
+    iconMode: z.enum(["auto", "lucide", "custom"]).default("auto"),
+    icon: z.string().max(64).optional().nullable(),
     cardStyle: z.enum(["compact", "rich"]).default("compact"),
     // Form data sends an empty string when "No section" is selected; coerce
     // that to null before numeric parsing, otherwise Number("") === 0 and the
@@ -84,6 +152,8 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
     cardStyle: formData.get("cardStyle") || undefined,
+    iconMode: formData.get("iconMode") || undefined,
+    icon: formData.get("icon") || undefined,
     sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
@@ -93,11 +163,9 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
   const d = parsed.data;
 
   try {
-    // Auto-fetch favicon for URL-type links when autoIcon is enabled.
-    let iconUrl: string | null = null;
-    if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
-      iconUrl = await fetchAndCacheFavicon(d.url);
-    }
+    // Resolve the icon fields (favicon fetch / lucide pick / upload).
+    const icons = await resolveIconFields(formData, d);
+    if (!icons.ok) return validationError(icons.error);
 
     // For rich cards, auto-fetch OG data to pre-fill description and image
     // if the operator hasn't provided them manually.
@@ -119,7 +187,10 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
       isHighlighted: d.isHighlighted,
       isActive: d.isActive,
       autoIcon: d.autoIcon,
-      iconUrl,
+      icon: icons.icon,
+      iconUrl: icons.iconUrl,
+      customIconUrl: icons.customIconUrl,
+      iconMode: icons.iconMode,
       cardStyle: d.cardStyle,
       sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
@@ -157,6 +228,8 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     scheduleEnd: formData.get("scheduleEnd") || undefined,
     autoIcon: formData.get("autoIcon") || undefined,
     cardStyle: formData.get("cardStyle") || undefined,
+    iconMode: formData.get("iconMode") || undefined,
+    icon: formData.get("icon") || undefined,
     sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
@@ -169,11 +242,9 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
   const d = parsed.data;
 
   try {
-    // Auto-fetch favicon for URL-type links when autoIcon is enabled.
-    let iconUrl: string | null = null;
-    if (d.autoIcon && d.type === "url" && extractDomain(d.url)) {
-      iconUrl = await fetchAndCacheFavicon(d.url);
-    }
+    // Resolve the icon fields (favicon fetch / lucide pick / upload).
+    const icons = await resolveIconFields(formData, d);
+    if (!icons.ok) return validationError(icons.error);
 
     // For rich cards, auto-fetch OG data to pre-fill description and image
     // if the operator hasn't provided them manually.
@@ -194,7 +265,10 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
       isHighlighted: d.isHighlighted,
       isActive: d.isActive,
       autoIcon: d.autoIcon,
-      iconUrl,
+      icon: icons.icon,
+      iconUrl: icons.iconUrl,
+      customIconUrl: icons.customIconUrl,
+      iconMode: icons.iconMode,
       cardStyle: d.cardStyle,
       sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
