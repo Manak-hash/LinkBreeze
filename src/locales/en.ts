@@ -31,23 +31,16 @@ const en = {
     cancel: "Cancel",
     delete: "Delete",
     close: "Close",
-    confirm: "Confirm",
-    loading: "Loading…",
     retry: "Try again",
-    copy: "Copy",
-    copied: "Copied",
-    search: "Search",
     back: "Back",
     next: "Next",
     viewPage: "View public page",
-    preview: "Preview",
     saved: "Saved!",
   },
 
   nav: {
     dashboard: "Dashboard",
     links: "Links",
-    pages: "Pages",
     theme: "Theme",
     settings: "Settings",
     profile: "Profile",
@@ -62,9 +55,6 @@ const en = {
     demoBannerVisit: "Visit LinkBreeze",
     demoBannerDeploy: "Deploy your own instance",
     livePreview: "Live preview",
-    refreshPreview: "Refresh preview",
-    openInNewTab: "Open in new tab",
-    closePreview: "Close preview",
   },
 
   login: {
@@ -85,7 +75,7 @@ const en = {
 
     thisIsTheOnlyAccount: "This is the only account. You'll use it to manage everything.",
 
-    chooseStartingPoint: "Choose a settings. Customize everything later.",
+    chooseStartingPoint: "Choose a starting point. Customize everything later.",
 
     importYourExistingPage: "Import your existing page",
     welcomeTitle: "Welcome to LinkBreeze",
@@ -106,9 +96,7 @@ const en = {
     bioHint: "One line about you (optional)",
     bioPlaceholder: "Designer, developer, creator",
     pageUrl: "Page URL",
-    pageUrlPlaceholder: "jane-doe",
     pageUrlHint: "Your page will be at /your-slug",
-    finish: "Finish setup",
     finishSetup: "Finish setup",
     allSet: "You're all set!",
     pageLiveDesc: "Your page is live. Add your first link to get started.",
@@ -145,7 +133,6 @@ const en = {
     activeLinks: "Active links",
     totalLinks: "{count} total",
     viewsOverTime: "Views over time",
-    clicksOverTime: "Clicks over time",
     topReferrers: "Top referrers",
     referrersDesc: "Where views came from",
     devicesTitle: "Devices",
@@ -246,7 +233,6 @@ const en = {
     typeLabel: "Type",
     cardStyle: "Card style",
     richHint: "Thumbnail + auto preview from the link's Open Graph data. Falls back to compact if no image is found.",
-    imagePlaceholder: "https://example.com/image.jpg",
     sectionPlaceholder: "My projects",
     iconLabel: "Icon (optional)",
     iconShownHint: "Shown before the section title on your public page.",
@@ -281,15 +267,10 @@ const en = {
     thumbnail: "Thumbnail URL (optional)",
     icon: "Icon + title",
     iconHint: "Icon + title. Clean and simple.",
-    thumbStyle: "Thumbnail + description",
     customUrl: "Custom URL",
     imageUrl: "Image URL",
-    content: "Content (optional)",
     section: "Section",
-    deleteConfirm: "Delete this link?",
     duplicate: "Duplicate",
-    copyLink: "Copy link URL",
-    linkCopied: "Link URL copied",
   },
 
   profile: {
@@ -323,7 +304,6 @@ const en = {
     socialLinks: "Social links",
     socialLinksHint:
       "Icons appear above your link cards. Tap a platform to add it.",
-    addSocial: "Add social link",
     removeSocial: "Remove social link",
     saveProfile: "Save profile",
     savedToast: "Saved!",
@@ -339,17 +319,15 @@ const en = {
 
     newPage: "New page",
 
-    slugHint: "The slug is the URL path. You call it later.",
+    slugHint: "The slug is the URL path. You can change it later.",
 
     slugCharsHint: "Letters, numbers, and hyphens. This becomes your URL: /music",
 
     keepTheLinks: "Keep the links",
 
-    keepTheLinksHint: "Links move to your default page, uncategorized. Nothing is lost.",
 
     deleteEverything: "Delete everything",
 
-    deleteEverythingHint: "The page's links are deleted with it, including their click history.",
 
     cancel: "Cancel",
     title: "Pages",
@@ -360,10 +338,8 @@ const en = {
     bioOptional: "Bio (optional)",
     bioPlaceholder: "A short description",
     creating: "Creating…",
-    createTitle: "Create a page",
     createDescription: "Each page is a full mini-profile with its own links.",
     slug: "Page slug",
-    initialTitle: "Page title",
     deletePageTitle: "Delete page?",
     create: "Create page",
   },
@@ -424,27 +400,18 @@ const en = {
 
     auto: "Auto",
 
-    colorsHint: "Colors (comma-separated)",
 
-    mediaFillHint: "How the media fills the page",
 
     focalHint: "Drag the dot to set the focal point — the part that stays visible when screens crop it.",
 
-    unlockDisplayControls: "Upload media or paste a URL to unlock display controls (fit and focal point).",
 
-    auroraHint: "Aurora is driven by your colors: accent (primary) and secondary tint the moving blobs, and the first background color sets the base.",
 
-    bannerHint: "Set the banner image on the Profile page (Banner image field). Hero and Banner layouts use it as the cover.",
 
-    uploadFontsHint: "Only upload fonts you have the license to use. Upload happens once; you can then pick it for any theme.",
 
-    noThemesUseFont: "No themes use this font.",
 
     deleteFontTitle: "Delete \"{name}\"?",
 
-    deleteFontHint: "{count} theme(s) use it ({names}) and will fall back to Inter.",
 
-    yourFonts: "Your fonts (woff2 / woff, max 2 MB)",
 
     kb: "KB",
 
@@ -563,26 +530,18 @@ const en = {
     fontScale: "Font scale",
     letterSpacing: "Letter spacing",
     displayNameAnimation: "Display name animation",
-    avatarSection: "Avatar",
     avatarShape: "Avatar shape",
     avatarBorder: "Avatar border",
     floatingAvatar: "Floating avatar",
     badge: "Badge",
-    general: "General",
-    appearance: "Appearance",
-    saveAppearance: "Save appearance",
     deleteTheme: "Delete theme",
     duplicateTheme: "Duplicate theme",
-    exportTheme: "Export theme",
-    importTheme: "Import theme",
     importExport: "Import & export",
     previewImport: "Preview import",
     pickTheme: "Pick a theme",
-    noThemeSelected: "No theme selected",
     mutedText: "Muted text",
     hideAfter: "Hide after",
     showFrom: "Show from",
-    qrSection: "QR code",
     alignment: "Alignment",
     angle: "Angle",
     density: "Density",
@@ -597,17 +556,13 @@ const en = {
     newThemeName: "New theme name",
     themeCopyPlaceholder: "My theme (copy)",
     selectPlaceholder: "Select…",
-    dupDescription: "Creates an editable copy of {name}.",
     dupFailed: "Failed to duplicate theme. Please try again.",
     delFailed: "Failed to delete theme. Please try again.",
-    delDescription: 'This permanently removes "{name}" from your themes.',
     deleting: "Deleting…",
     importFailed: "Import failed",
     importing: "Importing…",
     chooseJsonFile: "Choose JSON file…",
     saveAsOwn: "Save as your own theme?",
-    exportBtn: "Export",
-    importBtn: "Import",
     focalPoint: "Focal point — drag or use arrow keys",
     recenter: "Recenter",
     recenterFocal: "Recenter focal point",
@@ -639,7 +594,6 @@ const en = {
       title: "Language",
       description:
         "Interface language for the admin panel. Your public page is not affected.",
-      betaNotice: "Partially translated — some screens may show English.",
     },
 
     general: {
@@ -671,15 +625,14 @@ const en = {
       analyticsHintRich: "Paste a script snippet for Plausible, Umami, Matomo, Google Analytics, etc. Add the provider domain to <code>EXTRA_SCRIPT_SRC</code> in your .env so CSP allows it to load.",
       customCss: "Custom CSS (optional)",
       customCssHintRich: "Raw CSS injected into a <code>&lt;style&gt;</code> tag on your public page.",
-      customCssHint: "Raw CSS injected into a <style> tag on your public page.",
       emailCapture: "Email subscription",
       emailCaptureHintRich: "Show an email signup form at the bottom of your public page. Subscribers are stored in your database and can be exported as CSV.",
-      emailCaptureHint:
-        "Show an email signup form at the bottom of your public page. Subscribers are stored in your database and can be exported as CSV.",
       consentText: "Email consent text",
       consentHintRich: "Shown next to the consent checkbox on your email signup form. Leave empty for the default: <em>I agree to receive emails and understand I can unsubscribe at any time.</em>",
       consentPlaceholder:
         "I agree to receive emails and understand I can unsubscribe at any time.",
+      enabled: "Enabled",
+      disabled: "Disabled",
       save: "Save integration settings",
     },
 
@@ -705,19 +658,13 @@ const en = {
 
       changePassword: "Change password",
 
-      restoring: "Restoring…",
 
-      clearing: "Clearing…",
-      title: "Security",
       description: "Change your admin password.",
       desc: "Update your admin password.",
       currentPassword: "Current password",
       newPassword: "New password",
-      confirmPassword: "Confirm new password",
-      submit: "Change password",
-      changed: "Password changed.",
-      updated: "Password updated.",
       passwordHint: "At least 8 characters with one uppercase letter and one number.",
+      updated: "Password updated.",
     },
 
     data: {
@@ -764,9 +711,6 @@ const en = {
       title: "Data",
       description: "Export, backup and manage your data.",
       exportCsv: "Export CSV",
-      openSubscribers: "Email subscribers — opens Settings → Data",
-      subscribers: "Subscribers",
-      retention: "Analytics retention",
       retentionLabel: "Analytics retention (days)",
       updateNotifications: "Update notifications",
       restoreTitle: "Restore backup?",
@@ -775,10 +719,6 @@ const en = {
       colEmail: "Email",
       colSubscribed: "Subscribed",
       colConsent: "Consent",
-      backup: "Backup",
-      deleteEverything: "Delete everything",
-      keepLinks: "Keep the links",
-      confirmDelete: "This cannot be undone. Type DELETE to confirm.",
     },
 
     qr: {
@@ -806,15 +746,10 @@ const en = {
 
       reset: "Reset",
 
-      subscribersDesc: "When visitors subscribe on your page, their emails appear here.",
 
-      exportCsv: "Export CSV",
 
-      deleteConfirm: "Permanently delete all {count} subscribers? This cannot be undone.",
 
-      qrCardDesc: "Customize and download the QR for /{slug}. Scan to open your public page — use it on print or screens.",
 
-      title2: "QR Code",
       styleLabel: "QR code style",
       colorLabel: "QR code color",
       bgLabel: "QR background color",
@@ -844,7 +779,6 @@ const en = {
 
     socialProfilesInstagramYoutubeEtcAreAuto: "Social profiles (Instagram, YouTube, etc.) are auto-detected and added as social icons.",
 
-    socialProfiles: "social profiles",
 
     reviewTheExtractedLinksBelowUncheckAnyYo: "Review the extracted links below. Uncheck any you don't want to import.",
 
@@ -854,7 +788,6 @@ const en = {
 
     importLinksFromLinktreeBentoLnkBioLittle: "Import links from Linktree, Bento, Lnk.bio, LittleLink, or any other link-in-bio page.",
 
-    imported: "Imported",
 
     importComplete: "Import Complete",
 
@@ -868,9 +801,7 @@ const en = {
 
     viewLinks: "View Links",
 
-    reviewExtracted: "Review the extracted links below. Uncheck any you don't want to import.",
 
-    noLinksFound: "No links found on this page. Try a different URL.",
 
     back: "Back",
 
@@ -878,7 +809,6 @@ const en = {
 
     migrationWizard: "Migration Wizard",
 
-    importFrom: "Import links from Linktree, Bento, Lnk.bio, LittleLink, or any other link-in-bio page.",
 
     url: "URL",
 
@@ -894,9 +824,7 @@ const en = {
 
     supportedPlatforms: "Supported platforms:",
 
-    platformsList: "Linktree, Bento, Lnk.bio, Tap.link, Hopp, LittleLink, Beacons, Solo.to, and more.",
 
-    socialAutoDetected: "Social profiles (Instagram, YouTube, etc.) are auto-detected and added as social icons.",
 
     linksCount: "Links ({count})",
 

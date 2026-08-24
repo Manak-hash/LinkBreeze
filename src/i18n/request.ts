@@ -23,6 +23,7 @@ import {
 const Dictionaries = {
   en: () => import("@/locales/en"),
   fr: () => import("@/locales/fr"),
+  es: () => import("@/locales/es"),
 } satisfies Record<string, () => Promise<{ default: unknown }>>;
 
 export default getRequestConfig(async () => {

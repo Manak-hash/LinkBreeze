@@ -12,7 +12,7 @@ export const LOCALES = ["en", "fr", "es", "zh", "hi", "ar", "pt-BR"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** Locales whose dictionary + review are done → shown in the picker. */
-export const AVAILABLE_LOCALES = ["en", "fr"] as const;
+export const AVAILABLE_LOCALES = ["en", "fr", "es"] as const;
 export type AvailableLocale = (typeof AVAILABLE_LOCALES)[number];
 
 export const DEFAULT_LOCALE = "en" as const satisfies AvailableLocale;

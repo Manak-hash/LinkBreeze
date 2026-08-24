@@ -5,13 +5,15 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.2] - Unreleased
+## [1.3.2] - 2026-08-24
 
 ### Added
 
-- **Set a default page and keep it first (#90)** — Every page switcher row now has a star: click it on any page to make that page the default, confirmed by a toast. The default page always sorts to the top of the switcher, the links page, the theme page, settings, and the dashboard, so it stops wandering as you add pages. The switcher's closed button shows a filled star next to the default page's name — the outline star stays an action, the filled one an indicator, same shape language as the rows. Flipping the default is a single transaction: the old default is cleared and the new one set together, and the star moves with you to the page you just promoted. The default page can't be deleted from the switcher (it's the fallback target when other pages are deleted with their links kept); its delete button is hidden rather than disabled-then-explained. The public root `/` redirects to the default page as before — the concept finally has a face in the admin.
+- **Spanish admin UI (es)** — The admin speaks a third language: a complete `src/locales/es.ts` dictionary (700 keys, tuteo register, terminology aligned with the Spanish README) ships alongside en/fr with full key parity, and Español joins the Settings language picker. `lb_locale=es` now flows end to end — proxy → request header → next-intl provider — with the critical error boundary carrying its own inline Spanish copy. The e2e i18n spec gains an es case, and `README.es.md` is registered in the docs translation track (`docs/TRANSLATIONS.md`) so CI flags it when the English README moves.
 
-- **Per-link icons: auto, picked, or uploaded (#91)** — Links are no longer stuck with whatever favicon a site serves (or none, for email, phone, WhatsApp, and vCard links). The link dialog has a compact new Icon section: a live preview chip (it shows the favicon sparkle, the picked icon, or the uploaded thumbnail) beside a one-line Auto / Pick / Upload segmented control, styled after the card style picker above it:
+- **Set a default page and keep it first (#90, reported by @baptleduc)** — Every page switcher row now has a star: click it on any page to make that page the default, confirmed by a toast. The default page always sorts to the top of the switcher, the links page, the theme page, settings, and the dashboard, so it stops wandering as you add pages. The switcher's closed button shows a filled star next to the default page's name — the outline star stays an action, the filled one an indicator, same shape language as the rows. Flipping the default is a single transaction: the old default is cleared and the new one set together, and the star moves with you to the page you just promoted. The default page can't be deleted from the switcher (it's the fallback target when other pages are deleted with their links kept); its delete button is hidden rather than disabled-then-explained. The public root `/` redirects to the default page as before — the concept finally has a face in the admin.
+
+- **Per-link icons: auto, picked, or uploaded (#91, reported by @gdyys96b56-web)** — Links are no longer stuck with whatever favicon a site serves (or none, for email, phone, WhatsApp, and vCard links). The link dialog has a compact new Icon section: a live preview chip (it shows the favicon sparkle, the picked icon, or the uploaded thumbnail) beside a one-line Auto / Pick / Upload segmented control, styled after the card style picker above it:
   - **Auto** keeps today's behavior: fetch and cache the site's favicon when the link is saved. The old separate "Auto icon" switch is gone — the segment is the toggle.
   - **Pick** opens the same categorized icon gallery sections use — search, categories, live highlight — and stores the choice as data, not an image: the public page renders the icon as an inline SVG that inherits the theme's text color, so it matches every theme and card style for free. Manual picks stop refetching favicons on every URL edit.
   - **Upload** takes a PNG, JPG, GIF, WebP, AVIF, ICO, or SVG up to 512 KB. Files are validated by magic bytes, not by their name — a renamed PNG is rejected — and SVGs pass through a sanitizer that strips scripts, event handlers, foreign objects, and external references before the file is ever stored. Uploads land in the same volume as custom fonts and are served same-origin with `nosniff` and a locked-down CSP.
@@ -21,11 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Locale dictionary drift** — A key-parity audit caught four keys referenced by components but missing from `en.ts` (`setup.allSet`, `settings.integration.emailCapture`, `settings.security.updated`, `settings.qr.styleLabel`) — English users saw raw key paths in the setup wizard, integration tab, password form, and QR card; French had drifted the other way with an extra `emailCapture` and no `consentText`. All four are restored in both languages, the raw `Enabled`/`Disabled` strings beside the email-capture switch are now translated, two broken English source strings are repaired (`Choose a settings` → `Choose a starting point`, `You call it later` → `You can change it later`), and 74 dead keys are pruned from en/fr. `npm run i18n:check` and `npm run docs:check` hashes re-stamped.
+
 - **Upload failures were silent** — The link dialog discarded failed action results without a message. A rejected icon upload (wrong format, too large) looked like the button ignored you. The dialog now shows the action's error inline above the footer.
+
 - **Uploads never reached the server** — The icon file input carried no field name, so the selected file was dropped from the submitted form data. The dialog showed the filename, the save succeeded, and the icon silently never arrived. Caught live against the running app; unit tests build their form data directly and never exercised the real input.
+
 - **Long dialogs stranded their buttons** — Dialogs taller than the viewport (the link dialog with its new Icon section on short screens) pushed Save/Cancel off-screen with no way to scroll. The shared dialog container is now capped at 90% of the viewport height and scrolls its body.
+
 - **Uploaded files were served under the page CSP** — The public page CSP rule also matched `/api/uploads/*`, overriding the stricter headers the uploads route sets for itself. Uploaded files now always ship with `default-src 'none'`, closing the gap between the route's intent and what actually hit the wire.
+
 - **Settings → Integrations crashed with INVALID_MESSAGE** — The analytics hint embedded a literal `<script>` tag inside a rich-text translation message, which next-intl's message parser rejects (MALFORMED_ARGUMENT) whenever the Integrations tab renders. The hint now words it without the bracket literal and the tab opens cleanly.
+
 - **docs-stale workflow lacked a permissions block (code scanning #18)** — The docs-stale workflow ran with the repository's default token permissions, wider than its read-only job needs. It now declares `permissions: contents: read`, same least-privilege block the other workflows already carry.
 
 ## [1.3.1] - 2026-08-20

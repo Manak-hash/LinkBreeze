@@ -1,6 +1,6 @@
 {
   "version": "1.3.2",
-  "releasedAt": "2026-08-22",
+  "releasedAt": "2026-08-24",
   "url": "https://github.com/Manak-hash/LinkBreeze/releases/tag/v1.3.2",
-  "notes": "Set a default page and keep it pinned first everywhere (#90); per-link icons (#91) — auto favicon, picked icons from the built-in gallery rendered as theme-aware inline SVG, or your own uploaded image (PNG/JPG/GIF/WebP/AVIF/ICO/SVG up to 512 KB, magic-byte validated, SVGs sanitized); upload errors now surface inline in the link dialog."
+  "notes": "Spanish admin UI (es) — a complete third dictionary alongside English and French, with the same compile-time key parity and drift guards; locale dictionary drift fixes (four keys that rendered as raw key paths, two broken English source strings, 74 dead keys pruned); set a default page and keep it pinned first everywhere (#90); per-link icons (#91) — auto favicon, picked icons from the built-in gallery rendered as theme-aware inline SVG, or your own uploaded image (PNG/JPG/GIF/WebP/AVIF/ICO/SVG up to 512 KB, magic-byte validated, SVGs sanitized); upload errors now surface inline in the link dialog."
 }

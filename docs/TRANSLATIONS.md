@@ -6,7 +6,8 @@ authoritative; translations may lag behind.
 | Language | File | Source commit (README.md) | Status |
 |----------|------|--------------------------|--------|
 | English | [README.md](../README.md) | — | authoritative |
-| Français | [README.fr.md](../README.fr.md) | `08941fc228d423e11a4a57a2080b0cbb4624bee2` | in review |
+| Español | [README.es.md](../README.es.md) | `2bb71d5342bc7d90c62f988a65054fdbf19127ff` | in review |
+| Français | [README.fr.md](../README.fr.md) | `2bb71d5342bc7d90c62f988a65054fdbf19127ff` | in review |
 
 ## Keeping translations fresh
 

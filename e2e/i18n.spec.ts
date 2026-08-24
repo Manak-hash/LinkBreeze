@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * i18n smoke: the lb_locale cookie must switch the admin UI to French
+ * i18n smoke: the lb_locale cookie must switch the admin UI to French/Spanish
  * end to end (proxy → x-lb-locale header → request config → provider).
  * Public pages stay English by design (Latin slugs, shared chrome).
  */
@@ -43,5 +43,28 @@ test.describe("admin UI locale (fr)", () => {
     await expect(
       page.getByRole("button", { name: "Sign in" }),
     ).toBeVisible();
+  });
+});
+
+test.describe("admin UI locale (es)", () => {
+  test("login screen renders in Spanish when lb_locale=es", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "lb_locale",
+        value: "es",
+        url: BASE,
+      },
+    ]);
+
+    await page.goto("/login");
+
+    await expect(page.locator('[lang="es"]').first()).toBeVisible();
+
+    // translated labels (keys from src/locales/es.ts)
+    await expect(
+      page.getByRole("button", { name: "Iniciar sesión" }),
+    ).toBeVisible();
+    await expect(page.getByText("Nombre de usuario")).toBeVisible();
+    await expect(page.getByText("Contraseña")).toBeVisible();
   });
 });

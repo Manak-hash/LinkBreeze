@@ -325,7 +325,7 @@ export function IntegrationTab({
           >
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
-              {emailEnabled ? "Enabled" : "Disabled"}
+              {emailEnabled ? t("enabled") : t("disabled")}
             </label>
           </FormField>
 

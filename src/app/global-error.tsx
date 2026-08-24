@@ -32,6 +32,14 @@ const COPY: Record<string, Record<string, string>> = {
     errorId: "ID d'erreur",
     retry: "Réessayer",
   },
+  es: {
+    lang: "es",
+    title: "Algo ha ido mal",
+    description:
+      "Se produjo un error crítico. Prueba a recargar la página. Si el problema persiste, reinicia el contenedor o revisa los logs del servidor.",
+    errorId: "ID del error",
+    retry: "Reintentar",
+  },
 };
 
 function copyFor(): Record<string, string> {
