@@ -5,7 +5,7 @@ import { localizeActionError } from "@/lib/action-error-i18n";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Save, ExternalLink } from "lucide-react";
+import { Save, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { updateSettings } from "@/server/actions/settings";
 import { updatePageAction } from "@/server/actions/pages";
@@ -101,6 +101,7 @@ interface GeneralTabProps {
   description: string;
   footerText: string;
   privacyPolicy: string;
+  searchEngineHidden: boolean;
 }
 
 export function GeneralTab({
@@ -110,6 +111,7 @@ export function GeneralTab({
   description,
   footerText,
   privacyPolicy,
+  searchEngineHidden,
 }: GeneralTabProps) {
   const t = useTranslations("settings.general");
   const tCommon = useTranslations("common");
@@ -236,8 +238,78 @@ export function GeneralTab({
         </CardFooter>
       </form>
     </Card>
+    <SearchVisibilityCard initialHidden={searchEngineHidden} slug={slug} />
     <LanguageCard />
     </div>
+  );
+}
+
+// ── Search-engine visibility (#94) ───────────────────────────────────────
+
+function SearchVisibilityCard({
+  initialHidden,
+  slug,
+}: {
+  initialHidden: boolean;
+  slug: string;
+}) {
+  const t = useTranslations("settings.visibility");
+  const tCommon = useTranslations("common");
+  const [pending, startTransition] = React.useTransition();
+  const [saved, setSaved] = React.useState(false);
+  const [hidden, setHidden] = React.useState(initialHidden);
+  const router = useRouter();
+
+  // Flip the setting server-side immediately — the switch IS the action.
+  // There is nothing else to "save" in this card, so a separate Save
+  // button would only invite doubt about whether the toggle took.
+  const toggle = (next: boolean) => {
+    setHidden(next);
+    startTransition(async () => {
+      const fd = new FormData();
+      // The settings schema requires slug on every updateSettings call
+      // (global settings live beside the default page's identity).
+      fd.set("slug", slug || "u");
+      fd.set("searchEngineHidden", next ? "true" : "false");
+      await updateSettings(fd);
+      router.refresh();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {hidden ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+          {t("title")}
+        </CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border bg-background/50 p-4 transition-colors hover:bg-muted/50">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">
+              {hidden ? t("hiddenLabel") : t("visibleLabel")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {hidden ? t("hiddenHint") : t("visibleHint")}
+            </span>
+          </span>
+          <Switch checked={!hidden} onCheckedChange={(v) => toggle(!v)} disabled={pending} />
+        </label>
+      </CardContent>
+      <CardFooter className="gap-3">
+        {pending ? (
+          <span className="text-sm text-muted-foreground">{tCommon("saving")}</span>
+        ) : saved ? (
+          <span className="text-sm text-muted-foreground">{tCommon("saved")}</span>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t("footnote")}</p>
+        )}
+      </CardFooter>
+    </Card>
   );
 }
 

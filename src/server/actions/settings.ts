@@ -27,6 +27,7 @@ const settingsSchema = z.object({
   faviconUrl: z.string().max(500).optional().default(""),
   activeThemeId: z.string().optional().nullable(),
   consentText: z.string().max(500).optional().default(""),
+  searchEngineHidden: z.enum(["true", "false"]).optional().default("false"),
 });
 
 export async function updateSettings(formData: FormData): Promise<ActionResult> {
@@ -45,6 +46,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
     faviconUrl: formData.get("faviconUrl") || "",
     activeThemeId: formData.get("activeThemeId") || undefined,
     consentText: formData.get("consentText") || "",
+    searchEngineHidden: formData.get("searchEngineHidden") === "true" ? "true" : "false",
   });
   if (!parsed.success) {
     return validationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -64,6 +66,7 @@ export async function updateSettings(formData: FormData): Promise<ActionResult> 
   if (has("emailCapture")) await updateSettingQuery("emailCapture", d.emailCapture);
   if (has("faviconUrl")) await updateSettingQuery("faviconUrl", d.faviconUrl);
   if (has("consentText")) await updateSettingQuery("consentText", d.consentText);
+  if (has("searchEngineHidden")) await updateSettingQuery("searchEngineHidden", d.searchEngineHidden);
 
   // Persist active theme if provided.
   if (d.activeThemeId) {

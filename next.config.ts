@@ -165,6 +165,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // sitemap.xml + robots.txt reflect the search-visibility toggle
+        // (#94) and must flip the moment it changes — never cache them.
+        // (Also: they're tiny per-instance files; caching buys nothing.)
+        // MUST come after /:slug* — last matching rule wins — otherwise the
+        // catch-all's s-maxage=60 overrides this and a hidden flip could
+        // serve the stale "Sitemap:" line for up to a minute.
+        source: "/sitemap.xml",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/robots.txt",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
         // Uploaded icon/avatar/font files: served as attachments' sources,
         // never as documents. A strict CSP (no scripts, no frames, no
         // origins) means even a malicious SVG executes nothing if opened

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
+import { getSetting } from "@/server/queries";
 
 /**
  * Dynamic robots.txt metadata route.
@@ -18,13 +19,22 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     ? process.env.BASE_URL.replace(/\/$/, "")
     : `${headerList.get("x-forwarded-proto") || "https"}://${headerList.get("x-forwarded-host") || headerList.get("host") || "localhost"}`;
 
+  // Search-engine visibility (#94): when the operator hides the page, it
+  // must STAY crawlable so crawlers actually see the noindex directive —
+  // a robots.txt Disallow on the public page would prevent Google from
+  // ever reading it, and the bare URL could still surface as a blocked
+  // entry. So the public page is never disallowed here; de-listing runs
+  // through the page's own noindex meta + X-Robots-Tag and the empty
+  // sitemap. Admin routes stay disallowed as always.
+  const hidden = (await getSetting("searchEngineHidden")) === "true";
+
   return {
     rules: {
       userAgent: "*",
       allow: "/",
       disallow: ["/login", "/setup", "/dashboard", "/links", "/profile", "/theme", "/settings", "/api/"],
     },
-    sitemap: `${origin}/sitemap.xml`,
+    sitemap: hidden ? undefined : `${origin}/sitemap.xml`,
     host: origin,
   };
 }

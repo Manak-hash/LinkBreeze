@@ -611,6 +611,19 @@ const en = {
         "Interface language for the admin panel. Your public page is not affected.",
     },
 
+    visibility: {
+      title: "Search engine visibility",
+      description:
+        "Control whether search engines may list your public page.",
+      visibleLabel: "Visible",
+      visibleHint: "Your page can appear in search results and the sitemap.",
+      hiddenLabel: "Hidden",
+      hiddenHint:
+        "Page stays reachable, but asks search engines not to index it and drops it from the sitemap.",
+      footnote:
+        "Hiding relies on search engines honoring the request; already-indexed pages can take weeks to drop.",
+    },
+
     general: {
       privacyPlaceholder: "# Privacy Policy\\n\\nThis page uses privacy-respecting analytics...",
       saving: "Saving…",

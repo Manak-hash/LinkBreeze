@@ -74,6 +74,13 @@ export async function generateMetadata({
 
   const ogImage = `${origin}/${slug}/opengraph-image`;
 
+  // Search-engine visibility (#94): when the operator hides the page from
+  // settings, it stays crawlable (see robots.ts for why) but sends a
+  // noindex directive — the actual de-listing mechanism — and the sitemap
+  // drops it. Follow stays true: blocking outbound link discovery isn't
+  // the goal, de-listing this page is.
+  const hidden = (await getSetting("searchEngineHidden")) === "true";
+
   // Build icons: use page-specific favicon if set, else default LinkBreeze icons.
   let icons: Metadata["icons"] = {
     icon: [
@@ -105,6 +112,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: url },
+    ...(hidden ? { robots: { index: false, follow: true } } : {}),
     icons,
     openGraph: {
       title,

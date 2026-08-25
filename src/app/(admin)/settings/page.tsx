@@ -47,13 +47,14 @@ export default async function SettingsPage({
     activePage = defaultPage ?? allPages[0];
   }
 
-  const [themes, active, updateCheckEnabled, retentionDays, consentText, subscribers] = await Promise.all([
+  const [themes, active, updateCheckEnabled, retentionDays, consentText, subscribers, searchEngineHidden] = await Promise.all([
     getAllThemes(),
     getActiveTheme(),
     isUpdateCheckEnabled(),
     getAnalyticsRetentionDays(),
     getSetting("consentText"),
     getAllSubscribers(),
+    getSetting("searchEngineHidden"),
   ]);
 
   const slug = activePage?.slug || "u";
@@ -89,6 +90,7 @@ export default async function SettingsPage({
               description={activePage?.seoDescription || ""}
               footerText={activePage?.footerText || ""}
               privacyPolicy={activePage?.privacyPolicy || ""}
+              searchEngineHidden={searchEngineHidden === "true"}
             />
           ),
           integration: (
