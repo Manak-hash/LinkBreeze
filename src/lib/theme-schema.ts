@@ -64,6 +64,9 @@ export const customSchema = z.object({
   // fontFamily accepts a bundled id ("inter"), an uploaded font ref
   // ("custom:<id>", validated in the action), or legacy raw CSS from old rows.
   fontFamily: z.string().max(100).optional(),
+  // Second font for link cards only; "" (default) = inherit the site font.
+  // Same identifier space as fontFamily.
+  cardFontFamily: z.string().max(100).optional(),
   fontScale: z.string().max(10).optional(),
   fontWeight: z.string().max(10).optional(),
   letterSpacing: z.string().max(10).optional(),

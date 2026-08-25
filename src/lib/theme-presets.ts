@@ -62,6 +62,7 @@ export interface ThemePreset {
   avatarShape: string;
   avatarBorder: string;
   avatarFloat: string;
+  /** "auto" keeps the shape-aware default; else a px number as a string. */
   profileLayout: string;
   textAnimation: string;
 

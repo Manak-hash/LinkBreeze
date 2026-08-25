@@ -91,6 +91,7 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     textColor: formData.get("textColor") || undefined,
     mutedTextColor: formData.get("mutedTextColor") || undefined,
     fontFamily: formData.get("fontFamily") || undefined,
+    cardFontFamily: formData.get("cardFontFamily") ?? undefined,
     fontScale: formData.get("fontScale") || undefined,
     fontWeight: formData.get("fontWeight") || undefined,
     letterSpacing: formData.get("letterSpacing") || undefined,
@@ -127,12 +128,16 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
   }
 
   // Uploaded-font references must point at a real custom_fonts row, so a
-  // deleted font can't be re-selected from a stale client state.
-  if (updates.fontFamily && parseCustomFontId(updates.fontFamily)) {
-    const fontId = parseCustomFontId(updates.fontFamily)!;
-    const { getCustomFontById } = await import("@/server/queries");
-    if (!(await getCustomFontById(fontId))) {
-      return validationError("That custom font no longer exists");
+  // deleted font can't be re-selected from a stale client state. Applies
+  // to both the site font and the card font.
+  for (const key of ["fontFamily", "cardFontFamily"] as const) {
+    const val = updates[key];
+    if (val && parseCustomFontId(val)) {
+      const fontId = parseCustomFontId(val)!;
+      const { getCustomFontById } = await import("@/server/queries");
+      if (!(await getCustomFontById(fontId))) {
+        return validationError("That custom font no longer exists");
+      }
     }
   }
 

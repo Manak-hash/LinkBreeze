@@ -11,8 +11,11 @@ interface ProfileHeaderProps {
 
 /**
  * Avatar block shared by all layouts. Consumes the avatar tokens resolved
- * from the theme: --lb-avatar-radius (shape), --lb-avatar-border (accent),
- * --lb-avatar-glow, --lb-avatar-gradient.
+ * --lb-avatar-border (accent), --lb-avatar-glow, --lb-avatar-gradient.
+ *
+ * when "auto"); the image inside fills it minus the border padding so a
+ * larger avatar never overflows its ring. Ring borders (padding 6) shrink
+ * the image a little more — same visual as before at the default size.
  */
 function Avatar({
   profile,
@@ -29,6 +32,14 @@ function Avatar({
 }) {
   const radius = "var(--lb-avatar-radius, 9999px)";
   const floatClass = float ? "lb-float" : undefined;
+  // Ring borders add 6px padding (vs 2px default) — subtract the difference
+  // so the outer box stays the theme's diameter either way.
+  const ringPad = borderStyle.padding === 6 ? 6 : 2;
+  // Pre-slider sizing: the historic 90px image (94px box with default 2px
+  // padding, 96px for rings) — kept identical so this variant renders
+  // exactly as before avatar sizing existed.
+  const inner = 90;
+  const outer = inner + ringPad * 2;
 
   // Reveal lives on the wrapper; float on the inner box. Both are `animation`
   // so they'd clobber each other on the same element.
@@ -36,24 +47,38 @@ function Avatar({
     <div style={{ ...reveal }} data-avatar-shape={shape}>
       <div
         className={`lb-pixel-avatar mb-4 ${floatClass ?? ""}`}
-        style={{ ...borderStyle, padding: 2, width: 94, height: 94, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{
+          ...borderStyle,
+          width: outer,
+          height: outer,
+          padding: ringPad,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         {profile.avatarUrl ? (
           <Image
             src={profile.avatarUrl}
             alt={profile.displayName || ""}
-            width={90}
-            height={90}
+            width={180}
+            height={180}
             unoptimized
-            className="block h-[90px] w-[90px] object-cover"
-            style={{ borderRadius: radius }}
+            className="block object-cover"
+            style={{ width: inner, height: inner, borderRadius: radius }}
             loading="eager"
             priority
           />
         ) : (
           <span
-            className="flex h-[90px] w-[90px] items-center justify-center text-3xl font-semibold"
-            style={{ background: "var(--lb-card-bg)", color: "var(--lb-accent)", borderRadius: radius }}
+            className="flex items-center justify-center font-semibold"
+            style={{
+              width: inner,
+              height: inner,
+              background: "var(--lb-card-bg)",
+              color: "var(--lb-accent)",
+              borderRadius: radius,
+            }}
           >
             {(profile.displayName || "?").charAt(0).toUpperCase()}
           </span>
@@ -108,22 +133,27 @@ function DisplayName({ name, textAnimation }: { name: string; textAnimation: str
   }
 
   if (textAnimation === "typewriter") {
-    // CSS-only typewriter: fixed-ch growth + steps() + blinking caret.
-    const ch = name.length;
+    // CSS-only typewriter: clip-path reveal (exact for any font) + a
+    // separate caret element that tracks the reveal edge and blinks alone.
+    // The old width:Nch approach clipped proportional fonts and blinked
+    // the whole name via h1 opacity.
+    const ch = Math.max(name.length, 1);
+    const typeDur = Math.max(ch * 0.08, 0.6);
     return (
-      <h1
-        className="lb-text-anim"
-        style={{
-          ...base,
-          width: `${ch}ch`,
-          maxWidth: "100%",
-          overflow: "hidden",
-          whiteSpace: "nowrap" as const,
-          borderRight: "2px solid var(--lb-accent)",
-          animation: `lb-typewriter ${Math.max(ch * 0.08, 0.6)}s steps(${ch}) both, lb-caret-blink 0.8s step-end infinite`,
-        }}
-      >
-        {name}
+      <h1 className="lb-text-anim lb-tw" style={{ ...base, whiteSpace: "nowrap" as const }}>
+        <span
+          className="lb-tw-text"
+          style={{ animation: `lb-tw-reveal ${typeDur}s steps(${ch}) both` }}
+        >
+          {name}
+        </span>
+        <span
+          aria-hidden="true"
+          className="lb-tw-caret"
+          style={{
+            animation: `lb-tw-caret-track ${typeDur}s steps(${ch}) both, lb-caret-blink 0.8s step-end infinite`,
+          }}
+        />
       </h1>
     );
   }

@@ -22,6 +22,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/**
+ * Parse a CSS color (#rgb hex or rgba()/rgb()) into the hex the native
+ * color input needs plus the alpha it can't represent. Returns null for
+ * anything else (named colors, hsl, garbage) — the picker then falls back
+ * to black but stays clickable; the text input remains the raw surface.
+ * Exported for unit tests.
+ */
+export function parseToHexAlpha(
+  v: string | null | undefined,
+): { hex: string; alpha: number } | null {
+  if (!v) return null;
+  const s = v.trim();
+  let m = s.match(/^#([0-9a-fA-F]{6})$/);
+  if (m) return { hex: `#${m[1]}`, alpha: 1 };
+  m = s.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)$/i);
+  if (m) {
+    const [r, g, b] = [1, 2, 3].map((i) => Math.min(255, Math.max(0, Number(m![i]))));
+    const hex = `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+    const alpha = m[4] !== undefined ? Math.min(1, Math.max(0, Number(m[4]))) : 1;
+    return { hex, alpha: Number.isFinite(alpha) ? alpha : 1 };
+  }
+  return null;
+}
+
+/** Recombine a hex from the picker with an alpha into an rgba() string. */
+export function hexWithAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const a = Math.round(Math.min(1, Math.max(0, alpha)) * 100) / 100;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
 export function ColorField({
   label,
   name,
@@ -35,6 +68,14 @@ export function ColorField({
   onChange: (v: string) => void;
   allowRgba?: boolean;
 }) {
+  const t = useTranslations("theme");
+  // Both card colors default to rgba() — the picker used to be disabled
+  // outright for them. Instead: show the alpha-stripped hex and re-apply
+  // the existing alpha when the user picks, so the swatch works exactly
+  // like the other color fields without losing translucency.
+  const parsed = parseToHexAlpha(value);
+  const alpha = parsed?.alpha ?? 1;
+
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name} className="text-xs text-muted-foreground">
@@ -44,10 +85,11 @@ export function ColorField({
         <input
           type="color"
           aria-label={label}
-          value={value?.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? "#000000"}
-          onChange={(e) => onChange(e.target.value)}
+          value={parsed?.hex ?? "#000000"}
+          onChange={(e) =>
+            onChange(allowRgba && alpha < 1 ? hexWithAlpha(e.target.value, alpha) : e.target.value)
+          }
           className="size-9 shrink-0 cursor-pointer rounded-lg border border-border bg-transparent"
-          disabled={allowRgba}
         />
         <Input
           id={name}
@@ -58,6 +100,23 @@ export function ColorField({
           className="flex-1 font-mono text-xs"
         />
       </div>
+      {allowRgba ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={Math.round(alpha * 100)}
+            aria-label={`${label} — ${t("opacity")}`}
+            onChange={(e) => onChange(hexWithAlpha(parsed?.hex ?? "#000000", Number(e.target.value) / 100))}
+            className="h-1.5 flex-1 cursor-pointer accent-primary"
+          />
+          <span className="w-9 text-right font-mono text-[11px] text-muted-foreground">
+            {Math.round(alpha * 100)}%
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }

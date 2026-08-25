@@ -194,6 +194,68 @@ export function ColorsSection({ s, set }: { s: CustomizerState; set: SetFn }) {
   );
 }
 
+/**
+ * Font chip picker (bundled families + uploaded customs). Used for both
+ * the site font and the card font.
+ */
+function FontChips({
+  value,
+  onChange,
+  customFonts,
+  name = "fontFamily",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  customFonts: CustomFontMeta[];
+  name?: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {FONT_OPTIONS.map((font) => (
+        <label key={font.id} className="cursor-pointer">
+          <input
+            type="radio"
+            name={name}
+            value={font.id}
+            checked={value === font.id}
+            onChange={() => onChange(font.id)}
+            className="peer sr-only"
+          />
+          <span
+            style={{ fontFamily: `var(--lb-font-${font.id}, sans-serif)` }}
+            className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
+          >
+            <span className="text-base font-bold">{font.sample}</span>
+            {font.label}
+          </span>
+        </label>
+      ))}
+      {customFonts.map((font) => {
+        const id = `custom:${font.id}`;
+        return (
+          <label key={id} className="cursor-pointer">
+            <input
+              type="radio"
+              name={name}
+              value={id}
+              checked={value === id}
+              onChange={() => onChange(id)}
+              className="peer sr-only"
+            />
+            <span
+              style={{ fontFamily: `'${font.family}', sans-serif` }}
+              className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
+            >
+              <span className="text-base font-bold">Aa</span>
+              {font.name}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function TypographySection({
   s,
   set,
@@ -218,52 +280,12 @@ export function TypographySection({
     [customFonts],
   );
 
+  const cardFontOn = s.cardFontFamily !== "";
+
   return (
     <section className="flex flex-col gap-4">
       <h3 className="text-sm font-semibold">{t("typography")}</h3>
-      <div className="flex flex-wrap gap-1.5">
-        {FONT_OPTIONS.map((font) => (
-          <label key={font.id} className="cursor-pointer">
-            <input
-              type="radio"
-              name="fontFamily"
-              value={font.id}
-              checked={s.fontFamily === font.id}
-              onChange={() => set({ fontFamily: font.id })}
-              className="peer sr-only"
-            />
-            <span
-              style={{ fontFamily: `var(--lb-font-${font.id}, sans-serif)` }}
-              className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
-            >
-              <span className="text-base font-bold">{font.sample}</span>
-              {font.label}
-            </span>
-          </label>
-        ))}
-        {customFonts.map((font) => {
-          const id = `custom:${font.id}`;
-          return (
-            <label key={id} className="cursor-pointer">
-              <input
-                type="radio"
-                name="fontFamily"
-                value={id}
-                checked={s.fontFamily === id}
-                onChange={() => set({ fontFamily: id })}
-                className="peer sr-only"
-              />
-              <span
-                style={{ fontFamily: `'${font.family}', sans-serif` }}
-                className="inline-flex flex-col items-center gap-0.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors peer-checked:border-primary peer-checked:bg-primary/10 hover:border-primary/50"
-              >
-                <span className="text-base font-bold">Aa</span>
-                {font.name}
-              </span>
-            </label>
-          );
-        })}
-      </div>
+      <FontChips value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} customFonts={customFonts} />
       {fontFaceCss ? (
         <style dangerouslySetInnerHTML={{ __html: fontFaceCss }} />
       ) : null}
@@ -299,6 +321,27 @@ export function TypographySection({
           max={5}
           step={0.5}
         />
+      </div>
+
+      {/* Separate card font — off by default, cards inherit the site font. */}
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card/50 p-4">
+        <ToggleField
+          label={t("cardFontToggle")}
+          name="cardFontEnabled"
+          checked={cardFontOn}
+          onChange={(v) => set({ cardFontFamily: v ? s.fontFamily : "" })}
+        />
+        {cardFontOn ? (
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">{t("cardFontLabel")}</Label>
+            <FontChips
+              name="cardFontFamily"
+              value={s.cardFontFamily}
+              onChange={(v) => set({ cardFontFamily: v })}
+              customFonts={customFonts}
+            />
+          </div>
+        ) : null}
       </div>
     </section>
   );

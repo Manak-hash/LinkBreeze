@@ -265,11 +265,14 @@ export function buildLinkCardHtml(options: {
   // #93 popup cards: the card is a <button> that opens the dialog instead
   // of an <a> that navigates. Same classes/data-attrs so skins and hovers
   // apply identically; the dialog markup is appended after the card.
+  // Note: buttons don't inherit fonts from ancestors, but `font:inherit`
+  // (a shorthand) would reset the font-family set in ${style} — restore
+  // everything EXCEPT family with longhands so --lb-card-font survives.
   const isPopup = isPopupType(link.type);
   const dialogHtml = isPopup ? buildPopupDialogHtml(link, theme) : "";
   const cardOpen = (style: string): string =>
     isPopup
-      ? `<button type="button"${hoverAttrs} aria-haspopup="dialog" aria-controls="lb-popup-${link.id}" onclick="${popupOpenHandler(link)}" style="${style};cursor:pointer;font:inherit;text-align:left">`
+      ? `<button type="button"${hoverAttrs} aria-haspopup="dialog" aria-controls="lb-popup-${link.id}" onclick="${popupOpenHandler(link)}" style="${style};cursor:pointer;font-style:inherit;font-variant:inherit;font-weight:inherit;font-stretch:inherit;font-size:inherit;line-height:inherit;text-align:left">`
       : `<a\n  href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}\n  style="${style}">`;
   const cardClose = isPopup ? "</button>" : "</a>";
 
@@ -284,7 +287,8 @@ export function buildLinkCardHtml(options: {
       ${paddingStyle}${featuredPadding}
       position:relative;z-index:1;
       background:${cardBg};border:none;border-radius:0;
-      color:var(--lb-text);transition:transform .15s ease,box-shadow .15s ease;
+      color:var(--lb-text);font-family:var(--lb-card-font,inherit);
+      transition:transform .15s ease,box-shadow .15s ease;
       margin:3px;
       clip-path:polygon(6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),0 6px,3px 6px,3px 3px);
       box-shadow:4px 4px 0 var(--lb-accent);
@@ -305,7 +309,8 @@ ${dialogHtml}`;
     ${display};text-decoration:none;width:100%;box-sizing:border-box;
     ${paddingStyle}${featuredPadding}margin:0 0 var(--lb-spacing);
     background:${cardBg};border:${border};border-radius:${hasImage ? "var(--lb-media-radius)" : "var(--lb-card-radius)"};
-    color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+    color:var(--lb-text);font-family:var(--lb-card-font,inherit);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
     ${backdropBlur}${overflow}${reveal}
   `)}
   ${innerContent}

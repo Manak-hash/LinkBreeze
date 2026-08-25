@@ -130,6 +130,12 @@ export const themes = sqliteTable("themes", {
   fontScale: text("font_scale").notNull().default("md"), // sm, md, lg
   fontWeight: text("font_weight").notNull().default("600"),
   letterSpacing: text("letter_spacing").notNull().default("0"),
+  /**
+   * Optional second font for link cards only ("", or a bundled id like
+   * "playfair" / an uploaded ref "custom:<id>"). Empty = cards inherit
+   * the site font (--lb-font), the behavior before this column existed.
+   */
+  cardFontFamily: text("card_font_family").notNull().default(""),
 
   // Card
   linkStyle: text("link_style").notNull().default("glass"), // rounded, sharp, glass, pill, outline, neon
@@ -155,6 +161,8 @@ export const themes = sqliteTable("themes", {
   avatarShape: text("avatar_shape").notNull().default("circle"), // circle, squircle, rounded, square
   avatarBorder: text("avatar_border").notNull().default("solid"), // solid, gradient, glow, ring, none
   avatarFloat: text("avatar_float").notNull().default("false"),
+  // Avatar diameter in px as a string ("96"). "auto" = the pre-slider
+  // behavior (a shape-aware default the resolver computes).
   profileLayout: text("profile_layout").notNull().default("classic"), // classic, hero, banner
   textAnimation: text("text_animation").notNull().default("none"), // none, typewriter, gradient-flow
 

@@ -176,9 +176,31 @@
   0%, 45%  { opacity: 1; }
   50%, 100% { opacity: 0; }
 }
-@keyframes lb-typewriter {
-  from { width: 0; }
-  to   { width: 100%; }
+/* Typewriter reveal: clip-path percentages resolve against
+   the element's own box, so the reveal is exact for any font (the old
+   width:Nch trick used the "0" glyph width and clipped proportional fonts
+   permanently). The caret is a separate element so only it blinks; its
+   left% rides the reveal edge in lockstep (same steps() count/duration). */
+@keyframes lb-tw-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+@keyframes lb-tw-caret-track {
+  from { left: 0%; }
+  to   { left: 100%; }
+}
+.lb-tw { position: relative; display: inline-block; }
+.lb-tw-text { display: inline-block; }
+.lb-tw-caret {
+  position: absolute;
+  top: 0.14em;
+  bottom: 0.14em;
+  left: 0;
+  width: 0.08em;
+  margin-left: -0.04em;
+  background: var(--lb-accent);
+  border-radius: 1px;
+  pointer-events: none;
 }
 .lb-float { animation: lb-float 3s ease-in-out infinite; }
 
@@ -208,10 +230,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob { animation: none !important; }
-  .aurora-rise { animation: none !important; opacity: 1; transform: none; }
+  .aurora-rise { animation: none !important; opacity: 1; transform: none; filter: none; }
   .lb-reveal { animation: none !important; opacity: 1; transform: none; filter: none; }
   .lb-float { animation: none !important; }
   .lb-text-anim { animation: none !important; }
+  /* Typewriter children aren't covered by .lb-text-anim above: show the
+     full name unclipped and drop the caret entirely. */
+  .lb-tw-text { animation: none !important; }
+  .lb-tw-caret { display: none; }
 }
 
 /* ── Link card hover (CSS-based so prefers-reduced-motion can gate it) ──── */

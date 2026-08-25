@@ -141,6 +141,13 @@
       "when": 1966777600000,
       "tag": "0019_popup_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1966777700000,
+      "tag": "0020_card_font",
+      "breakpoints": true
     }
   ]
 }

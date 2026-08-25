@@ -67,16 +67,23 @@ export function ThemeLivePreview({
   const theme = React.useMemo<ThemeInput>(() => ({ ...state }), [state]);
 
   // Uploaded-font lookup for the resolver + the matching @font-face rule.
-  const customFont = React.useMemo(() => {
-    const id = parseCustomFontId(theme.fontFamily);
-    if (!id) return null;
-    return customFonts.find((f) => f.id === id) ?? null;
-  }, [theme.fontFamily, customFonts]);
+  // Covers both the site font and the card font refs.
+  const activeCustomFonts = React.useMemo(() => {
+    const ids = [
+      parseCustomFontId(theme.fontFamily),
+      parseCustomFontId(theme.cardFontFamily),
+    ].filter((id): id is number => id !== null);
+    return [...new Set(ids)]
+      .map((id) => customFonts.find((f) => f.id === id) ?? null)
+      .filter((f): f is CustomFontMeta => f !== null);
+  }, [theme.fontFamily, theme.cardFontFamily, customFonts]);
 
   const customFontsMap = React.useMemo(
     () =>
-      customFont ? new Map([[customFont.id, { family: customFont.family }]]) : undefined,
-    [customFont],
+      activeCustomFonts.length > 0
+        ? new Map(activeCustomFonts.map((f) => [f.id, { family: f.family }]))
+        : undefined,
+    [activeCustomFonts],
   );
 
   const { cssVars, background } = React.useMemo(() => {
@@ -89,7 +96,7 @@ export function ThemeLivePreview({
     };
   }, [theme, customFontsMap]);
 
-  const fontFaceCss = customFont ? buildFontFaceCss(customFont) : "";
+  const fontFaceCss = activeCustomFonts.map((f) => buildFontFaceCss(f)).join("\n");
 
   const cards = React.useMemo(() => {
     const links = mockLinks(tDemo);
@@ -189,8 +196,6 @@ export function ThemeLivePreview({
         >
           <div
             style={{
-              width: 64,
-              height: 64,
               borderRadius: "var(--lb-avatar-radius)",
               background: "var(--lb-avatar-gradient)",
               display: "flex",
@@ -209,7 +214,6 @@ export function ThemeLivePreview({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
               }}
             >{tDemo("demoAvatarInitial")}</div>
           </div>

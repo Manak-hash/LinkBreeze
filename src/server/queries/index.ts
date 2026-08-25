@@ -641,7 +641,10 @@ export async function getCustomFontLookup(): Promise<Map<number, { family: strin
   return new Map(rows.map((r) => [r.id, { family: r.family }]));
 }
 
-/** Themes currently referencing a custom font via fontFamily = "custom:<id>". */
+/**
+ * Themes currently referencing a custom font via fontFamily or
+ * cardFontFamily = "custom:<id>" (site font refs, card font refs, or both).
+ */
 export async function getThemesUsingCustomFont(
   fontId: number,
 ): Promise<Array<{ id: number; name: string }>> {
@@ -649,7 +652,7 @@ export async function getThemesUsingCustomFont(
   return db
     .select({ id: themes.id, name: themes.name })
     .from(themes)
-    .where(eq(themes.fontFamily, ref));
+    .where(or(eq(themes.fontFamily, ref), eq(themes.cardFontFamily, ref)));
 }
 
 export async function insertCustomFont(
@@ -673,10 +676,18 @@ export async function deleteCustomFont(
   fontId: number,
 ): Promise<{ affectedThemes: string[] }> {
   const affected = await getThemesUsingCustomFont(fontId);
+  const ref = `custom:${fontId}`;
   db.transaction((tx) => {
+    // Site font refs reset to Inter (the default); card font refs reset
+    // to "" (cards inherit the site font again). A theme with the deleted
+    // font in both columns gets each reset independently.
     tx.update(themes)
       .set({ fontFamily: "inter" })
-      .where(eq(themes.fontFamily, `custom:${fontId}`))
+      .where(eq(themes.fontFamily, ref))
+      .run();
+    tx.update(themes)
+      .set({ cardFontFamily: "" })
+      .where(eq(themes.cardFontFamily, ref))
       .run();
     tx.delete(customFonts).where(eq(customFonts.id, fontId)).run();
   });

@@ -50,6 +50,8 @@ export type CustomizerState = {
   textColor: string;
   mutedTextColor: string;
   fontFamily: string;
+  /** "" = cards inherit the site font; else a bundled id or "custom:<id>". */
+  cardFontFamily: string;
   fontScale: string;
   fontWeight: string;
   letterSpacing: string;
@@ -70,6 +72,7 @@ export type CustomizerState = {
   avatarShape: string;
   avatarBorder: string;
   avatarFloat: string;
+  /** "auto" or a px number string ("96"). */
   profileLayout: string;
   textAnimation: string;
 };
@@ -92,6 +95,7 @@ function stateFromTheme(active: ThemeRow): CustomizerState {
     textColor: active.textColor ?? "#eceafe",
     mutedTextColor: active.mutedTextColor ?? "",
     fontFamily: active.fontFamily ?? "inter",
+    cardFontFamily: active.cardFontFamily ?? "",
     fontScale: active.fontScale ?? "100",
     fontWeight: active.fontWeight ?? "500",
     letterSpacing: active.letterSpacing ?? "0",

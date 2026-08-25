@@ -104,6 +104,7 @@ const themeRowSchema = z.object({
   mode: z.string().optional(),
   // Typography
   fontFamily: z.string().optional(),
+  cardFontFamily: z.string().optional(),
   fontScale: z.string().optional(),
   fontWeight: z.string().optional(),
   letterSpacing: z.string().optional(),
@@ -172,6 +173,9 @@ const exportableThemeSchema = z.object({
   mode: z.string().max(10).optional().default("dark"),
   // Typography
   fontFamily: z.string().max(300),
+  // Separate card font — optional with default "" so pre-card-font exports
+  // import cleanly (cards just inherit the site font).
+  cardFontFamily: z.string().max(300).optional().default(""),
   fontScale: z.string().max(10).optional().default("md"),
   fontWeight: z.string().max(10).optional().default("600"),
   letterSpacing: z.string().max(20).optional().default("0"),
@@ -196,6 +200,8 @@ const exportableThemeSchema = z.object({
   avatarShape: z.string().max(20).optional().default("circle"),
   avatarBorder: z.string().max(20).optional().default("solid"),
   avatarFloat: z.string().max(10).optional().default("false"),
+  // Resizable avatar — optional with default "auto" so pre-slider exports
+  // import cleanly (shape-aware default size).
   profileLayout: z.string().max(20).optional().default("classic"),
   textAnimation: z.string().max(20).optional().default("none"),
   // Custom font payload (#82) — present when fontFamily is "custom:<id>".
@@ -203,6 +209,15 @@ const exportableThemeSchema = z.object({
   // importer writes the file and re-registers the font as a NEW row, so ids
   // never collide with fonts already on the target instance.
   customFont: z
+    .object({
+      name: z.string().min(1).max(60),
+      format: z.enum(["woff2", "woff"]),
+      data: z.string().min(1),
+    })
+    .optional(),
+  // Bytes for the card font when it references a DIFFERENT uploaded font
+  // than fontFamily (same shape as customFont).
+  cardCustomFont: z
     .object({
       name: z.string().min(1).max(60),
       format: z.enum(["woff2", "woff"]),
@@ -423,21 +438,20 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
   const theme = rows[0];
   if (!theme) throw new Error("Theme not found");
 
-  // Embed the uploaded font's bytes when the theme references one (#82) so
-  // the export file is self-contained. Missing file degrades to a reference
-  // (fontFamily stays "custom:<id>") — import then maps it to an existing
-  // font when possible, else falls back to Inter.
-  let customFont: ExportableTheme["customFont"];
-  const fontId = parseCustomFontId(theme.fontFamily);
-  if (fontId) {
-    const fontRows = await db.select().from(customFonts).where(eq(customFonts.id, fontId)).limit(1);
+  // Embed uploaded fonts' bytes so the export file is self-contained.
+  // Both the site font (#82) and the card font are embedded when they
+  // reference uploaded fonts; a missing file degrades to a reference only.
+  const embedFont = async (ref: string | null): Promise<ExportableTheme["customFont"]> => {
+    const fid = parseCustomFontId(ref);
+    if (!fid) return undefined;
+    const fontRows = await db.select().from(customFonts).where(eq(customFonts.id, fid)).limit(1);
     const font = fontRows[0];
     if (font && (font.format === "woff2" || font.format === "woff")) {
       try {
         const filename = font.url.split("/").pop();
         if (filename) {
           const bytes = await readFile(path.join(UPLOADS_DIR, filename));
-          customFont = {
+          return {
             name: font.name,
             format: font.format,
             data: bytes.toString("base64"),
@@ -447,7 +461,16 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
         // File gone from disk — export without the payload.
       }
     }
-  }
+    return undefined;
+  };
+
+  const customFont = await embedFont(theme.fontFamily);
+  // Only embed the card font separately when it differs from the site font;
+  // sharing one uploaded font embeds it once (customFont).
+  const cardCustomFont =
+    theme.cardFontFamily && theme.cardFontFamily !== theme.fontFamily
+      ? await embedFont(theme.cardFontFamily)
+      : undefined;
 
   return {
     version: 1,
@@ -470,6 +493,7 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     mutedTextColor: theme.mutedTextColor,
     mode: theme.mode,
     fontFamily: theme.fontFamily,
+    cardFontFamily: theme.cardFontFamily,
     fontScale: theme.fontScale,
     fontWeight: theme.fontWeight,
     letterSpacing: theme.letterSpacing,
@@ -493,6 +517,7 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     profileLayout: theme.profileLayout,
     textAnimation: theme.textAnimation,
     ...(customFont ? { customFont } : {}),
+    ...(cardCustomFont ? { cardCustomFont } : {}),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -521,45 +546,66 @@ export async function importTheme(json: string): Promise<ActionResult> {
     return conflictError("A theme with this name already exists");
   }
 
-  // Custom font (#82): embedded bytes are stored and registered as a NEW row;
-  // the theme's fontFamily is rewritten to the new "custom:<id>". Exports
-  // without a payload keep their reference only if that font already exists
-  // here (by name), else the theme falls back to Inter.
-  let fontFamily = t.fontFamily;
-  if (parseCustomFontId(t.fontFamily)) {
-    if (t.customFont) {
-      try {
-        const buffer = Buffer.from(t.customFont.data, "base64");
-        const sniffed = sniffFontFormat(buffer);
-        if (!sniffed || sniffed !== t.customFont.format) {
-          return validationError("Embedded font payload is not a valid " + t.customFont.format + " file");
-        }
-        if (buffer.length > 2 * 1024 * 1024) {
-          return validationError("Embedded font is too large (max 2 MB)");
-        }
-        await ensureUploadsDir();
-        const hexId = crypto.randomBytes(12).toString("hex");
-        const filename = `${hexId}.${sniffed}`;
-        await writeFile(path.join(UPLOADS_DIR, filename), buffer);
-        const row = await insertCustomFont({
-          name: t.customFont.name,
-          family: "",
-          filename: `${t.customFont.name}.${sniffed}`.slice(0, 120),
-          url: `/api/uploads/${filename}`,
-          sizeBytes: buffer.length,
-          format: sniffed,
-        });
-        await updateCustomFontFamily(row.id, customFontFamily(row.id));
-        fontFamily = `custom:${row.id}`;
-      } catch {
-        return validationError("Could not restore the embedded font file");
-      }
-    } else {
+  // Custom fonts (#82 + card font): embedded bytes are stored and
+  // registered as NEW rows; the theme's refs are rewritten to the new
+  // "custom:<id>"s. Exports without a payload keep their reference only
+  // if the cache below already holds it (both fields pointed at the same
+  // uploaded font on the source instance), else the site font falls back
+  // to Inter and the card font to "" (inherit the site font).
+  const restoredRefs = new Map<string, string>();
+  const restoreFont = async (
+    ref: string,
+    payload: ExportableTheme["customFont"],
+    fallback: string,
+  ): Promise<string> => {
+    if (!parseCustomFontId(ref)) return ref;
+    const cached = restoredRefs.get(ref);
+    if (cached) return cached;
+    if (!payload) {
       // No embedded payload — the "custom:<id>" refers to an id from the
       // instance that exported the theme, which is meaningless here. Reset
-      // to the default font rather than keep a dangling reference.
-      fontFamily = "inter";
+      // rather than keep a dangling reference.
+      return fallback;
     }
+    const buffer = Buffer.from(payload.data, "base64");
+    const sniffed = sniffFontFormat(buffer);
+    if (!sniffed || sniffed !== payload.format) {
+      throw new Error("Embedded font payload is not a valid " + payload.format + " file");
+    }
+    if (buffer.length > 2 * 1024 * 1024) {
+      throw new Error("Embedded font is too large (max 2 MB)");
+    }
+    try {
+      await ensureUploadsDir();
+      const hexId = crypto.randomBytes(12).toString("hex");
+      const filename = `${hexId}.${sniffed}`;
+      await writeFile(path.join(UPLOADS_DIR, filename), buffer);
+      const row = await insertCustomFont({
+        name: payload.name,
+        family: "",
+        filename: `${payload.name}.${sniffed}`.slice(0, 120),
+        url: `/api/uploads/${filename}`,
+        sizeBytes: buffer.length,
+        format: sniffed,
+      });
+      await updateCustomFontFamily(row.id, customFontFamily(row.id));
+      const newRef = `custom:${row.id}`;
+      restoredRefs.set(ref, newRef);
+      return newRef;
+    } catch {
+      throw new Error("Could not restore the embedded font file");
+    }
+  };
+
+  let fontFamily: string;
+  let cardFontFamily: string;
+  try {
+    fontFamily = await restoreFont(t.fontFamily, t.customFont, "inter");
+    cardFontFamily = await restoreFont(t.cardFontFamily, t.cardCustomFont, "");
+  } catch (err) {
+    return validationError(
+      err instanceof Error ? err.message : "Invalid theme file",
+    );
   }
 
   await db.insert(themes).values({
@@ -580,6 +626,7 @@ export async function importTheme(json: string): Promise<ActionResult> {
     mutedTextColor: t.mutedTextColor,
     mode: t.mode,
     fontFamily,
+    cardFontFamily,
     fontScale: t.fontScale,
     fontWeight: t.fontWeight,
     letterSpacing: t.letterSpacing,

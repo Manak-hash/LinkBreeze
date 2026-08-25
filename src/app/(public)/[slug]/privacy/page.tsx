@@ -76,16 +76,23 @@ export default async function PrivacyPage({
   const useAurora = isAnimatedAurora(themeInput);
   const background = resolveBackground(themeInput);
 
-  // Uploaded font (#82): same resolution as the public page — missing row
-  // falls back to the default font via the resolver.
-  const customFontId = parseCustomFontId(themeInput.fontFamily);
+  // Uploaded fonts (#82): same resolution as the public page — both the
+  // site font and the card font may reference uploaded fonts; missing
+  // rows fall back to the default font via the resolver.
+  const customFontIds = [
+    parseCustomFontId(themeInput.fontFamily),
+    parseCustomFontId(themeInput.cardFontFamily),
+  ].filter((id): id is number => id !== null);
   let fontFaceCss: string | undefined;
   let customFontLookup: Map<number, { family: string }> | undefined;
-  if (customFontId) {
-    const fontRow = await getCustomFontById(customFontId);
-    if (fontRow) {
-      fontFaceCss = buildFontFaceCss(fontRow);
-      customFontLookup = new Map([[fontRow.id, { family: fontRow.family }]]);
+  if (customFontIds.length > 0) {
+    const rows = await Promise.all(
+      [...new Set(customFontIds)].map((id) => getCustomFontById(id)),
+    );
+    const found = rows.filter((r): r is NonNullable<typeof r> => r !== null);
+    if (found.length > 0) {
+      fontFaceCss = found.map((r) => buildFontFaceCss(r)).join("\n");
+      customFontLookup = new Map(found.map((r) => [r.id, { family: r.family }]));
     }
   }
 

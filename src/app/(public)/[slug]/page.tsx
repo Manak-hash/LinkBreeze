@@ -189,17 +189,25 @@ export default async function PublicPage({ params }: PageProps) {
 
   const themeInput: ThemeInput = theme ?? {};
 
-  // Uploaded font (#82): resolve "custom:<id>" to an @font-face rule + lookup
-  // map so the token resolver emits the right family stack. Missing row →
-  // resolver falls back to the default font (never a broken stack).
-  const customFontId = parseCustomFontId(themeInput.fontFamily);
+  // Uploaded fonts (#82): resolve "custom:<id>" refs to @font-face rules +
+  // a lookup map so the token resolver emits the right family stacks.
+  // Both the site font AND the card font may reference uploaded fonts.
+  // Missing rows → resolver falls back to the default font (never a
+  // broken stack).
+  const customFontIds = [
+    parseCustomFontId(themeInput.fontFamily),
+    parseCustomFontId(themeInput.cardFontFamily),
+  ].filter((id): id is number => id !== null);
   let fontFaceCss: string | undefined;
   let customFontLookup: Map<number, { family: string }> | undefined;
-  if (customFontId) {
-    const fontRow = await getCustomFontById(customFontId);
-    if (fontRow) {
-      fontFaceCss = buildFontFaceCss(fontRow);
-      customFontLookup = new Map([[fontRow.id, { family: fontRow.family }]]);
+  if (customFontIds.length > 0) {
+    const rows = await Promise.all(
+      [...new Set(customFontIds)].map((id) => getCustomFontById(id)),
+    );
+    const found = rows.filter((r): r is NonNullable<typeof r> => r !== null);
+    if (found.length > 0) {
+      fontFaceCss = found.map((r) => buildFontFaceCss(r)).join("\n");
+      customFontLookup = new Map(found.map((r) => [r.id, { family: r.family }]));
     }
   }
 

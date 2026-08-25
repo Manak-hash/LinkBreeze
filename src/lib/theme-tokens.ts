@@ -50,6 +50,12 @@ export interface ThemeInput {
   secondaryColor?: string | null;
   cardBackground?: string | null;
   cardBorderColor?: string | null;
+  /**
+   * Optional second font applied to link cards only. Same identifier
+   * space as fontFamily (bundled id, "custom:<id>", legacy raw CSS).
+   * Empty/null = cards inherit the site font.
+   */
+  cardFontFamily?: string | null;
   textColor?: string | null;
   mutedTextColor?: string | null;
 
@@ -360,6 +366,13 @@ function resolveAvatarRadius(shape: string): string {
   }
 }
 
+/**
+ * Avatar diameter in px. "auto" (the default) keeps the pre-slider look:
+ * the 94px box the public header historically rendered (90px image + 2px
+ * padding). Numeric strings are clamped to the same 48–180 range the
+ * customizer slider and Zod enforce; garbage falls back to auto.
+ */
+
 // ─── Reveal animation resolver ──────────────────────────────────────────────
 
 /** Keyframe name for each reveal animation type. */
@@ -435,6 +448,13 @@ export function resolveThemeTokens(
   const alignment = resolveAlignment(theme.alignment);
   const font = resolveFont(theme.fontFamily, options?.customFonts);
 
+  // Card font: empty/absent → "inherit" so the card builder emits nothing
+  // and the card rides the site font. Any other value resolves through the
+  // same registry + custom-font lookup as the site font.
+  const cardFont = theme.cardFontFamily?.trim()
+    ? resolveFont(theme.cardFontFamily, options?.customFonts)
+    : "inherit";
+
   // Glow effect
   const glowEnabled = truthy(theme.glow);
   const glowColor = str(theme.glowColor, accent);
@@ -463,6 +483,9 @@ export function resolveThemeTokens(
     "--lb-media-radius": `min(${cardRadius}, 24px)`,
     "--lb-btn-text": btnText,
     "--lb-font": font,
+    // Link cards consume this; "inherit" (the default) means the card
+    // builder emits no font-family and the card rides --lb-font above.
+    "--lb-card-font": cardFont,
     "--lb-font-size": fontSize,
     "--lb-font-weight": fontWeight,
     "--lb-letter-spacing": letterSpacing,
