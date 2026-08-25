@@ -84,6 +84,37 @@ describe("avatar tokens", () => {
   });
 });
 
+// ─── Avatar size (resizable avatar) ─────────────────────────────────────────
+
+describe("avatar size token", () => {
+  it("defaults to 94px when the field is absent (pre-slider look)", () => {
+    const { cssVars } = resolveThemeTokens({});
+    expect(cssVars["--lb-avatar-size"]).toBe("94px");
+  });
+
+  it("'auto' resolves to the same 94px default", () => {
+    const { cssVars } = resolveThemeTokens({ avatarSize: "auto" });
+    expect(cssVars["--lb-avatar-size"]).toBe("94px");
+  });
+
+  it("numeric strings resolve to their px value", () => {
+    for (const size of ["72", "120", "160"]) {
+      const { cssVars } = resolveThemeTokens({ avatarSize: size });
+      expect(cssVars["--lb-avatar-size"]).toBe(`${size}px`);
+    }
+  });
+
+  it("clamps out-of-range values to 48–180", () => {
+    expect(resolveThemeTokens({ avatarSize: "10" }).cssVars["--lb-avatar-size"]).toBe("48px");
+    expect(resolveThemeTokens({ avatarSize: "999" }).cssVars["--lb-avatar-size"]).toBe("180px");
+  });
+
+  it("garbage values fall back to the auto default", () => {
+    const { cssVars } = resolveThemeTokens({ avatarSize: "huge" });
+    expect(cssVars["--lb-avatar-size"]).toBe("94px");
+  });
+});
+
 // ─── Text animation pass-through (rendered by ProfileHeader) ────────────────
 
 describe("textAnimation values", () => {

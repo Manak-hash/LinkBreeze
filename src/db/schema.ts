@@ -163,6 +163,7 @@ export const themes = sqliteTable("themes", {
   avatarFloat: text("avatar_float").notNull().default("false"),
   // Avatar diameter in px as a string ("96"). "auto" = the pre-slider
   // behavior (a shape-aware default the resolver computes).
+  avatarSize: text("avatar_size").notNull().default("auto"),
   profileLayout: text("profile_layout").notNull().default("classic"), // classic, hero, banner
   textAnimation: text("text_animation").notNull().default("none"), // none, typewriter, gradient-flow
 

@@ -73,6 +73,7 @@ export type CustomizerState = {
   avatarBorder: string;
   avatarFloat: string;
   /** "auto" or a px number string ("96"). */
+  avatarSize: string;
   profileLayout: string;
   textAnimation: string;
 };
@@ -116,6 +117,7 @@ function stateFromTheme(active: ThemeRow): CustomizerState {
     avatarShape: active.avatarShape ?? "circle",
     avatarBorder: active.avatarBorder ?? "solid",
     avatarFloat: active.avatarFloat ?? "false",
+    avatarSize: active.avatarSize ?? "auto",
     profileLayout: active.profileLayout ?? "classic",
     textAnimation: active.textAnimation ?? "none",
   };

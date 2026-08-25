@@ -148,6 +148,13 @@
       "when": 1966777700000,
       "tag": "0020_card_font",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1966777700100,
+      "tag": "0021_avatar_size",
+      "breakpoints": true
     }
   ]
 }

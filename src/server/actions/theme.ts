@@ -112,6 +112,7 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     avatarShape: formData.get("avatarShape") || undefined,
     avatarBorder: formData.get("avatarBorder") || undefined,
     avatarFloat: formData.get("avatarFloat") || undefined,
+    avatarSize: formData.get("avatarSize") || undefined,
     profileLayout: formData.get("profileLayout") || undefined,
     textAnimation: formData.get("textAnimation") || undefined,
   });

@@ -196,6 +196,8 @@ export function ThemeLivePreview({
         >
           <div
             style={{
+              width: "var(--lb-avatar-size, 64px)",
+              height: "var(--lb-avatar-size, 64px)",
               borderRadius: "var(--lb-avatar-radius)",
               background: "var(--lb-avatar-gradient)",
               display: "flex",
@@ -214,6 +216,7 @@ export function ThemeLivePreview({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                fontSize: "calc(var(--lb-avatar-size, 64px) * 0.34)",
               }}
             >{tDemo("demoAvatarInitial")}</div>
           </div>

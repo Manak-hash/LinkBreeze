@@ -97,6 +97,8 @@ export interface ThemeInput {
   avatarShape?: string | null;
   avatarBorder?: string | null;
   avatarFloat?: boolean | string | number | null;
+  /** Avatar diameter ("96") or "auto" — see resolveAvatarSize. */
+  avatarSize?: string | null;
   profileLayout?: string | null;
   textAnimation?: string | null;
 
@@ -372,6 +374,13 @@ function resolveAvatarRadius(shape: string): string {
  * padding). Numeric strings are clamped to the same 48–180 range the
  * customizer slider and Zod enforce; garbage falls back to auto.
  */
+export function resolveAvatarSize(size: string | null | undefined): string {
+  const raw = size?.trim();
+  if (!raw || raw === "auto") return "94px";
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num <= 0) return "94px";
+  return `${Math.round(Math.min(Math.max(num, 48), 180))}px`;
+}
 
 // ─── Reveal animation resolver ──────────────────────────────────────────────
 
@@ -501,6 +510,7 @@ export function resolveThemeTokens(
     "--lb-noise": noiseEnabled ? "1" : "0",
     // Avatar styling (1.3): shape → radius, border → ring/glow/gradient
     "--lb-avatar-radius": resolveAvatarRadius(str(theme.avatarShape, "circle")),
+    "--lb-avatar-size": resolveAvatarSize(theme.avatarSize),
     "--lb-avatar-border": accent,
     "--lb-avatar-glow": glowValue,
     "--lb-avatar-gradient": `linear-gradient(135deg, ${accent}, ${secondary})`,

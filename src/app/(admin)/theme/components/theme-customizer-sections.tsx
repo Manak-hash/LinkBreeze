@@ -503,6 +503,17 @@ export function ProfileSection({ s, set }: { s: CustomizerState; set: SetFn }) {
           onChange={(v) => set({ avatarBorder: v })}
           options={AVATAR_BORDERS}
         />
+        <SliderField
+          label={t("avatarSize")}
+          name="avatarSize"
+          value={s.avatarSize === "auto" ? "auto" : parseInt(s.avatarSize, 10) || 0}
+          onChange={(v) => set({ avatarSize: v === "auto" ? "auto" : String(v) })}
+          min={48}
+          max={180}
+          step={2}
+          unit="px"
+          autoValue="auto"
+        />
         <ToggleField
           label={t("floatingAvatar")}
           name="avatarFloat"

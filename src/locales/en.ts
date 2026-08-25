@@ -546,6 +546,7 @@ const en = {
     displayNameAnimation: "Display name animation",
     avatarShape: "Avatar shape",
     avatarBorder: "Avatar border",
+    avatarSize: "Avatar size",
     floatingAvatar: "Floating avatar",
     badge: "Badge",
     deleteTheme: "Delete theme",

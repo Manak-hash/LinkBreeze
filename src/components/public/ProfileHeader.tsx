@@ -11,8 +11,10 @@ interface ProfileHeaderProps {
 
 /**
  * Avatar block shared by all layouts. Consumes the avatar tokens resolved
+ * from the theme: --lb-avatar-radius (shape), --lb-avatar-size (diameter),
  * --lb-avatar-border (accent), --lb-avatar-glow, --lb-avatar-gradient.
  *
+ * Sizing: the wrapper takes the theme's diameter (--lb-avatar-size, 94px
  * when "auto"); the image inside fills it minus the border padding so a
  * larger avatar never overflows its ring. Ring borders (padding 6) shrink
  * the image a little more — same visual as before at the default size.
@@ -35,11 +37,7 @@ function Avatar({
   // Ring borders add 6px padding (vs 2px default) — subtract the difference
   // so the outer box stays the theme's diameter either way.
   const ringPad = borderStyle.padding === 6 ? 6 : 2;
-  // Pre-slider sizing: the historic 90px image (94px box with default 2px
-  // padding, 96px for rings) — kept identical so this variant renders
-  // exactly as before avatar sizing existed.
-  const inner = 90;
-  const outer = inner + ringPad * 2;
+  const inner = `calc(var(--lb-avatar-size, 94px) - ${(ringPad * 2)}px)`;
 
   // Reveal lives on the wrapper; float on the inner box. Both are `animation`
   // so they'd clobber each other on the same element.
@@ -49,9 +47,9 @@ function Avatar({
         className={`lb-pixel-avatar mb-4 ${floatClass ?? ""}`}
         style={{
           ...borderStyle,
-          width: outer,
-          height: outer,
           padding: ringPad,
+          width: "var(--lb-avatar-size, 94px)",
+          height: "var(--lb-avatar-size, 94px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -75,6 +73,7 @@ function Avatar({
             style={{
               width: inner,
               height: inner,
+              fontSize: "calc(var(--lb-avatar-size, 94px) * 0.4)",
               background: "var(--lb-card-bg)",
               color: "var(--lb-accent)",
               borderRadius: radius,

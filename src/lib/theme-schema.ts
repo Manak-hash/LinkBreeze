@@ -95,6 +95,13 @@ export const customSchema = z.object({
   avatarShape: z.enum(["circle", "squircle", "rounded", "square"]).optional(),
   avatarBorder: z.enum(["solid", "gradient", "glow", "ring", "none"]).optional(),
   avatarFloat: z.enum(["true", "false"]).optional(),
+  // Avatar diameter in px ("72"–"160") or "auto" (shape-aware default).
+  avatarSize: z
+    .string()
+    .max(10)
+    .regex(/^auto$|^\d+$/, "Invalid avatar size")
+    .refine((v) => v === "auto" || (Number(v) >= 48 && Number(v) <= 180), "Avatar size out of range")
+    .optional(),
   profileLayout: z.enum(["classic", "hero", "banner"]).optional(),
   textAnimation: z.enum(["none", "typewriter", "gradient-flow"]).optional(),
 });

@@ -110,6 +110,26 @@ describe("duplicateTheme clones all 1.3 fields", () => {
   });
 });
 
+describe("migration 0021 — avatar size column", () => {
+  it("adds avatar_size with the 'auto' default", async () => {
+    const t = await seedTheme("m21-default");
+    expect(t.avatarSize).toBe("auto");
+  });
+
+  it("updateTheme persists an explicit size", async () => {
+    const t = await seedTheme("m21-update");
+    await updateTheme(t.id, { avatarSize: "120" } as never);
+    const row = await getThemeById(t.id);
+    expect(row?.avatarSize).toBe("120");
+  });
+
+  it("duplicateTheme copies the avatar size", async () => {
+    const t = await seedTheme("m21-dup-source", { avatarSize: "72" });
+    const dup = await duplicateTheme(t.id, "m21-dup-copy");
+    expect(dup.avatarSize).toBe("72");
+  });
+});
+
 describe("getPagesUsingTheme", () => {
   it("lists pages rendering a given theme", async () => {
     const { getPagesUsingTheme, createPage } = await import("@/server/queries");

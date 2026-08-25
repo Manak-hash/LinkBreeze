@@ -63,6 +63,7 @@ export interface ThemePreset {
   avatarBorder: string;
   avatarFloat: string;
   /** "auto" keeps the shape-aware default; else a px number as a string. */
+  avatarSize: string;
   profileLayout: string;
   textAnimation: string;
 
@@ -101,6 +102,7 @@ export const base: Omit<ThemePreset, "name" | "backgroundType" | "backgroundValu
   avatarShape: "circle",
   avatarBorder: "solid",
   avatarFloat: "false",
+  avatarSize: "auto",
   profileLayout: "classic",
   textAnimation: "none",
 };

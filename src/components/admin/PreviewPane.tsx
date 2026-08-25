@@ -81,7 +81,19 @@ function ActivePageResolver({
 
   return (
     <PreviewContext.Provider value={contextValue}>
-      {children}
+      {/* When the desktop pane is open, reserve its exact width (360px at lg,
+          400px at xl) as padding so the admin shell — sidebar AND content on
+          every page — resizes instead of being covered. Without this the
+          pane overlays the right edge of forms and they can't be used. */}
+      <div
+        className={
+          open && previewUrl
+            ? "lg:pr-[360px] xl:pr-[400px] transition-[padding] duration-200 ease-out"
+            : "transition-[padding] duration-200 ease-out"
+        }
+      >
+        {children}
+      </div>
       {previewUrl && open && (
         <PreviewOverlay
           src={previewUrl}

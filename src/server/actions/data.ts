@@ -129,6 +129,7 @@ const themeRowSchema = z.object({
   avatarShape: z.string().optional(),
   avatarBorder: z.string().optional(),
   avatarFloat: z.string().optional(),
+  avatarSize: z.string().optional(),
   profileLayout: z.string().optional(),
   textAnimation: z.string().optional(),
   // Meta
@@ -202,6 +203,7 @@ const exportableThemeSchema = z.object({
   avatarFloat: z.string().max(10).optional().default("false"),
   // Resizable avatar — optional with default "auto" so pre-slider exports
   // import cleanly (shape-aware default size).
+  avatarSize: z.string().max(10).optional().default("auto"),
   profileLayout: z.string().max(20).optional().default("classic"),
   textAnimation: z.string().max(20).optional().default("none"),
   // Custom font payload (#82) — present when fontFamily is "custom:<id>".
@@ -514,6 +516,7 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     avatarShape: theme.avatarShape,
     avatarBorder: theme.avatarBorder,
     avatarFloat: theme.avatarFloat,
+    avatarSize: theme.avatarSize,
     profileLayout: theme.profileLayout,
     textAnimation: theme.textAnimation,
     ...(customFont ? { customFont } : {}),
@@ -647,6 +650,7 @@ export async function importTheme(json: string): Promise<ActionResult> {
     avatarShape: t.avatarShape,
     avatarBorder: t.avatarBorder,
     avatarFloat: t.avatarFloat,
+    avatarSize: t.avatarSize,
     profileLayout: t.profileLayout,
     textAnimation: t.textAnimation,
     isActive: false,
