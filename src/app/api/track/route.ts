@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
 
   const type = body.type;
   // View tracking moved server-side to [slug]/page.tsx (Issue #40).
-  // This endpoint is now click-only to prevent duplicate/orphaned pageviews.
-  if (type !== "click") {
+  // This endpoint is now click tracking + popup-open tracking (#93), both
+  // written to analytics_clicks distinguished by event_type.
+  if (type !== "click" && type !== "open") {
     return NextResponse.json({ ok: false, error: "Invalid type" }, { status: 400 });
   }
 
@@ -79,11 +80,11 @@ export async function POST(request: NextRequest) {
       body.referrer || (h.get("referer") || h.get("referrer") || "").toString(),
     );
 
-    // Endpoint is click-only — view tracking moved to [slug]/page.tsx.
+    // Click + popup-open events (#93), distinguished by event_type.
     if (typeof body.linkId !== "number" || Number.isNaN(body.linkId)) {
       return NextResponse.json({ ok: false, error: "Missing linkId" }, { status: 400 });
     }
-    await recordClick(body.linkId, visitorHash, referrer);
+    await recordClick(body.linkId, visitorHash, referrer, type === "open" ? "open" : "click");
 
     return NextResponse.json({ ok: true });
   } catch (err) {

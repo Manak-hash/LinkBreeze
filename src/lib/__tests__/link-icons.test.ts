@@ -146,6 +146,8 @@ describe("buildLinkCardHtml icon modes (#91)", () => {
       scheduleEnd: null,
       clicksCount: 0,
       cardStyle: "compact",
+      popupText: null,
+      ctaLabel: null,
       createdAt: "2026-01-01 00:00:00",
     } as const;
     const html = buildLinkCardHtml({ link: base, theme: {} as never, index: 0 });
@@ -179,6 +181,8 @@ describe("buildLinkCardHtml icon modes (#91)", () => {
       scheduleEnd: null,
       clicksCount: 0,
       cardStyle: "compact",
+      popupText: null,
+      ctaLabel: null,
       createdAt: "2026-01-01 00:00:00",
     };
     const html = buildLinkCardHtml({ link, theme: {} as never, index: 0 });
@@ -208,6 +212,8 @@ describe("buildLinkCardHtml icon modes (#91)", () => {
       scheduleEnd: null,
       clicksCount: 0,
       cardStyle: "compact",
+      popupText: null,
+      ctaLabel: null,
       createdAt: "2026-01-01 00:00:00",
     };
     const html = buildLinkCardHtml({ link, theme: {} as never, index: 0 });

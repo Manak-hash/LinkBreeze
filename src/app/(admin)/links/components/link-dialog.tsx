@@ -125,6 +125,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
 
   // UTM state — only relevant for type === "url"
   const isUrlType = type === "url";
+  // #93 popup types share the popup fields (body, CTA).
+  const isPopupType = type === "text" || type === "location";
+  const isTextPopup = type === "text";
   const storedUrl = editing?.url ?? "";
   const hadUTM = isUrlType && hasUTM(storedUrl);
   const [showUTM, setShowUTM] = React.useState(hadUTM);
@@ -159,8 +162,16 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   // If user switches away from "url" type, collapse UTM (values preserved).
   const utmVisible = isUrlType && showUTM;
 
-  const urlLabel = t(getUrlLabel(type));
-  const urlPlaceholder = t(getUrlPlaceholder(type));
+  const urlLabel = isPopupType
+    ? isTextPopup
+      ? t("ctaUrlLabel")
+      : t("ltLocationLabel")
+    : t(getUrlLabel(type));
+  const urlPlaceholder = isPopupType
+    ? isTextPopup
+      ? t("phCtaUrl")
+      : t("phLocation")
+    : t(getUrlPlaceholder(type));
 
   // For the URL field default: show the clean URL (UTM stripped) so the
   // user sees the base URL separately from the UTM builder.
@@ -258,16 +269,44 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
             />
           </FormField>
 
-          <FormField label={urlLabel} htmlFor="url" required>
+          <FormField label={urlLabel} htmlFor="url" required={!isTextPopup}>
             <Input
               id="url"
               name="url"
               defaultValue={urlDefault}
-              required
+              required={!isTextPopup}
               maxLength={2048}
               placeholder={urlPlaceholder}
             />
           </FormField>
+
+          {/* #93 popup cards: body text (markdown subset) + optional CTA
+              label. The URL field above doubles as CTA target (text) or
+              place/address input (location) — labels swap per type. */}
+          {isPopupType ? (
+            <FormField label={t("popupTextLabel")} htmlFor="popupText" required={isTextPopup}>
+              <textarea
+                id="popupText"
+                name="popupText"
+                defaultValue={editing?.popupText ?? ""}
+                rows={6}
+                maxLength={5000}
+                placeholder={t("phPopupText")}
+                className="flex min-h-[120px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-violet focus-visible:ring-2 focus-visible:ring-violet/20 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </FormField>
+          ) : null}
+          {isPopupType ? (
+            <FormField label={t("ctaLabel")} htmlFor="ctaLabel">
+              <Input
+                id="ctaLabel"
+                name="ctaLabel"
+                defaultValue={editing?.ctaLabel ?? ""}
+                maxLength={80}
+                placeholder={isTextPopup ? t("phCtaLabel") : t("phCtaLabelLocation")}
+              />
+            </FormField>
+          ) : null}
 
           {/* Description + Thumbnail: both optional one-liners — natural peers
               on a shared row (stacked on narrow screens). */}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAllowedLinkUrl } from "@/lib/link-url";
+import { isAllowedLinkUrl, buildMapsUrl, mapEmbedSrc, isMapsShortLink } from "@/lib/link-url";
 
 describe("isAllowedLinkUrl", () => {
   it("allows regular http and https links", () => {
@@ -31,5 +31,72 @@ describe("isAllowedLinkUrl", () => {
   it("allows local file paths without protocol-relative URLs", () => {
     expect(isAllowedLinkUrl("file", "/uploads/demo.pdf")).toBe(true);
     expect(isAllowedLinkUrl("file", "//evil.example/file.pdf")).toBe(false);
+  });
+});
+
+describe("buildMapsUrl", () => {
+  it("wraps a raw place query into a Maps search URL", () => {
+    expect(buildMapsUrl("Hassan II Mosque, Casablanca")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Hassan%20II%20Mosque%2C%20Casablanca",
+    );
+  });
+
+  it("passes through full Google Maps URLs untouched (keeps pin/coords)", () => {
+    const pasted = "https://www.google.com/maps/place/Hassan+II+Mosque/@33.6083,-7.6325,17z";
+    expect(buildMapsUrl(pasted)).toBe(pasted);
+  });
+
+  it("accepts google.com without www and upgrades http to https", () => {
+    expect(buildMapsUrl("http://google.com/maps/place/X/@33.6,-7.6,17z")).toBe(
+      "https://google.com/maps/place/X/@33.6,-7.6,17z",
+    );
+  });
+
+  it("accepts maps.google.com hosts", () => {
+    expect(buildMapsUrl("https://maps.google.com/?q=Casablanca")).toBe(
+      "https://maps.google.com/?q=Casablanca",
+    );
+  });
+
+  it("recognizes mobile share short links", () => {
+    expect(isMapsShortLink("https://maps.app.goo.gl/AbCdEf123?g_st=ic")).toBe(true);
+    expect(isMapsShortLink("https://goo.gl/maps/AbCdEf123")).toBe(true);
+    expect(isMapsShortLink("https://www.google.com/maps")).toBe(false);
+    expect(isMapsShortLink("Hassan II Mosque")).toBe(false);
+  });
+});
+
+describe("mapEmbedSrc", () => {
+  it("reads the query param from our constructed search URLs", () => {
+    expect(mapEmbedSrc("https://www.google.com/maps/search/?api=1&query=Koutoubia%20Mosque")).toBe(
+      "https://maps.google.com/maps?q=Koutoubia%20Mosque&output=embed",
+    );
+  });
+
+  it("extracts exact coordinates (with zoom) from pasted place URLs", () => {
+    expect(
+      mapEmbedSrc("https://www.google.com/maps/place/Hassan+II+Mosque/@33.6083,-7.6325,17z"),
+    ).toBe("https://maps.google.com/maps?q=33.6083,-7.6325&z=17&output=embed");
+  });
+
+  it("falls back to the place name when coords are absent", () => {
+    expect(mapEmbedSrc("https://www.google.com/maps/place/Koutoubia+Mosque/")).toBe(
+      "https://maps.google.com/maps?q=Koutoubia%20Mosque&output=embed",
+    );
+  });
+
+  it("handles the ?q= param shape and bare coords", () => {
+    expect(mapEmbedSrc("https://maps.google.com/?q=Casablanca")).toBe(
+      "https://maps.google.com/maps?q=Casablanca&output=embed",
+    );
+    expect(mapEmbedSrc("https://www.google.com/maps/@33.6,-7.6,15z")).toBe(
+      "https://maps.google.com/maps?q=33.6,-7.6&z=15&output=embed",
+    );
+  });
+
+  it("returns null for non-maps garbage", () => {
+    expect(mapEmbedSrc("javascript:alert(1)")).toBeNull();
+    expect(mapEmbedSrc("not a url")).toBeNull();
+    expect(mapEmbedSrc("https://example.com/nothing")).toBeNull();
   });
 });

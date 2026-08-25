@@ -225,6 +225,219 @@
 /* ── Pixel (8-bit) hover: hard shadow, no blur ──────────────────────────── */
 .lb-link-card[data-pixel="true"]:hover { box-shadow: 6px 6px 0 var(--lb-accent); }
 
+/* ── Popup card dialogs (#93: text + location) ──────────────────────────── */
+/* Native <dialog> themed entirely from --lb-* tokens so every theme dresses */
+/* it. Skins layer on top via the page-level mode classes (lb-gel-mode,      */
+/* lb-pixel-mode) and data attributes on the card. Backdrop always dims so   */
+/* text contrast holds even when the panel itself is translucent.            */
+
+.lb-popup-dialog {
+  /* Tailwind's preflight zeroes margin on every element, which kills the
+     native <dialog> margin:auto centering (modal dialogs center via
+     position:fixed + inset:0 + margin:auto). Restore it explicitly. */
+  margin: auto;
+  /* Opaque-enough base derived from the text color: guarantees readable
+     body text under translucent glass/gel themes. The second layer mixes
+     toward solid if the theme's card bg carries alpha, keeping a floor. */
+  background: color-mix(in srgb, var(--lb-text) 7%, var(--lb-card-bg));
+  border: var(--lb-border-width) solid var(--lb-card-border);
+  border-radius: min(var(--lb-card-radius), 24px);
+  color: var(--lb-text);
+  font-family: var(--lb-font);
+  padding: 0;
+  width: min(92vw, 480px);
+  max-width: 100%;
+  max-height: 85vh;
+  box-shadow: var(--lb-shadow);
+}
+.lb-popup-dialog:not([open]) { display: none; }
+.lb-popup-dialog::backdrop {
+  background: rgb(0 0 0 / .55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.lb-popup-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 85vh;
+  border-radius: inherit;
+  overflow: hidden;
+}
+/* Mobile-sheet anatomy at EVERY size: map pinned top (no shrink), body is
+   the only scroll region (flex 1 + min-height 0), CTA anchored at bottom
+   and always visible no matter how long the text is. */
+.lb-popup-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px 20px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lb-popup-title {
+  margin: 0 36px 8px 0;
+  font-size: calc(var(--lb-font-size) + 4px);
+  font-weight: calc(var(--lb-font-weight) + 100);
+  letter-spacing: var(--lb-letter-spacing);
+}
+.lb-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 30px;
+  height:  30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--lb-border-width) solid var(--lb-card-border);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--lb-card-bg) 78%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--lb-text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lb-popup-close:hover { color: var(--lb-text); background: color-mix(in srgb, var(--lb-text) 10%, transparent); }
+
+/* Markdown body (subset renderer — see markdown-lite-string.ts) */
+.lb-popup-body { font-size: var(--lb-font-size); line-height: 1.55; }
+.lb-popup-body .lb-md-p { margin: 0 0 10px; color: var(--lb-text); }
+.lb-popup-body .lb-md-h1, .lb-popup-body .lb-md-h2 {
+  margin: 14px 0 8px;
+  font-weight: calc(var(--lb-font-weight) + 200);
+  color: var(--lb-text);
+}
+.lb-popup-body .lb-md-h1 { font-size: calc(var(--lb-font-size) + 3px); }
+.lb-popup-body .lb-md-h2 { font-size: calc(var(--lb-font-size) + 1px); }
+.lb-popup-body .lb-md-list { margin: 4px 0 10px; padding-left: 20px; color: var(--lb-text); }
+.lb-popup-body .lb-md-list li { margin: 3px 0; }
+.lb-popup-body code {
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: .85em;
+  font-family: var(--lb-font-mono, monospace);
+  background: color-mix(in srgb, var(--lb-accent) 12%, transparent);
+}
+
+/* CTA — layout only; colors/border/radius come from the same inline token
+   styles + skin classes (lb-gel-btn / lb-pixel-clip lb-pixel-shadow) the
+   email-capture subscribe button uses, so the two are pixel-identical in
+   every skin. Metrics mirror the form button: py-2.5 px-5, text-sm,
+   font-medium, hover dims instead of jumping. */
+.lb-popup-cta {
+  display: block;
+  flex: 0 0 auto;
+  margin: 4px 16px 16px;
+  padding: var(--lb-btn-padding-y, 10px) var(--lb-btn-padding-x, 20px);
+  font-size: .875rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  letter-spacing: var(--lb-letter-spacing);
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.lb-popup-cta:hover { opacity: .9; }
+
+/* Location map: full-bleed top block, ~16:10 — never shrinks away */
+.lb-popup-map-wrap { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 16 / 10; background: var(--lb-card-bg); }
+.lb-popup-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Open animation (reduced-motion safe) */
+@keyframes lb-popup-in {
+  from { opacity: 0; transform: scale(.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.lb-popup-dialog[open] { animation: lb-popup-in .18s ease-out; }
+
+/* Gel skin: glossy panel with specular arc */
+main.lb-gel-mode .lb-popup-dialog {
+  border: var(--lb-border-width) solid var(--lb-card-border) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.18) 42%, color-mix(in srgb, var(--lb-text) 7%, var(--lb-card-bg)) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 12px 40px -12px rgba(0, 30, 60, 0.45);
+}
+/* Neon skin: accent border + glow */
+.lb-popup-dialog[data-lb-skin="neon"] {
+  border-color: var(--lb-accent);
+  box-shadow: 0 0 24px var(--lb-accent), inset 0 0 12px color-mix(in srgb, var(--lb-accent) 8%, transparent);
+}
+/* Pixel skin: stepped corners + hard shadow, no radius */
+main.lb-pixel-mode .lb-popup-dialog {
+  border-radius: 0;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px), 0 8px, 4px 8px, 4px 4px);
+  box-shadow: 4px 4px 0 var(--lb-card-border);
+}
+main.lb-pixel-mode .lb-popup-close { border-radius: 0; }
+
+/* Responsive: phones — the dialog becomes a bottom sheet (the pattern map
+   and share sheets use natively). Pinned via the dialog's fixed-position +
+   auto-margin centering: bottom margin 0 pushes it to the bottom edge. */
+@media (max-width: 520px) {
+  .lb-popup-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    margin: 0;
+    margin-top: auto;
+    max-height: 92vh;
+    max-height: 92dvh; /* dynamic viewport — URL bar safe */
+    border-radius: min(var(--lb-card-radius), 24px) min(var(--lb-card-radius), 24px) 0 0;
+    border-bottom: none;
+  }
+  .lb-popup-dialog[open] { animation-name: lb-popup-sheet-in; }
+  .lb-popup-panel { max-height: 92vh; max-height: 92dvh; }
+  .lb-popup-content { padding: 16px 16px 12px; }
+  .lb-popup-map-wrap { max-height: 40vh; } /* map never eats the sheet */
+  .lb-popup-cta { margin: 2px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
+}
+@keyframes lb-popup-sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Desktop / laptop / tablet refinements. The map is the location popup's
+   signature element — on big screens it gets room to be one (16:9, full
+   width) while the panel breathes wider and sits on a deeper shadow.
+   Phones keep the tighter sheet metrics from the block above. */
+@media (min-width: 1024px) {
+  .lb-popup-dialog {
+    width: min(92vw, 520px);
+    box-shadow: 0 24px 64px -16px rgb(0 0 0 / .35), var(--lb-shadow);
+  }
+  .lb-popup-map-wrap { aspect-ratio: 16 / 9; }
+  .lb-popup-content { padding: 24px 24px 18px; }
+  .lb-popup-cta { margin: 6px 20px 20px; }
+}
+/* Long titles clamp instead of pushing the map off-balance */
+.lb-popup-title {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* Keyboard floor: visible focus on every interactive popup control */
+.lb-popup-close:focus-visible,
+.lb-popup-cta:focus-visible {
+  outline: 2px solid var(--lb-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-popup-dialog[open] { animation: none !important; }
+  .lb-popup-cta { transition: none !important; }
+  .lb-popup-cta:hover { transform: none !important; }
+}
+
 /* ── Gel bubble style (Frutiger Aero / Web 2.0 glossy) ──────────────────── */
 /* Pill-shaped translucent cards with a vertical aqua gradient, a bright     */
 /* specular highlight arc near the top, and a "gel press" hover: the card    */
@@ -349,8 +562,9 @@ main.lb-pixel-mode .lb-pixel-clip {
   clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px);
 }
 
-/* Pixel subscribe button: orange bg + stepped corners + hard shadow */
-main.lb-pixel-mode button.lb-pixel-shadow {
+/* Pixel subscribe button: orange bg + stepped corners + hard shadow.
+   :is(button, a) — the popup CTA is an <a> dressed as the same button. */
+main.lb-pixel-mode :is(button, a).lb-pixel-shadow {
   background: var(--lb-accent) !important;
   color: #fff !important;
   border: none !important;
@@ -358,7 +572,7 @@ main.lb-pixel-mode button.lb-pixel-shadow {
   box-shadow: 4px 4px 0 var(--lb-text) !important;
   transition: transform .15s ease, box-shadow .15s ease;
 }
-main.lb-pixel-mode button.lb-pixel-shadow:hover {
+main.lb-pixel-mode :is(button, a).lb-pixel-shadow:hover {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0 var(--lb-text) !important;
 }

@@ -5,6 +5,28 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Popup cards: text and location (#93)** — Two new link types join the picker. A **text card** opens a native `<dialog>` with a markdown body (bold, italics, headings, lists, links, inline code — rendered by a new escaped-first string renderer) and an optional CTA button; a **location card** opens the same dialog with a keyless embedded Google map (full-bleed, ~16:10, lazy: the iframe's `src` only attaches when the visitor opens the dialog — no third-party contact until then) and a baked-in "Open in Google Maps" CTA that redirects through `/go/:id` so clicks count like any outbound link. Public pages stay zero-client-JS: opening is one inline `onclick` calling `showModal()`, the same inline-handler pattern as the click-tracking beacon. The operator can paste anything into the location field — a raw address, a full `google.com/maps/place/...` URL, or a mobile `maps.app.goo.gl` share link (short links are followed server-side at save time, 4s bounded) — and the card stores one canonical Maps URL that both the embed and the directions link use. Blank CTA labels on location cards bake the admin's locale default at save time. Migration `0019` adds `links.popup_text`/`cta_label` and `analytics_clicks.event_type` additively; every existing link renders exactly as before.
+
+- **Popup analytics: opens without polluting CTR** — Opening a popup card beacons a new `open` event type through the same `/api/track` route. Every existing stats widget (total clicks, top links, clicks-per-day, previous-period deltas, per-link stats) filters `event_type = 'click'`, and the denormalized `clicks_count` only increments on real clicks — so opens are stored for a future breakdown view while CTR stays pure.
+
+- **Popup CTA button = the subscribe button** — The CTA in both text and location popups is now dressed in the email-capture subscribe button's exact recipe: the same class stack (`lb-gel-btn` + `lb-pixel-clip lb-pixel-shadow`) and the same inline token styles (`--lb-accent` background, `--lb-btn-text` color, theme border/radius), with the pixel stepped-corner rule extended to cover anchors as well as buttons. The two buttons can't drift apart across the glass/neon/pixel/gel skins.
+
+### Changed
+
+- **Popups are responsive bottom sheets on phones** — Under 520px the popup dialog becomes a full-width bottom sheet (the pattern map and share sheets use natively): top-rounded only, safe-area-aware CTA margin, map capped at 40vh so it never eats the sheet, and a dynamic-viewport (`dvh`) height chain with a `vh` fallback so the mobile URL bar can't clip the close row. The slide-up animation respects `prefers-reduced-motion`.
+
+### Fixed
+
+- **Pasted Google Maps URLs didn't render a map (#93)** — `mapEmbedSrc` only understood the `?query=` parameter our own constructed URLs carry; real pasted Maps URLs (`/maps/place/Name/@lat,lng`, bare `/@lat,lng`, `/maps/search/...`, `maps.google.com` hosts) produced no iframe at all. The parser now handles every URL shape Google actually emits, with coordinates winning over names (exact pin, original zoom preserved) and `http` pastes upgraded to `https`. The location field now also accepts mobile share short links (`maps.app.goo.gl`, `goo.gl`, `g.co`) by following them server-side at save time.
+
+- **The embedded map was blocked by the page CSP** — The Content-Security-Policy `frame-src` allowlist covered the embed hosts (YouTube, Spotify, Vimeo, Soundcloud, Bandcamp) but not Google Maps, so the iframe rendered as "This content is blocked. Contact the site owner to fix the issue." Both hosts the keyless embed needs (`maps.google.com`, which then serves tiles from `www.google.com`) are now allowed.
+
+- **Popups sat in the top-left corner on desktop, laptop, and tablet** — Tailwind's preflight resets `margin` on every element, which silently killed the native `<dialog>` centering (modal dialogs center via `position: fixed` + `margin: auto`). The dialog now restores `margin: auto` explicitly and is pixel-centered on every viewport; phones were unaffected because the bottom-sheet styles set margins already.
+
 ## [1.3.2] - 2026-08-24
 
 ### Added

@@ -178,6 +178,34 @@ async function seed() {
       imageUrl: null,
       sectionId: lbSectionResources?.id ?? null,
     },
+    // #93 text popup card — informational content without a navigation hop.
+    {
+      title: "What is LinkBreeze?",
+      url: "https://github.com/Manak-hash/LinkBreeze",
+      description: "Tap to read — no external page needed",
+      type: "text",
+      isHighlighted: false,
+      orderIndex: 4,
+      imageUrl: null,
+      sectionId: lbSectionResources?.id ?? null,
+      popupText:
+        "**LinkBreeze** is a self-hosted, open-source link-in-bio page.\n\n- Zero client JavaScript on public pages\n- Built-in analytics with privacy defaults\n- Themes, custom fonts, QR codes\n- Docker-ready in one command\n\nEverything runs on your own server — no third-party trackers.",
+      ctaLabel: "Star on GitHub",
+    },
+    // #93 location popup card — embedded Google map with directions CTA.
+    {
+      title: "Find us in Casablanca",
+      url: "https://www.google.com/maps/search/?api=1&query=Hassan%20II%20Mosque%2C%20Casablanca",
+      description: "Map + directions in a popup",
+      type: "location",
+      isHighlighted: false,
+      orderIndex: 5,
+      imageUrl: null,
+      sectionId: lbSectionResources?.id ?? null,
+      popupText:
+        "## Visit the studio\n\nBoulevard Sidi Mohammed Ben Abdellah, Casablanca.\n\n- Open Mon–Fri, 9:00–18:00\n- Coffee is always on",
+      ctaLabel: "",
+    },
   ];
 
   for (const link of linkbreezeLinks) {
@@ -188,7 +216,7 @@ async function seed() {
       clicksCount: Math.floor(Math.random() * 500) + 50,
     }).run();
   }
-  console.log(`✓ ${linkbreezeLinks.length} links created for LinkBreeze (1 embed, 1 highlighted)`);
+  console.log(`✓ ${linkbreezeLinks.length} links created for LinkBreeze (1 embed, 1 highlighted, 2 popup cards)`);
 
   // ─── Links for PAGE 2: Manak ────────────────────
   const manakLinks = [

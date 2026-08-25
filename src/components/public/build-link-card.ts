@@ -1,6 +1,12 @@
 import type { LinkRow } from "@/server/queries";
 import { revealAnimation, type ThemeInput } from "@/lib/theme-tokens";
 import { resolveIcon } from "@/lib/icon-registry";
+import {
+  isPopupType,
+  popupOpenHandler,
+  buildPopupDialogHtml,
+  DEFAULT_POPUP_ICON,
+} from "@/components/public/build-popup-card";
 
 export type LinkCardTheme = ThemeInput;
 
@@ -67,6 +73,15 @@ function buildIcon(link: LinkRow): string {
     return `<img src="${esc(link.iconUrl)}" alt="" loading="lazy" style="width:20px;height:20px;border-radius:4px;flex-shrink:0;object-fit:cover" />`;
   }
 
+  // #93 popup cards: themed default lucide icon (align-left / map-pin)
+  // instead of the letter avatar — a better floor, still overridable.
+  if (isPopupType(link.type)) {
+    const svg = lucideIconSvg(DEFAULT_POPUP_ICON[link.type] ?? "align-left");
+    if (svg) {
+      return `<span aria-hidden="true" style="${ICON_SLOT_STYLE};color:var(--lb-text)">${svg}</span>`;
+    }
+  }
+
   // First-letter fallback using the title's initial.
   const letter = (link.title || "?").trim().charAt(0).toUpperCase();
   return `<span aria-hidden="true" style="${ICON_SLOT_STYLE};font-size:11px;font-weight:700;background:var(--lb-accent);color:var(--lb-btn-text, #fff)">${esc(letter)}</span>`;
@@ -113,6 +128,8 @@ function resolveLinkUrl(link: LinkRow): {
 /**
  * Build the content row: icon, title, description, highlight dot, and arrow.
  * Shared between cards with and without a thumbnail image.
+ * Popup cards (#93) swap the ↗ navigation arrow for a › chevron — the card
+ * opens a dialog, it doesn't navigate, and the glyph shouldn't promise that.
  */
 function buildContentRow(link: LinkRow): string {
   const icon = buildIcon(link);
@@ -142,7 +159,7 @@ function buildContentRow(link: LinkRow): string {
       ${description}
     </span>
     ${icon}
-    <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">&#8599;</span>`;
+    <span aria-hidden="true" style="margin-left:10px;opacity:.6;font-size:18px;color:var(--lb-accent)">${isPopupType(link.type) ? "&#8250;" : "&#8599;"}</span>`;
 }
 
 /**
@@ -245,15 +262,24 @@ export function buildLinkCardHtml(options: {
     ? `${image}\n  <div style="display:flex;align-items:center;padding:var(--lb-btn-padding-y) var(--lb-btn-padding-x)">\n    ${contentRow}\n  </div>`
     : contentRow;
 
+  // #93 popup cards: the card is a <button> that opens the dialog instead
+  // of an <a> that navigates. Same classes/data-attrs so skins and hovers
+  // apply identically; the dialog markup is appended after the card.
+  const isPopup = isPopupType(link.type);
+  const dialogHtml = isPopup ? buildPopupDialogHtml(link, theme) : "";
+  const cardOpen = (style: string): string =>
+    isPopup
+      ? `<button type="button"${hoverAttrs} aria-haspopup="dialog" aria-controls="lb-popup-${link.id}" onclick="${popupOpenHandler(link)}" style="${style};cursor:pointer;font:inherit;text-align:left">`
+      : `<a\n  href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}\n  style="${style}">`;
+  const cardClose = isPopup ? "</button>" : "</a>";
+
   if (isPixel) {
-    // Pixel cards: wrap <a> in a div that serves as the orange border layer.
+    // Pixel cards: wrap the card in a div that serves as the orange border layer.
     // The div has the accent background + outer clip-path.
-    // The <a> is positioned inside with inset:3px + inner clip-path.
+    // The card is positioned inside with inset:3px + inner clip-path.
     return `<div class="lb-pixel-card-wrap" style="position:relative;margin:0 0 var(--lb-spacing);${pixelClip}">
   <div style="position:absolute;inset:0;background:var(--lb-accent);${pixelClip};z-index:0"></div>
-  <a
-    href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
-    style="
+  ${cardOpen(`
       ${display};text-decoration:none;width:calc(100% - 6px);box-sizing:border-box;
       ${paddingStyle}${featuredPadding}
       position:relative;z-index:1;
@@ -263,11 +289,11 @@ export function buildLinkCardHtml(options: {
       clip-path:polygon(6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),0 6px,3px 6px,3px 3px);
       box-shadow:4px 4px 0 var(--lb-accent);
       ${reveal}
-    "
-  >
+    `)}
     ${innerContent}
-  </a>
-</div>`;
+  ${cardClose}
+</div>
+${dialogHtml}`;
   }
 
   // Rich preview cards (cardStyle="rich") with an image use the same
@@ -275,16 +301,14 @@ export function buildLinkCardHtml(options: {
   // path below handles it. Rich cards without an image fall through to the
   // standard compact card path. No special-casing needed.
 
-  return `<a
-  href="${href}"${targetAttr}${onclickAttr}${hoverAttrs}
-  style="
+  return `${cardOpen(`
     ${display};text-decoration:none;width:100%;box-sizing:border-box;
     ${paddingStyle}${featuredPadding}margin:0 0 var(--lb-spacing);
     background:${cardBg};border:${border};border-radius:${hasImage ? "var(--lb-media-radius)" : "var(--lb-card-radius)"};
     color:var(--lb-text);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-    ${backdropBlur}${overflow}${pixelClip}${reveal}
-  "
->
+    ${backdropBlur}${overflow}${reveal}
+  `)}
   ${innerContent}
-</a>`;
+${cardClose}
+${dialogHtml}`;
 }

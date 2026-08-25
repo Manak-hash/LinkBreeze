@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { demoGuard } from "@/lib/demo-guard";
-import { isAllowedLinkUrl } from "@/lib/link-url";
+import { isAllowedLinkUrl, buildMapsUrl, isMapsShortLink } from "@/lib/link-url";
+import { LOCALE_COOKIE } from "@/i18n/config";
 import { truthy } from "@/lib/utils";
 import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
 import { saveIconUpload, isLucideName, type IconMode } from "@/lib/link-icons";
@@ -93,15 +95,90 @@ async function resolveIconFields(
   return { ok: true, icon: null, iconUrl, customIconUrl: null, iconMode: "auto" };
 }
 
+/**
+ * #93 popup cards: normalize per-type fields before insert/update.
+ * - location: raw place input → canonical Google Maps URL (pasted maps
+ *   links pass through unchanged).
+ * - text: URL is only the CTA target — empty means "no CTA button".
+ * - ctaLabel: blank on location cards bakes the admin-locale default
+ *   ("Ouvrir dans Google Maps"…) at save time, so the public page stays
+ *   pure data with no locale lookup at render.
+ * Returns the values to spread into the row write.
+ */
+
+/**
+ * Follow a Google Maps short link (maps.app.goo.gl & friends) to its final
+ * Maps URL at save time, so the stored URL — and with it the embedded map,
+ * which short links can't serve — always points at a real maps page.
+ * Bounded: 4s timeout, redirects followed, HTML never read. Failures keep
+ * the short link (the /go/:id redirect still works; only the embed degrades).
+ */
+async function expandMapsShortLink(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: { "user-agent": "Mozilla/5.0 (compatible; LinkBreeze/1.3)" },
+      signal: AbortSignal.timeout(4000),
+    });
+    // Body is never used; release the connection immediately.
+    try {
+      await res.body?.cancel();
+    } catch {
+      /* already released */
+    }
+    return res.url || url;
+  } catch {
+    return url;
+  }
+}
+
+async function resolvePopupFields(
+  d: { type: string; url: string; ctaLabel?: string | null },
+): Promise<{ url: string; ctaLabel: string | null }> {
+  if (d.type === "location") {
+    // Bake the admin-locale default label at save time so the public page
+    // renders pure data (no locale lookup at request time).
+    let locale = "en";
+    try {
+      const jar = await cookies();
+      locale = jar.get(LOCALE_COOKIE)?.value ?? "en";
+    } catch {
+      // cookie access can throw in some contexts — English fallback is fine
+    }
+    const raw = isMapsShortLink(d.url) ? await expandMapsShortLink(d.url) : d.url;
+    return {
+      url: buildMapsUrl(raw),
+      ctaLabel: d.ctaLabel?.trim() || DEFAULT_MAPS_CTA_LABELS[locale] || DEFAULT_MAPS_CTA_LABELS.en,
+    };
+  }
+  if (d.type === "text") {
+    return { url: d.url, ctaLabel: d.ctaLabel?.trim() || null };
+  }
+  // Classic link types never carry popup fields.
+  return { url: d.url, ctaLabel: null };
+}
+
+/** Fallback CTA label for location cards (#93), keyed by admin locale. */
+const DEFAULT_MAPS_CTA_LABELS: Record<string, string> = {
+  en: "Open in Google Maps",
+  fr: "Ouvrir dans Google Maps",
+  es: "Abrir en Google Maps",
+};
+
 const linkSchema = z
   .object({
     id: z.string().optional(),
     pageId: z.coerce.number().optional(),
     title: z.string().min(1, "Title is required").max(120),
-    url: z.string().min(1, "URL is required").max(2048),
+    // Empty allowed for text popups with no CTA (refine below enforces the rest).
+    url: z.string().max(2048),
     description: z.string().max(300).optional().nullable(),
     imageUrl: z.string().max(2048).optional().nullable(),
-    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed"]).default("url"),
+    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed", "text", "location"]).default("url"),
+    // #93 popup cards: long body + optional CTA label (target = url column).
+    popupText: z.string().max(5000).optional().nullable(),
+    ctaLabel: z.string().max(80).optional().nullable(),
     isHighlighted: z
       .union([z.string(), z.boolean()])
       .transform(truthy)
@@ -129,9 +206,25 @@ const linkSchema = z
       z.coerce.number().nullable().optional()
     ),
   })
-  .refine((link) => isAllowedLinkUrl(link.type, link.url), {
+  // #93 popup cards: every non-text type needs a URL (text may leave it
+  // empty when there is no CTA button). Runs before the scheme check so an
+  // empty classic URL reports "URL is required", not a scheme error.
+  .refine((link) => link.type === "text" || !!link.url.trim(), {
+    path: ["url"],
+    message: "URL is required",
+  })
+  .refine((link) => isAllowedLinkUrl(link.type, link.type === "location" ? buildMapsUrl(link.url) : link.url), {
     path: ["url"],
     message: "URL scheme is not allowed for this link type",
+  })
+  .refine((link) => link.type !== "text" || !!(link.popupText ?? "").trim(), {
+    path: ["popupText"],
+    message: "Popup text is required",
+  })
+  // A CTA label without a target URL would render a dead button.
+  .refine((link) => !link.ctaLabel?.trim() || link.type !== "text" || !!link.url.trim(), {
+    path: ["url"],
+    message: "CTA URL is required when a CTA label is set",
   });
 
 export async function createLink(formData: FormData): Promise<ActionResult> {
@@ -154,6 +247,8 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
     cardStyle: formData.get("cardStyle") || undefined,
     iconMode: formData.get("iconMode") || undefined,
     icon: formData.get("icon") || undefined,
+    popupText: formData.get("popupText") || undefined,
+    ctaLabel: formData.get("ctaLabel") || undefined,
     sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
@@ -177,9 +272,12 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
       if (!imageUrl && og.imageUrl) imageUrl = og.imageUrl;
     }
 
+    // #93 popup cards: per-type URL + CTA label normalization.
+    const popup = await resolvePopupFields(d);
+
     await createLinkQuery({
       title: d.title,
-      url: d.url,
+      url: popup.url,
       pageId: d.pageId,
       description,
       imageUrl,
@@ -195,6 +293,9 @@ export async function createLink(formData: FormData): Promise<ActionResult> {
       sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
+      // #93 popup fields (null for classic link types).
+      popupText: d.type === "text" || d.type === "location" ? (d.popupText || null) : null,
+      ctaLabel: popup.ctaLabel,
     });
 
     revalidatePath("/links");
@@ -230,6 +331,8 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
     cardStyle: formData.get("cardStyle") || undefined,
     iconMode: formData.get("iconMode") || undefined,
     icon: formData.get("icon") || undefined,
+    popupText: formData.get("popupText") || undefined,
+    ctaLabel: formData.get("ctaLabel") || undefined,
     sectionId: formData.get("sectionId") !== null ? formData.get("sectionId") : undefined,
   });
   if (!parsed.success) {
@@ -256,9 +359,12 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
       if (!imageUrl && og.imageUrl) imageUrl = og.imageUrl;
     }
 
+    // #93 popup cards: per-type URL + CTA label normalization.
+    const popup = await resolvePopupFields(d);
+
     await updateLinkQuery(Number(d.id), {
       title: d.title,
-      url: d.url,
+      url: popup.url,
       description,
       imageUrl,
       type: d.type,
@@ -273,6 +379,9 @@ export async function updateLink(formData: FormData): Promise<ActionResult> {
       sectionId: d.sectionId ?? null,
       scheduleStart: d.scheduleStart || null,
       scheduleEnd: d.scheduleEnd || null,
+      // #93 popup fields (null for classic link types).
+      popupText: d.type === "text" || d.type === "location" ? (d.popupText || null) : null,
+      ctaLabel: popup.ctaLabel,
     });
 
     revalidatePath("/links");

@@ -35,6 +35,8 @@ function mockLinks(tDemo: ReturnType<typeof useTranslations>): LinkRow[] {
     scheduleEnd: null,
     clicksCount: 0,
     cardStyle: "compact",
+    popupText: null,
+    ctaLabel: null,
     createdAt: "2026-01-01 00:00:00",
   };
   return [

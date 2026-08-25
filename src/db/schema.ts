@@ -76,7 +76,7 @@ export const links = sqliteTable("links", {
   pageId: integer("page_id").notNull().default(1),
   sectionId: integer("section_id"), // FK to link_sections.id (enforced in 0013 migration SQL)
   orderIndex: integer("order_index").notNull().default(0),
-  type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file
+  type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file, embed, text, location
   title: text("title").notNull(),
   description: text("description"),
   url: text("url").notNull(),
@@ -92,6 +92,12 @@ export const links = sqliteTable("links", {
   scheduleEnd: text("schedule_end"),
   clicksCount: integer("clicks_count").notNull().default(0),
   cardStyle: text("card_style").notNull().default("compact"), // compact | rich
+  // #93 popup cards (text | location types): long body rendered inside the
+  // dialog (markdown subset) and the optional CTA button label. The CTA
+  // target lives in url (text: arbitrary http(s); location: resolved
+  // Google Maps directions URL), so it rides /go/:id untouched.
+  popupText: text("popup_text"),
+  ctaLabel: text("cta_label"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -192,6 +198,9 @@ export const analyticsClicks = sqliteTable("analytics_clicks", {
   linkId: integer("link_id").notNull().references(() => links.id, { onDelete: "cascade" }),
   visitorHash: text("visitor_hash").notNull(),
   referrer: text("referrer"),
+  // #93: distinguish popup opens from real outbound clicks. Existing rows
+  // and all classic navigation clicks stay 'click' (the default).
+  eventType: text("event_type").notNull().default("click"), // click | open
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

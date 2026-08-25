@@ -173,6 +173,8 @@ describe("gel link style", () => {
         scheduleEnd: null,
         clicksCount: 0,
         cardStyle: "default",
+        popupText: null,
+        ctaLabel: null,
         createdAt: "2026-01-01T00:00:00.000Z",
       },
       theme: { linkStyle: "gel", blur: "10px" } as never,

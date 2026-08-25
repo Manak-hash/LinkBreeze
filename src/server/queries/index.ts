@@ -293,6 +293,8 @@ export async function createLink(
         | "scheduleEnd"
         | "cardStyle"
         | "sectionId"
+        | "popupText"
+        | "ctaLabel"
       >
     >,
 ): Promise<LinkRow> {
@@ -323,6 +325,8 @@ export async function createLink(
       scheduleEnd: data.scheduleEnd ?? null,
       cardStyle: data.cardStyle ?? "compact",
       sectionId: data.sectionId ?? null,
+      popupText: data.popupText ?? null,
+      ctaLabel: data.ctaLabel ?? null,
       orderIndex: nextOrder,
     })
     .returning();
@@ -350,6 +354,8 @@ export async function updateLink(
       | "scheduleEnd"
       | "cardStyle"
       | "sectionId"
+      | "popupText"
+      | "ctaLabel"
     >
   >,
 ): Promise<void> {
@@ -783,6 +789,7 @@ export async function recordClick(
   linkId: number,
   visitorHash: string,
   referrer: string | null,
+  eventType: "click" | "open" = "click",
 ): Promise<void> {
   // Wrap in a transaction so the analytics insert and the denormalized
   // clicksCount increment can't drift apart if one fails.
@@ -791,11 +798,16 @@ export async function recordClick(
       linkId,
       visitorHash,
       referrer: referrer ?? null,
+      eventType,
     }).run();
-    tx.update(links)
-      .set({ clicksCount: sql`${links.clicksCount} + 1` })
-      .where(eq(links.id, linkId))
-      .run();
+    // Popup opens are analytics-only: the denormalized counter stays a pure
+    // outbound-click count (#93) so the links table never inflates CTR.
+    if (eventType === "click") {
+      tx.update(links)
+        .set({ clicksCount: sql`${links.clicksCount} + 1` })
+        .where(eq(links.id, linkId))
+        .run();
+    }
   });
   // Same opportunistic prune as pageviews, so click-heavy pages (e.g. a page
   // embedded somewhere that skips the pageview beacon) don't retain forever.
@@ -853,6 +865,9 @@ export async function getDashboardStats(
   const clickPageFilter = pageId !== undefined
     ? sql`${analyticsClicks.linkId} IN (SELECT ${links.id} FROM ${links} WHERE ${links.pageId} = ${pageId})`
     : undefined;
+  // #93: dashboard click metrics count real outbound clicks only — popup
+  // opens (event_type='open') must never inflate CTR or top-links.
+  const clickOnly = eq(analyticsClicks.eventType, "click");
 
   const viewsQuery = pageFilter
     ? db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, since), pageFilter))
@@ -867,8 +882,8 @@ export async function getDashboardStats(
   const uniqueVisitors = uniqueRows[0]?.c ?? 0;
 
   const clickQuery = clickPageFilter
-    ? db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, since), clickPageFilter))
-    : db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(gt(analyticsClicks.createdAt, since));
+    ? db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, since), clickOnly, clickPageFilter))
+    : db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, since), clickOnly));
   const clickRows = await clickQuery;
   const totalClicks = clickRows[0]?.c ?? 0;
 
@@ -880,7 +895,7 @@ export async function getDashboardStats(
       })
       .from(analyticsClicks)
       .innerJoin(links, eq(links.id, analyticsClicks.linkId))
-      .where(and(gt(analyticsClicks.createdAt, since), eq(links.pageId, pageId)))
+      .where(and(gt(analyticsClicks.createdAt, since), clickOnly, eq(links.pageId, pageId)))
       .groupBy(analyticsClicks.linkId)
       .orderBy(desc(sql`count(*)`))
       .limit(5)
@@ -891,7 +906,7 @@ export async function getDashboardStats(
       })
       .from(analyticsClicks)
       .innerJoin(links, eq(links.id, analyticsClicks.linkId))
-      .where(gt(analyticsClicks.createdAt, since))
+      .where(and(gt(analyticsClicks.createdAt, since), clickOnly))
       .groupBy(analyticsClicks.linkId)
       .orderBy(desc(sql`count(*)`))
       .limit(5);
@@ -926,7 +941,7 @@ export async function getDashboardStats(
         clicks: sql<number>`count(*)`,
       })
       .from(analyticsClicks)
-      .where(and(gt(analyticsClicks.createdAt, since), clickPageFilter))
+      .where(and(gt(analyticsClicks.createdAt, since), clickOnly, clickPageFilter))
       .groupBy(sql`date(${analyticsClicks.createdAt})`)
       .orderBy(asc(sql`date(${analyticsClicks.createdAt})`))
     : await db.select({
@@ -934,7 +949,7 @@ export async function getDashboardStats(
         clicks: sql<number>`count(*)`,
       })
       .from(analyticsClicks)
-      .where(gt(analyticsClicks.createdAt, since))
+      .where(and(gt(analyticsClicks.createdAt, since), clickOnly))
       .groupBy(sql`date(${analyticsClicks.createdAt})`)
       .orderBy(asc(sql`date(${analyticsClicks.createdAt})`));
 
@@ -976,8 +991,8 @@ export async function getPreviousStats(
     : await db.select({ c: sql<number>`count(*)` }).from(analyticsPageviews).where(and(gt(analyticsPageviews.createdAt, startShift), lt(analyticsPageviews.createdAt, endShift)));
 
   const clickRows = clickPageFilter
-    ? await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift), clickPageFilter))
-    : await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift)));
+    ? await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift), eq(analyticsClicks.eventType, "click"), clickPageFilter))
+    : await db.select({ c: sql<number>`count(*)` }).from(analyticsClicks).where(and(gt(analyticsClicks.createdAt, startShift), lt(analyticsClicks.createdAt, endShift), eq(analyticsClicks.eventType, "click")));
 
   return {
     totalViews: viewRows[0]?.c ?? 0,
@@ -1058,7 +1073,7 @@ export async function getLinkStats(linkId: number, range: AnalyticsRange = "30d"
   const totalRows = await db
     .select({ c: sql<number>`count(*)` })
     .from(analyticsClicks)
-    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since)));
+    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since), eq(analyticsClicks.eventType, "click")));
   const totalClicks = totalRows[0]?.c ?? 0;
 
   const perDayRows = await db
@@ -1067,7 +1082,7 @@ export async function getLinkStats(linkId: number, range: AnalyticsRange = "30d"
       clicks: sql<number>`count(*)`,
     })
     .from(analyticsClicks)
-    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since)))
+    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since), eq(analyticsClicks.eventType, "click")))
     .groupBy(sql`date(${analyticsClicks.createdAt})`)
     .orderBy(asc(sql`date(${analyticsClicks.createdAt})`));
   const clicksMap = new Map<string, number>();
@@ -1077,7 +1092,7 @@ export async function getLinkStats(linkId: number, range: AnalyticsRange = "30d"
   const refRows = await db
     .select({ label: analyticsClicks.referrer, count: sql<number>`count(*)` })
     .from(analyticsClicks)
-    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since)))
+    .where(and(eq(analyticsClicks.linkId, linkId), gt(analyticsClicks.createdAt, since), eq(analyticsClicks.eventType, "click")))
     .groupBy(analyticsClicks.referrer)
     .orderBy(desc(sql`count(*)`))
     .limit(8);

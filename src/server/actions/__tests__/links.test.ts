@@ -25,6 +25,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({
+    get: () => undefined,
+  })),
+}));
 vi.mock("@/lib/auth", () => ({ getSession: mocks.getSession }));
 vi.mock("@/lib/demo", () => ({ demoBlock: mocks.demoBlock }));
 // link-icons writes uploads to disk — stub saveIconUpload so tests never
@@ -124,6 +129,135 @@ describe("createLink", () => {
     const res = await createLink(makeFormData({ title: "Sectioned", url: "https://example.com", type: "url", isActive: "true", isHighlighted: "false", sectionId: "3" }));
     expect(res.success).toBe(true);
     expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({ sectionId: 3 }));
+  });
+
+  // ── #93 popup cards ────────────────────────────────────────────────
+  it("creates a text popup with body and CTA", async () => {
+    const res = await createLink(makeFormData({
+      title: "Shipping info",
+      url: "https://example.com/shop",
+      type: "text",
+      popupText: "We ship **worldwide**.\n- 2–4 days\n- Free over 50",
+      ctaLabel: "Visit the shop",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      type: "text",
+      popupText: "We ship **worldwide**.\n- 2–4 days\n- Free over 50",
+      ctaLabel: "Visit the shop",
+      url: "https://example.com/shop",
+    }));
+  });
+
+  it("creates a text popup without a CTA (empty URL)", async () => {
+    const res = await createLink(makeFormData({
+      title: "Hours",
+      url: "",
+      type: "text",
+      popupText: "Mon–Fri, 9–18",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      type: "text",
+      url: "",
+      ctaLabel: null,
+    }));
+  });
+
+  it("rejects a text popup with no body", async () => {
+    const res = await createLink(makeFormData({
+      title: "Empty",
+      url: "",
+      type: "text",
+      popupText: "",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(false);
+    expect(mocks.createLink).not.toHaveBeenCalled();
+  });
+
+  it("rejects a CTA label with no URL on text popups", async () => {
+    const res = await createLink(makeFormData({
+      title: "Dead CTA",
+      url: "",
+      type: "text",
+      popupText: "body",
+      ctaLabel: "Go",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(false);
+  });
+
+  it("normalizes a location query to a Google Maps URL with a baked CTA label", async () => {
+    const res = await createLink(makeFormData({
+      title: "Studio",
+      url: "Hassan II Mosque, Casablanca",
+      type: "location",
+      popupText: "Open Mon–Fri",
+      ctaLabel: "",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      type: "location",
+      url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Hassan II Mosque, Casablanca")}`,
+      ctaLabel: "Open in Google Maps",
+    }));
+  });
+
+  it("keeps a pasted Google Maps URL unchanged on location popups", async () => {
+    const pasted = "https://www.google.com/maps/place/Koutoubia/@31.6295,-7.9811,17z";
+    const res = await createLink(makeFormData({
+      title: "Pinned",
+      url: pasted,
+      type: "location",
+      popupText: "x",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({ url: pasted }));
+  });
+
+  it("sanitizes a non-Google URL into a Google Maps search on location popups", async () => {
+    const res = await createLink(makeFormData({
+      title: "Evil map",
+      url: "https://evil.example.com/maps",
+      type: "location",
+      popupText: "x",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    // buildMapsUrl treats any non-Google input as a place query — the stored
+    // URL is always a Google Maps URL, never the operator's raw string.
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("https://evil.example.com/maps")}`,
+    }));
+  });
+
+  it("strips popup fields from classic link types", async () => {
+    const res = await createLink(makeFormData({
+      title: "Classic",
+      url: "https://example.com",
+      type: "url",
+      popupText: "sneaky body",
+      ctaLabel: "sneaky CTA",
+      isActive: "true",
+      isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      popupText: null,
+      ctaLabel: null,
+    }));
   });
 });
 

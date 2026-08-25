@@ -72,7 +72,9 @@ function buildCsp(): { key: string; value: string } {
       "media-src 'self' https: blob:",
       "font-src 'self' data:",
       "connect-src 'self'",
-      "frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com",
+      // Location popup maps (#93): the keyless embed lives on maps.google.com
+      // but redirects to www.google.com to serve tiles — both must be allowed.
+      "frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com https://maps.google.com https://www.google.com",
       frameAncestors,
       "base-uri 'self'",
       "form-action 'self'",
