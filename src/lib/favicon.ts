@@ -13,6 +13,11 @@ import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
  *   3. Fall back to DuckDuckGo's favicon service (icons.duckduckgo.com),
  *      which is more reliable than Google S2 for smaller/newer sites.
  *
+ * If the whole chain fails, it retries once after a short backoff (#95)
+ * before giving up and letting the link fall back to its letter icon —
+ * a transient timeout or rate limit no longer permanently degrades the
+ * link until someone re-saves it.
+ *
  * All fetched favicons are cached locally in the uploads directory so we
  * never re-fetch the same domain. No third-party domain is ever contacted
  * by the visitor's browser — the fetch happens server-side at link creation
@@ -20,6 +25,13 @@ import { UPLOADS_DIR, ensureUploadsDir } from "@/lib/uploads";
  */
 
 const FETCH_TIMEOUT_MS = 6_000;
+
+/**
+ * Backoff before the single retry of the favicon chain (#95). Transient
+ * timeouts and rate limits clear well within a second; one retry catches
+ * them without making genuinely dead sites much slower to give up on.
+ */
+const FAVICON_RETRY_DELAY_MS = 750;
 
 /** File extensions a cached favicon may be stored under. */
 const FAVICON_EXTS = [".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".ico"];
@@ -47,6 +59,10 @@ interface CandidateResult {
 /**
  * Fetch a favicon for a domain using a multi-strategy fallback chain.
  * Returns the local URL path (/api/uploads/<hash>.png) or null.
+ *
+ * The whole chain runs at most twice: one attempt, then a single retry
+ * after FAVICON_RETRY_DELAY_MS when nothing was found (#95). Cache hits
+ * return immediately and never retry.
  */
 export async function fetchAndCacheFavicon(url: string): Promise<string | null> {
   const domain = extractDomain(url);
@@ -67,11 +83,21 @@ export async function fetchAndCacheFavicon(url: string): Promise<string | null> 
 
   await ensureUploadsDir();
 
-  // Try each strategy until one works.
-  const result =
+  // One attempt, then a single retry after a short backoff (#95): a
+  // transient timeout or rate limit no longer permanently degrades the
+  // link to the letter icon until someone re-saves it.
+  let result =
     (await tryHtmlHeadLinks(url)) ??
     (await tryCommonPaths(domain)) ??
     (await tryDuckDuckGo(domain));
+
+  if (!result) {
+    await sleep(FAVICON_RETRY_DELAY_MS);
+    result =
+      (await tryHtmlHeadLinks(url)) ??
+      (await tryCommonPaths(domain)) ??
+      (await tryDuckDuckGo(domain));
+  }
 
   if (!result) return null;
 
@@ -91,6 +117,11 @@ export async function fetchAndCacheFavicon(url: string): Promise<string | null> 
 }
 
 // ─── Strategy 1: Parse the site's HTML <head> ───────────────────────────
+
+/** Promise-based sleep for retry backoffs. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Cache-only lookup: return the locally cached favicon URL for a domain,

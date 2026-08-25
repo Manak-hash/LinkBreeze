@@ -808,6 +808,10 @@ const en = {
 
     intoThisPage: "into this page.",
 
+    iconFallbackWarning: "{count, plural, one {# imported link did not get its site icon and will show a letter placeholder.} other {# imported links did not get their site icons and will show letter placeholders.}}",
+
+    iconFallbackHint: "Edit and re-save those links to retry the icon fetch.",
+
     importAnother: "Import Another",
 
     viewLinks: "View Links",

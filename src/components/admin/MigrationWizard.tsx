@@ -5,7 +5,7 @@ import { localizeActionError } from "@/lib/action-error-i18n";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { DownloadCloud, Link2, FileUp, Check, Loader2, AlertCircle } from "lucide-react";
+import { DownloadCloud, Link2, FileUp, Check, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import {
   importPreviewUrl,
   importPreviewFile,
@@ -47,6 +47,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
   const [importResult, setImportResult] = React.useState<{
     imported: number;
     social: number;
+    iconFallback: number;
   } | null>(null);
 
   const handlePreview = async (formData: FormData) => {
@@ -98,6 +99,7 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
       setImportResult({
         imported: res.importedCount || 0,
         social: res.socialCount || 0,
+        iconFallback: res.iconFallbackCount || 0,
       });
       setStep("done");
       router.refresh();
@@ -133,6 +135,15 @@ export function MigrationWizard({ pageId }: MigrationWizardProps) {
             )}{" "}
             {t("intoThisPage")}
           </p>
+          {importResult.iconFallback > 0 && (
+            <div className="flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm text-warning">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>
+                {t("iconFallbackWarning", { count: importResult.iconFallback })}{" "}
+                {t("iconFallbackHint")}
+              </span>
+            </div>
+          )}
           <div className="flex gap-3">
             <Button onClick={reset} variant="outline" size="sm">{t("importAnother")}</Button>
             <Button onClick={() => router.push("/links")} size="sm">{t("viewLinks")}</Button>

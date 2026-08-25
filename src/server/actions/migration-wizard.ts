@@ -10,6 +10,8 @@ import {
   type ImportedLink,
 } from "@/lib/migration-wizard";
 import { rateLimit } from "@/lib/rate-limit";
+import { fetchAndCacheFavicon, extractDomain } from "@/lib/favicon";
+import { mapWithConcurrency } from "@/lib/concurrency";
 
 export interface ImportPreviewResult {
   success: boolean;
@@ -109,7 +111,22 @@ export interface ConfirmImportResult {
   error?: string;
   importedCount?: number;
   socialCount?: number;
+  /**
+   * Imported links that resolved no favicon and will show the letter
+   * placeholder (#95). 0 when every url-type link got its icon; the
+   * wizard surfaces the count so the operator knows to re-save those
+   * links (a re-save retries the favicon chain).
+   */
+  iconFallbackCount?: number;
 }
+
+/**
+ * How many imported links save concurrently (#95). The old unbounded
+ * Promise.all fired every link's favicon chain at once and tripped
+ * upstream rate limits and timeouts; small batches keep the burst below
+ * the thresholds while the import still finishes in reasonable time.
+ */
+const IMPORT_CONCURRENCY = 3;
 
 export async function confirmImport(
   prevState: ConfirmImportResult | null,
@@ -145,18 +162,39 @@ export async function confirmImport(
 
   let importedCount = 0;
 
-  // Import page links.
-  await Promise.all(
-    selectedLinks.map((link) =>
-      createLink({
+  // Import page links with bounded concurrency (#95): the previous
+  // unbounded Promise.all fired every link's favicon chain at once,
+  // tripping upstream rate limits and timeouts. Batches of 3 also let
+  // duplicate domains share one cache write (fetchAndCacheFavicon is
+  // cached per domain, so two links on the same host only fetch once
+  // — the second save hits the cache the first one warmed).
+  let iconFallbackCount = 0;
+  await mapWithConcurrency(
+    selectedLinks,
+    IMPORT_CONCURRENCY,
+    async (link) => {
+      // Imported links resolve favicons exactly like manual saves (#95):
+      // the old import path skipped the favicon chain entirely, which is
+      // why imported links showed the letter placeholder while the same
+      // URL added through the link dialog always got its icon.
+      let iconUrl: string | null = null;
+      if ((link.type || "url") === "url" && extractDomain(link.url)) {
+        iconUrl = await fetchAndCacheFavicon(link.url);
+        if (!iconUrl) iconFallbackCount++;
+      }
+
+      await createLink({
         title: link.title.slice(0, 100),
         url: link.url,
         pageId: page.id,
         type: link.type || "url",
         description: link.description?.slice(0, 200),
         imageUrl: link.imageUrl,
-      }),
-    ),
+        iconUrl,
+        iconMode: "auto",
+        autoIcon: true,
+      });
+    },
   );
   importedCount = selectedLinks.length;
 
@@ -196,5 +234,6 @@ export async function confirmImport(
     success: true,
     importedCount,
     socialCount,
+    iconFallbackCount,
   };
 }
