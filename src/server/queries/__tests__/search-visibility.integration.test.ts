@@ -17,10 +17,15 @@ vi.mock("next/headers", () => ({
   ),
 }));
 
+// MUST be the first non-vitest import: it registers the sql.js vi.mock("@/db").
+// Any module imported before it (@/app/robots, the sitemap route, @/server/queries)
+// binds the REAL better-sqlite3 file DB — works locally against the dev DB but
+// dies in CI ("no such table: settings") where data/linkbreeze.db starts empty.
+import "@/server/queries/__tests__/integration-setup";
+
 import robotsDefault from "@/app/robots";
 import { GET as sitemapGET } from "@/app/sitemap.xml/route";
 import { updateSetting, getSetting } from "@/server/queries";
-import "@/server/queries/__tests__/integration-setup";
 
 const robots = robotsDefault as unknown as () => Promise<{
   rules: { disallow: string[]; allow: string };
