@@ -68,3 +68,75 @@ test.describe("admin UI locale (es)", () => {
     await expect(page.getByText("Contraseña")).toBeVisible();
   });
 });
+
+test.describe("admin UI locale (de)", () => {
+  test("login screen renders in German when lb_locale=de", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "lb_locale",
+        value: "de",
+        url: BASE,
+      },
+    ]);
+
+    await page.goto("/login");
+
+    await expect(page.locator('[lang="de"]').first()).toBeVisible();
+
+    // translated labels (keys from src/locales/de.ts)
+    await expect(
+      page.getByRole("button", { name: "Anmelden" }),
+    ).toBeVisible();
+    await expect(page.getByText("Benutzername")).toBeVisible();
+    await expect(page.getByText("Passwort")).toBeVisible();
+  });
+});
+
+test.describe("admin UI locale (zh)", () => {
+  test("login screen renders in Chinese when lb_locale=zh", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "lb_locale",
+        value: "zh",
+        url: BASE,
+      },
+    ]);
+
+    await page.goto("/login");
+
+    await expect(page.locator('[lang="zh-Hans"]').first()).toBeVisible();
+
+    // translated labels (keys from src/locales/zh.ts)
+    await expect(
+      page.getByRole("button", { name: "登录" }),
+    ).toBeVisible();
+    await expect(page.getByText("用户名")).toBeVisible();
+    await expect(page.getByText("密码")).toBeVisible();
+  });
+});
+
+test.describe("admin UI locale (ar)", () => {
+  test("login screen renders in Arabic (RTL) when lb_locale=ar", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "lb_locale",
+        value: "ar",
+        url: BASE,
+      },
+    ]);
+
+    await page.goto("/login");
+
+    await expect(page.locator('[lang="ar"]').first()).toBeVisible();
+
+    // RTL: the admin shell sets dir=rtl for Arabic
+    await expect(page.locator('[dir="rtl"]').first()).toBeVisible();
+
+    // translated labels (keys from src/locales/ar.ts)
+    await expect(
+      page.getByRole("button", { name: "تسجيل الدخول" }),
+    ).toBeVisible();
+    await expect(page.getByText("اسم المستخدم")).toBeVisible();
+    await expect(page.getByText("كلمة المرور")).toBeVisible();
+  });
+});

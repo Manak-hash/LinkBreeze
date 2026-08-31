@@ -8,11 +8,18 @@
  * union (same names, same order) per the i18n plan.
  */
 
-export const LOCALES = ["en", "fr", "es", "zh", "hi", "ar", "pt-BR"] as const;
+export const LOCALES = ["en", "fr", "es", "de", "zh", "hi", "ar", "pt-BR"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** Locales whose dictionary + review are done → shown in the picker. */
-export const AVAILABLE_LOCALES = ["en", "fr", "es"] as const;
+export const AVAILABLE_LOCALES = [
+  "en",
+  "fr",
+  "es",
+  "de",
+  "zh",
+  "ar",
+] as const;
 export type AvailableLocale = (typeof AVAILABLE_LOCALES)[number];
 
 export const DEFAULT_LOCALE = "en" as const satisfies AvailableLocale;
@@ -38,6 +45,7 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   en: "English",
   fr: "Français",
   es: "Español",
+  de: "Deutsch",
   zh: "中文",
   hi: "हिन्दी",
   ar: "العربية",
@@ -54,6 +62,7 @@ export const LOCALE_HTML_LANG: Record<Locale, string> = {
   en: "en",
   fr: "fr",
   es: "es",
+  de: "de",
   zh: "zh-Hans",
   hi: "hi",
   ar: "ar",

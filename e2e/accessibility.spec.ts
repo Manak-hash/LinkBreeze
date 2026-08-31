@@ -19,9 +19,14 @@ const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 /**
  * Build an axe result set for the given page restricted to the WCAG tag set.
+ * Third-party embeds (YouTube iframes) are excluded — their internals are
+ * not ours to fix and axe cannot always traverse them reliably cross-origin.
  */
 async function scanPage(page: Page) {
-  return await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+  return await new AxeBuilder({ page })
+    .exclude("iframe")
+    .withTags(WCAG_TAGS)
+    .analyze();
 }
 
 /**
@@ -38,8 +43,8 @@ function describeViolations(violations: Result[]) {
 }
 
 test.describe("Accessibility (axe-core)", () => {
-  test("public link page (/alex) has no WCAG violations", async ({ page }) => {
-    await page.goto("/alex");
+  test("public link page (/linkbreeze) has no WCAG violations", async ({ page }) => {
+    await page.goto("/linkbreeze");
     // Wait for the profile + links to render so we scan the real DOM.
     await expect(page.getByRole("heading").first()).toBeVisible();
 

@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
  * https://nextjs.org/docs/app/api-reference/file-conventions/error#global-error
  */
 
-// Inline copy for the two Tier-1 locales. Keyed by cookie value.
+// Inline copy for the Tier-1..3 locales. Keyed by cookie value.
 const COPY: Record<string, Record<string, string>> = {
   en: {
     lang: "en",
@@ -36,9 +36,33 @@ const COPY: Record<string, Record<string, string>> = {
     lang: "es",
     title: "Algo ha ido mal",
     description:
-      "Se produjo un error crítico. Prueba a recargar la página. Si el problema persiste, reinicia el contenedor o revisa los logs del servidor.",
+      "Se produjo un error crítico. Prueba a recargar la página. Si el problema persiste, reinicia el conteneur o revisa los logs del servidor.",
     errorId: "ID del error",
     retry: "Reintentar",
+  },
+  de: {
+    lang: "de",
+    title: "Etwas ist schiefgelaufen",
+    description:
+      "Es ist ein kritischer Fehler aufgetreten. Lade die Seite neu. Wenn das Problem weiterhin besteht, starte den Container neu oder prüfe die Server-Logs.",
+    errorId: "Fehler-ID",
+    retry: "Erneut versuchen",
+  },
+  zh: {
+    lang: "zh-Hans",
+    title: "出了点问题",
+    description:
+      "发生了严重错误。请尝试重新加载页面。如果问题仍然存在，请重启容器或查看服务器日志。",
+    errorId: "错误 ID",
+    retry: "重试",
+  },
+  ar: {
+    lang: "ar",
+    title: "حدث خطأ ما",
+    description:
+      "حدث خطأ حرج. حاول إعادة تحميل الصفحة. إذا استمرت المشكلة، أعد تشغيل الحاوية أو تحقق من سجلات الخادم.",
+    errorId: "معرّف الخطأ",
+    retry: "حاول مجددًا",
   },
 };
 

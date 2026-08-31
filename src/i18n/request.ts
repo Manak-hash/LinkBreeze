@@ -1,6 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { headers } from "next/headers";
 import {
+  AVAILABLE_LOCALES,
   DEFAULT_LOCALE,
   isAvailableLocale,
   type AvailableLocale,
@@ -24,7 +25,13 @@ const Dictionaries = {
   en: () => import("@/locales/en"),
   fr: () => import("@/locales/fr"),
   es: () => import("@/locales/es"),
-} satisfies Record<string, () => Promise<{ default: unknown }>>;
+  de: () => import("@/locales/de"),
+  zh: () => import("@/locales/zh"),
+  ar: () => import("@/locales/ar"),
+} satisfies Record<
+  (typeof AVAILABLE_LOCALES)[number],
+  () => Promise<{ default: unknown }>
+>;
 
 export default getRequestConfig(async () => {
   let locale: AvailableLocale = DEFAULT_LOCALE;

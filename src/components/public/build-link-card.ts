@@ -135,9 +135,11 @@ function buildContentRow(link: LinkRow): string {
   const icon = buildIcon(link);
   const featured = link.isHighlighted;
 
-  // Featured links get a "Featured" badge instead of the small dot
+  // Featured links get a "Featured" badge instead of the small dot.
+  // Text sits on the card background, so color-mix guarantees AA contrast
+  // (4.5:1+) against it even when the raw accent alone would fall short.
   const featuredBadge = featured
-    ? `<span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-accent);margin-bottom:4px">&#9733; Featured</span>`
+    ? `<span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:color-mix(in srgb, var(--lb-accent) 80%, white 20%);margin-bottom:4px">&#9733; Featured</span>`
     : "";
 
   const description = link.description

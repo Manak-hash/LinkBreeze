@@ -9,6 +9,7 @@ export function localeTag(locale: string | undefined): string {
   switch (locale) {
     case "fr": return "fr-FR";
     case "es": return "es-ES";
+    case "de": return "de-DE";
     case "zh": return "zh-CN";
     case "hi": return "hi-IN";
     case "ar": return "ar-MA";

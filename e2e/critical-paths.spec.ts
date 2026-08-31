@@ -7,13 +7,13 @@ import { test, expect } from "@playwright/test";
  * a LinkBreeze page and sees the profile + links.
  */
 test("public page loads with profile and links", async ({ page }) => {
-  await page.goto("/alex");
+  await page.goto("/linkbreeze");
 
   // Profile name visible
-  await expect(page.getByRole("heading", { name: "Alex Rivera" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "LinkBreeze" })).toBeVisible();
 
   // Bio text visible
-  await expect(page.getByText("Content creator")).toBeVisible();
+  await expect(page.getByText("Self-hosted link-in-bio")).toBeVisible();
 
   // At least 3 links rendered
   const links = page.locator("main a");
@@ -32,7 +32,7 @@ test("public page loads with profile and links", async ({ page }) => {
  * endpoint, not directly to the external URL.
  */
 test("link click goes through /go/ redirect", async ({ page }) => {
-  await page.goto("/alex");
+  await page.goto("/linkbreeze");
 
   // Get the first link's href — links are inside <main> but may be nested
   const firstLink = page.locator("main a[href*='/go/']").first();
@@ -65,24 +65,22 @@ test("login page renders and accepts input", async ({ page }) => {
 });
 
 /**
- * E2E Test 4: Subscribe form accepts email.
+ * E2E Test 4: Embed widget renders on the public page.
  *
- * Verifies the email capture widget works on the public page.
+ * Verifies the YouTube embed widget works on the public page
+ * (the demo showcase page's featured embed).
  */
-test("subscribe form accepts email input", async ({ page }) => {
-  await page.goto("/alex");
+test("embed widget renders on public page", async ({ page }) => {
+  await page.goto("/linkbreeze");
 
-  // Find the email input and subscribe button
-  const emailInput = page.getByLabel("Email address");
-  const subscribeBtn = page.getByRole("button", { name: "Subscribe" });
-
-  // Verify they're visible
-  await expect(emailInput).toBeVisible();
-  await expect(subscribeBtn).toBeVisible();
-
-  // Type an email
-  await emailInput.fill("test@example.com");
-  await expect(emailInput).toHaveValue("test@example.com");
+  // The showcase page's uncategorized embed sits at the top of the page.
+  // (Embeds are rewritten to the privacy-hardened youtube-nocookie.com domain.)
+  const iframe = page.locator("iframe");
+  await expect(iframe.first()).toBeVisible();
+  await expect(iframe.first()).toHaveAttribute(
+    "src",
+    /youtube(-nocookie)?\.com\/embed\//,
+  );
 });
 
 /**
