@@ -6,8 +6,11 @@ authoritative; translations may lag behind.
 | Language | File | Source commit (README.md) | Status |
 |----------|------|--------------------------|--------|
 | English | [README.md](../README.md) | — | authoritative |
-| Español | [README.es.md](../README.es.md) | `2bb71d5342bc7d90c62f988a65054fdbf19127ff` | in review |
-| Français | [README.fr.md](../README.fr.md) | `2bb71d5342bc7d90c62f988a65054fdbf19127ff` | in review |
+| Español | [README.es.md](../README.es.md) | `e6b4b149741c9f8a96f8243bb8628bb5d2254377` | in review |
+| Français | [README.fr.md](../README.fr.md) | `e6b4b149741c9f8a96f8243bb8628bb5d2254377` | in review |
+| Deutsch | [README.de.md](../README.de.md) | `e6b4b149741c9f8a96f8243bb8628bb5d2254377` | in review |
+| 中文 | [README.zh.md](../README.zh.md) | `e6b4b149741c9f8a96f8243bb8628bb5d2254377` | in review |
+| العربية | [README.ar.md](../README.ar.md) | `e6b4b149741c9f8a96f8243bb8628bb5d2254377` | in review |
 
 ## Keeping translations fresh
 
@@ -26,6 +29,6 @@ together.
 
 ## Reviewing
 
-Maintainer-reviewed languages (fr, es, ar) are translated and reviewed by the
+Maintainer-reviewed languages (fr, es, de, zh, ar) are translated and reviewed by the
 maintainer. For community languages, open a discussion; a native speaker
 should review before the translation lands.
