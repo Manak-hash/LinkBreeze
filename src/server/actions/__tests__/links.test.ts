@@ -53,7 +53,7 @@ vi.mock("@/server/queries", () => ({
   getAllLinks: vi.fn(async () => []),
 }));
 
-import { createLink, updateLink, deleteLink } from "@/server/actions/links";
+import { createLink, updateLink, deleteLink, createDivider } from "@/server/actions/links";
 
 function makeFormData(data: Record<string, string>): FormData {
   const fd = new FormData();
@@ -399,5 +399,49 @@ describe("createLink icon modes (#91)", () => {
     expect(mocks.updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
       customIconUrl: "/api/uploads/icon-abc.png", iconMode: "custom",
     }));
+  });
+});
+
+describe("createDivider (#87)", () => {
+  it("appends an inert divider row — no URL, no icon, no popup fields", async () => {
+    const res = await createDivider(1);
+    expect(res.success).toBe(true);
+    expect(mocks.createLink).toHaveBeenCalledOnce();
+    expect(mocks.createLink).toHaveBeenCalledWith(expect.objectContaining({
+      type: "divider",
+      url: "",
+      iconMode: "auto",
+      autoIcon: false,
+    }));
+    // Dividers never fetch favicons.
+    expect(mocks.fetchAndCacheFavicon).not.toHaveBeenCalled();
+  });
+
+  it("rejects when unauthenticated", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    const res = await createDivider();
+    expect(res.success).toBe(false);
+    expect(mocks.createLink).not.toHaveBeenCalled();
+  });
+
+  it("createLink with type=divider normalizes any URL away", async () => {
+    const res = await createLink(makeFormData({
+      title: "—", url: "", type: "divider",
+      isActive: "true", isHighlighted: "false",
+    }));
+    expect(res.success).toBe(true);
+    const call = (mocks.createLink.mock.calls as unknown as Array<[Record<string, unknown>]>)[0]![0];
+    expect(call.url).toBe("");
+    expect(call.ctaLabel).toBeNull();
+    expect(call.popupText).toBeNull();
+  });
+
+  it("createLink rejects a divider carrying a URL (no URL smuggling)", async () => {
+    const res = await createLink(makeFormData({
+      title: "Evil", url: "https://example.com", type: "divider",
+      isActive: "true", isHighlighted: "false",
+    }));
+    expect(res.success).toBe(false);
+    expect(mocks.createLink).not.toHaveBeenCalled();
   });
 });

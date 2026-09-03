@@ -113,6 +113,10 @@ export async function customizeActiveTheme(formData: FormData): Promise<ActionRe
     avatarBorder: formData.get("avatarBorder") || undefined,
     avatarFloat: formData.get("avatarFloat") || undefined,
     avatarSize: formData.get("avatarSize") || undefined,
+    dividerStyle: formData.get("dividerStyle") || undefined,
+    dividerColor: formData.has("dividerColor") ? formData.get("dividerColor") : undefined,
+    dividerThickness: formData.get("dividerThickness") || undefined,
+    dividerWidth: formData.get("dividerWidth") || undefined,
     profileLayout: formData.get("profileLayout") || undefined,
     textAnimation: formData.get("textAnimation") || undefined,
   });

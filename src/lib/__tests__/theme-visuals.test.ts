@@ -115,6 +115,41 @@ describe("avatar size token", () => {
   });
 });
 
+// ─── Divider element (#87) ──────────────────────────────────────────────────
+
+describe("divider tokens", () => {
+  it("defaults match the pre-divider look (solid card-border line, full width)", () => {
+    const { cssVars } = resolveThemeTokens({});
+    expect(cssVars["--lb-divider-style"]).toBe("solid");
+    expect(cssVars["--lb-divider-color"]).toBe("var(--lb-card-border)");
+    expect(cssVars["--lb-divider-thickness"]).toBe("1px");
+    expect(cssVars["--lb-divider-width"]).toBe("100%");
+    expect(cssVars["--lb-divider-image"]).toBe("none");
+  });
+
+  it("an explicit color overrides the card-border inheritance", () => {
+    const { cssVars } = resolveThemeTokens({ dividerColor: "#ff0000" });
+    expect(cssVars["--lb-divider-color"]).toBe("#ff0000");
+  });
+
+  it("gradient style resolves the line into an accent fade image", () => {
+    const { cssVars } = resolveThemeTokens({
+      dividerStyle: "gradient",
+      primaryColor: "#7c5ff0",
+    });
+    expect(cssVars["--lb-divider-style"]).toBe("gradient");
+    expect(cssVars["--lb-divider-image"]).toContain("linear-gradient(90deg");
+    expect(cssVars["--lb-divider-image"]).toContain("#7c5ff0");
+  });
+
+  it("thickness and width clamp to the slider ranges (1–8px, 20–100%)", () => {
+    expect(resolveThemeTokens({ dividerThickness: "0" }).cssVars["--lb-divider-thickness"]).toBe("1px");
+    expect(resolveThemeTokens({ dividerThickness: "50" }).cssVars["--lb-divider-thickness"]).toBe("8px");
+    expect(resolveThemeTokens({ dividerWidth: "1" }).cssVars["--lb-divider-width"]).toBe("20%");
+    expect(resolveThemeTokens({ dividerWidth: "1000" }).cssVars["--lb-divider-width"]).toBe("100%");
+  });
+});
+
 // ─── Text animation pass-through (rendered by ProfileHeader) ────────────────
 
 describe("textAnimation values", () => {

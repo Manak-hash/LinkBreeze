@@ -102,6 +102,28 @@ export const customSchema = z.object({
     .regex(/^auto$|^\d+$/, "Invalid avatar size")
     .refine((v) => v === "auto" || (Number(v) >= 48 && Number(v) <= 180), "Avatar size out of range")
     .optional(),
+  // #87 divider element styling
+  dividerStyle: z.enum(["solid", "dashed", "dotted", "gradient"]).optional(),
+  /** CSS color, or "" (= inherit the card border color). */
+  dividerColor: z
+    .string()
+    .max(60)
+    .refine((v) => v === "" || colorRegex.test(v) || v.startsWith("rgba(") || v.startsWith("rgb("), "Invalid color")
+    .optional(),
+  /** Line thickness in px as a string, 1–8. */
+  dividerThickness: z
+    .string()
+    .max(4)
+    .regex(/^\d+$/, "Invalid thickness")
+    .refine((v) => Number(v) >= 1 && Number(v) <= 8, "Thickness out of range")
+    .optional(),
+  /** Width percentage as a string, 20–100. */
+  dividerWidth: z
+    .string()
+    .max(4)
+    .regex(/^\d+$/, "Invalid width")
+    .refine((v) => Number(v) >= 20 && Number(v) <= 100, "Width out of range")
+    .optional(),
   profileLayout: z.enum(["classic", "hero", "banner"]).optional(),
   textAnimation: z.enum(["none", "typewriter", "gradient-flow"]).optional(),
 });

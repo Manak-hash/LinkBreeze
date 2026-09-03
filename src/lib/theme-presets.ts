@@ -64,6 +64,12 @@ export interface ThemePreset {
   avatarFloat: string;
   /** "auto" keeps the shape-aware default; else a px number as a string. */
   avatarSize: string;
+  // #87 divider element styling — defaults keep the pre-divider look.
+  dividerStyle: string;
+  /** "" = inherit the theme's card border color. */
+  dividerColor: string;
+  dividerThickness: string;
+  dividerWidth: string;
   profileLayout: string;
   textAnimation: string;
 
@@ -103,6 +109,10 @@ export const base: Omit<ThemePreset, "name" | "backgroundType" | "backgroundValu
   avatarBorder: "solid",
   avatarFloat: "false",
   avatarSize: "auto",
+  dividerStyle: "solid",
+  dividerColor: "",
+  dividerThickness: "1",
+  dividerWidth: "100",
   profileLayout: "classic",
   textAnimation: "none",
 };

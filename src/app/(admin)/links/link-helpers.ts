@@ -7,7 +7,7 @@
 
 export type LinkTypeKey =
   | "ltUrl" | "ltEmail" | "ltPhone" | "ltWhatsapp" | "ltSms"
-  | "ltVcard" | "ltFile" | "ltEmbed" | "ltText" | "ltLocation";
+  | "ltVcard" | "ltFile" | "ltEmbed" | "ltText" | "ltLocation" | "ltDivider";
 
 export const LINK_TYPES = [
   { value: "url", label: "ltUrl" },
@@ -20,6 +20,7 @@ export const LINK_TYPES = [
   { value: "embed", label: "ltEmbed" },
   { value: "text", label: "ltText" },
   { value: "location", label: "ltLocation" },
+  { value: "divider", label: "ltDivider" },
 ] as const;
 
 const LINK_LABELS: Record<string, LinkLabelKey> = {

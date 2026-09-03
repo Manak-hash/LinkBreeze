@@ -9,6 +9,10 @@ const ALLOWED_SCHEMES_BY_TYPE: Record<string, Set<string>> = {
   embed: new Set(["https:"]),
   text: new Set(["http:", "https:"]),
   location: new Set(["https:"]),
+  // #87 divider elements carry no target — the column just holds "" (or a
+  // legacy value from a converted link). Only the empty string is valid so
+  // a restored backup can never smuggle a live URL in through a divider.
+  divider: new Set<string>([]),
 };
 
 /** Hosts that serve genuine Google Maps pages (any path under /maps). */
@@ -121,6 +125,10 @@ export function isAllowedLinkUrl(type: string, value: string): boolean {
 
   // Text popups may omit the URL entirely (no CTA button).
   if (type === "text" && trimmed === "") return true;
+
+  // #87 divider elements carry no URL at all — an empty string is the only
+  // valid value (the "divider" allowlist is empty by design).
+  if (type === "divider") return trimmed === "";
 
   if (trimmed.startsWith("/")) {
     return allowedSchemes.has("/") && !trimmed.startsWith("//");

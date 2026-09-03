@@ -55,6 +55,11 @@ async function resolveIconFields(
     }
   | { ok: false; error: string }
 > {
+  // #87 dividers have no icon — force auto (which is a no-op for them since
+  // the favicon fetch below is type-gated to "url" links anyway).
+  if (d.type === "divider") {
+    return { ok: true, icon: null, iconUrl: null, customIconUrl: null, iconMode: "auto" };
+  }
   if (d.iconMode === "lucide") {
     const name = (d.icon ?? "").trim();
     if (!isLucideName(name)) return { ok: false, error: "Unknown icon selected" };
@@ -155,6 +160,10 @@ async function resolvePopupFields(
   if (d.type === "text") {
     return { url: d.url, ctaLabel: d.ctaLabel?.trim() || null };
   }
+  // #87 divider elements carry no URL or CTA — normalize to inert values.
+  if (d.type === "divider") {
+    return { url: "", ctaLabel: null };
+  }
   // Classic link types never carry popup fields.
   return { url: d.url, ctaLabel: null };
 }
@@ -175,7 +184,7 @@ const linkSchema = z
     url: z.string().max(2048),
     description: z.string().max(300).optional().nullable(),
     imageUrl: z.string().max(2048).optional().nullable(),
-    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed", "text", "location"]).default("url"),
+    type: z.enum(["url", "email", "phone", "whatsapp", "sms", "vcard", "file", "embed", "text", "location", "divider"]).default("url"),
     // #93 popup cards: long body + optional CTA label (target = url column).
     popupText: z.string().max(5000).optional().nullable(),
     ctaLabel: z.string().max(80).optional().nullable(),
@@ -209,11 +218,17 @@ const linkSchema = z
   // #93 popup cards: every non-text type needs a URL (text may leave it
   // empty when there is no CTA button). Runs before the scheme check so an
   // empty classic URL reports "URL is required", not a scheme error.
-  .refine((link) => link.type === "text" || !!link.url.trim(), {
+  // #87 dividers carry no URL at all — the title doubles as an accessible
+  // name only when the operator provides one.
+  .refine((link) => link.type === "text" || link.type === "divider" || !!link.url.trim(), {
     path: ["url"],
     message: "URL is required",
   })
   .refine((link) => isAllowedLinkUrl(link.type, link.type === "location" ? buildMapsUrl(link.url) : link.url), {
+    path: ["url"],
+    message: "URL scheme is not allowed for this link type",
+  })
+  .refine((link) => link.type !== "divider" || isAllowedLinkUrl("divider", link.url), {
     path: ["url"],
     message: "URL scheme is not allowed for this link type",
   })
@@ -462,6 +477,40 @@ export async function reorderLinks(orderedIds: number[]): Promise<ActionResult> 
     return { success: true };
   } catch (err) {
     logError("reorderLinks", err, { count: orderedIds.length });
+    return {
+      success: false,
+      error: "Something went wrong. Please try again.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
+}
+
+/**
+ * #87: one-click divider element. Appends a type="divider" row (no URL, no
+ * icon — just a thematic break the operator can then drag into place). The
+ * title is a short label, not rendered visually on the public page.
+ */
+export async function createDivider(pageId?: number): Promise<ActionResult> {
+  const blocked = demoGuard();
+  if (blocked) return blocked;
+  if (!(await requireAuth())) return unauthorizedError();
+
+  try {
+    await createLinkQuery({
+      title: "—",
+      url: "",
+      pageId,
+      type: "divider",
+      isActive: true,
+      iconMode: "auto",
+      autoIcon: false,
+      cardStyle: "compact",
+    });
+    revalidatePath("/links");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    logError("createDivider", err, { pageId });
     return {
       success: false,
       error: "Something went wrong. Please try again.",

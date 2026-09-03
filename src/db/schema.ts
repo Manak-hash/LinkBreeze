@@ -76,7 +76,7 @@ export const links = sqliteTable("links", {
   pageId: integer("page_id").notNull().default(1),
   sectionId: integer("section_id"), // FK to link_sections.id (enforced in 0013 migration SQL)
   orderIndex: integer("order_index").notNull().default(0),
-  type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file, embed, text, location
+  type: text("type").notNull().default("url"), // url, email, phone, whatsapp, sms, vcard, file, embed, text, location, divider
   title: text("title").notNull(),
   description: text("description"),
   url: text("url").notNull(),
@@ -164,6 +164,12 @@ export const themes = sqliteTable("themes", {
   // Avatar diameter in px as a string ("96"). "auto" = the pre-slider
   // behavior (a shape-aware default the resolver computes).
   avatarSize: text("avatar_size").notNull().default("auto"),
+  // Divider element (#87) — per-theme divider styling. divider_color is a
+  // raw CSS color or "" (= inherit --lb-card-border, the pre-column look).
+  dividerStyle: text("divider_style").notNull().default("solid"), // solid, dashed, dotted, gradient
+  dividerColor: text("divider_color").notNull().default(""),
+  dividerThickness: text("divider_thickness").notNull().default("1"), // 1–8 (px)
+  dividerWidth: text("divider_width").notNull().default("100"), // 20–100 (%)
   profileLayout: text("profile_layout").notNull().default("classic"), // classic, hero, banner
   textAnimation: text("text_animation").notNull().default("none"), // none, typewriter, gradient-flow
 

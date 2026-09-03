@@ -130,6 +130,10 @@ const themeRowSchema = z.object({
   avatarBorder: z.string().optional(),
   avatarFloat: z.string().optional(),
   avatarSize: z.string().optional(),
+  dividerStyle: z.string().optional(),
+  dividerColor: z.string().optional(),
+  dividerThickness: z.string().optional(),
+  dividerWidth: z.string().optional(),
   profileLayout: z.string().optional(),
   textAnimation: z.string().optional(),
   // Meta
@@ -204,6 +208,12 @@ const exportableThemeSchema = z.object({
   // Resizable avatar — optional with default "auto" so pre-slider exports
   // import cleanly (shape-aware default size).
   avatarSize: z.string().max(10).optional().default("auto"),
+  // Divider element styling (#87) — optional with defaults so pre-divider
+  // exports import cleanly (solid card-border line, full width).
+  dividerStyle: z.string().max(20).optional().default("solid"),
+  dividerColor: z.string().max(60).optional().default(""),
+  dividerThickness: z.string().max(4).optional().default("1"),
+  dividerWidth: z.string().max(4).optional().default("100"),
   profileLayout: z.string().max(20).optional().default("classic"),
   textAnimation: z.string().max(20).optional().default("none"),
   // Custom font payload (#82) — present when fontFamily is "custom:<id>".
@@ -517,6 +527,10 @@ export async function exportTheme(id: number): Promise<ExportableTheme> {
     avatarBorder: theme.avatarBorder,
     avatarFloat: theme.avatarFloat,
     avatarSize: theme.avatarSize,
+    dividerStyle: theme.dividerStyle,
+    dividerColor: theme.dividerColor,
+    dividerThickness: theme.dividerThickness,
+    dividerWidth: theme.dividerWidth,
     profileLayout: theme.profileLayout,
     textAnimation: theme.textAnimation,
     ...(customFont ? { customFont } : {}),
@@ -651,6 +665,10 @@ export async function importTheme(json: string): Promise<ActionResult> {
     avatarBorder: t.avatarBorder,
     avatarFloat: t.avatarFloat,
     avatarSize: t.avatarSize,
+    dividerStyle: t.dividerStyle,
+    dividerColor: t.dividerColor,
+    dividerThickness: t.dividerThickness,
+    dividerWidth: t.dividerWidth,
     profileLayout: t.profileLayout,
     textAnimation: t.textAnimation,
     isActive: false,

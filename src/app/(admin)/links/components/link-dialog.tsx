@@ -128,6 +128,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
   // #93 popup types share the popup fields (body, CTA).
   const isPopupType = type === "text" || type === "location";
   const isTextPopup = type === "text";
+  // #87 dividers: decorative separator — no URL, description, thumbnail,
+  // or icon. Style lives in the theme customizer, not per-link.
+  const isDivider = type === "divider";
   const storedUrl = editing?.url ?? "";
   const hadUTM = isUrlType && hasUTM(storedUrl);
   const [showUTM, setShowUTM] = React.useState(hadUTM);
@@ -263,12 +266,17 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
               id="title"
               name="title"
               defaultValue={editing?.title ?? ""}
-              required
+              required={!isDivider}
               maxLength={120}
               placeholder={t("titlePlaceholder")}
             />
           </FormField>
 
+          {isDivider ? (
+            <p className="rounded-lg border border-dashed border-border/70 px-3 py-2.5 text-xs text-muted-foreground">
+              {t("dividerHint")}
+            </p>
+          ) : (
           <FormField label={urlLabel} htmlFor="url" required={!isTextPopup}>
             <Input
               id="url"
@@ -279,6 +287,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
               placeholder={urlPlaceholder}
             />
           </FormField>
+          )}
 
           {/* #93 popup cards: body text (markdown subset) + optional CTA
               label. The URL field above doubles as CTA target (text) or
@@ -309,7 +318,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
           ) : null}
 
           {/* Description + Thumbnail: both optional one-liners — natural peers
-              on a shared row (stacked on narrow screens). */}
+              on a shared row (stacked on narrow screens). Hidden for dividers
+              (#87): they render nothing but the themed line. */}
+          {!isDivider ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr]">
             <FormField label={t("description")} htmlFor="description">
               <Input
@@ -331,6 +342,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
               />
             </FormField>
           </div>
+          ) : null}
 
           {/* Type + Section share a row — both single-select metadata, natural
               peers. Collapse to a column when the dialog is narrow (mobile). */}
@@ -429,7 +441,9 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
           {/* Icon system (#91): auto favicon / lucide pick / upload.
               One-line segmented control with a live preview chip — the chip
               shows WHAT is selected (favicon sparkle, picked icon, uploaded
-              image) so the mode names don't carry the meaning alone. */}
+              image) so the mode names don't carry the meaning alone.
+              Hidden for dividers (#87): they have no icon. */}
+          {!isDivider ? (
           <FormField
             label={t("iconSection")}
             hint={iconMode === "auto" ? t("iconAutoHint") : undefined}
@@ -511,6 +525,7 @@ export function LinkDialog({ open, onOpenChange, editing, pageId, sections = [] 
               <p className="mt-1 text-xs text-muted-foreground">{t("iconUploadSelected", { name: iconFileName })}</p>
             ) : null}
           </FormField>
+          ) : null}
 
           {/* Toggle strip: boolean-ish options in one 2-col grid — peers, not
               a vertical list. UTM only exists for URL-type links. */}

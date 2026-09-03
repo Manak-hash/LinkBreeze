@@ -12,6 +12,7 @@ import {
   type ThemeInput,
 } from "@/lib/theme-tokens";
 import { buildLinkCardHtml } from "@/components/public/build-link-card";
+import { buildDividerHtml } from "@/components/public/build-divider";
 import type { LinkRow } from "@/server/queries";
 import type { CustomizerState } from "./theme-customizer";
 import { parseCustomFontId, buildFontFaceCss, type CustomFontMeta } from "@/lib/custom-fonts";
@@ -41,6 +42,8 @@ function mockLinks(tDemo: ReturnType<typeof useTranslations>): LinkRow[] {
   };
   return [
     { ...base, id: 1, title: tDemo("mockWebsite"), url: "https://example.com", isHighlighted: false },
+    // #87 divider sample so the visualizer shows the themed line.
+    { ...base, id: 90, title: "—", url: "", type: "divider", isHighlighted: false },
     { ...base, id: 2, title: tDemo("mockVideo"), url: "https://youtube.com", isHighlighted: true },
   ];
 }
@@ -101,7 +104,11 @@ export function ThemeLivePreview({
   const cards = React.useMemo(() => {
     const links = mockLinks(tDemo);
     return links
-      .map((link, i) => buildLinkCardHtml({ link, theme, index: i }))
+      .map((link, i) =>
+        link.type === "divider"
+          ? buildDividerHtml({ link, theme, index: i })
+          : buildLinkCardHtml({ link, theme, index: i }),
+      )
       .join("");
   }, [theme, tDemo]);
 
