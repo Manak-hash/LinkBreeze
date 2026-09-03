@@ -117,6 +117,13 @@ export const AVATAR_BORDERS = [
   { value: "none", label: "borderNone" },
 ] as const;
 
+export const DIVIDER_STYLES = [
+  { value: "solid", label: "divSolid" },
+  { value: "dashed", label: "divDashed" },
+  { value: "dotted", label: "divDotted" },
+  { value: "gradient", label: "divGradient" },
+] as const;
+
 export const PROFILE_LAYOUTS = [
   { value: "classic", label: "layoutClassic" },
   { value: "hero", label: "layoutHero" },

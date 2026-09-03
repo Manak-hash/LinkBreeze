@@ -29,6 +29,7 @@ import {
   REVEAL_ANIMATIONS,
   AVATAR_SHAPES,
   AVATAR_BORDERS,
+  DIVIDER_STYLES,
   PROFILE_LAYOUTS,
   TEXT_ANIMATIONS,
 } from "../theme-constants";
@@ -413,6 +414,68 @@ export function CardStyleSection({ s, set }: { s: CustomizerState; set: SetFn })
           unit="px"
         />
       ) : null}
+    </section>
+  );
+}
+
+/**
+ * Divider element styling (#87) — every theme styles its own dividers:
+ * line style (solid/dashed/dotted/gradient fade), color ("" = inherit the
+ * card border), thickness and width. Defaults match the pre-divider look,
+ * so untouched themes render dividers exactly as a plain card-border line.
+ */
+export function DividerSection({ s, set }: { s: CustomizerState; set: SetFn }) {
+  const t = useTranslations("theme");
+  return (
+    <section className="flex flex-col gap-4">
+      <h3 className="text-sm font-semibold">{t("dividerSection")}</h3>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <SelectField
+          label={t("dividerStyle")}
+          name="dividerStyle"
+          value={s.dividerStyle}
+          onChange={(v) => set({ dividerStyle: v })}
+          options={DIVIDER_STYLES}
+        />
+        <ColorField
+          label={t("dividerColor")}
+          name="dividerColor"
+          value={s.dividerColor}
+          onChange={(v) => set({ dividerColor: v })}
+        />
+        <SliderField
+          label={t("dividerThickness")}
+          name="dividerThickness"
+          value={parseInt(s.dividerThickness, 10) || 1}
+          onChange={(v) => set({ dividerThickness: String(v) })}
+          min={1}
+          max={8}
+          step={1}
+          unit="px"
+        />
+        <SliderField
+          label={t("dividerWidth")}
+          name="dividerWidth"
+          value={parseInt(s.dividerWidth, 10) || 100}
+          onChange={(v) => set({ dividerWidth: String(v) })}
+          min={20}
+          max={100}
+          step={5}
+          unit="%"
+        />
+      </div>
+      {/* Live line preview using the exact public-page tokens */}
+      <div
+        aria-hidden
+        className="mt-1"
+        style={{
+          height: "var(--lb-divider-thickness)",
+          width: "var(--lb-divider-width)",
+          margin: "0 auto",
+          borderTop: "var(--lb-divider-thickness) var(--lb-divider-style) var(--lb-divider-color)",
+          background: "var(--lb-divider-image)",
+        }}
+      />
     </section>
   );
 }

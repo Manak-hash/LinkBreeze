@@ -18,8 +18,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, DownloadCloud, FolderOpen, Pencil, Trash2 } from "lucide-react";
+import { Plus, DownloadCloud, FolderOpen, Pencil, Trash2, Minus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { reorderContent } from "@/server/actions/sections";
+import { createDivider } from "@/server/actions/links";
 import type { LinkRow, LinkSectionRow } from "@/server/queries";
 import { groupLinksBySection } from "@/lib/link-sections";
 import { LucideIcon, isLucideIconName } from "@/components/public/LucideIcon";
@@ -277,6 +279,23 @@ export function LinksManager({
     setDialogOpen(true);
   };
 
+  // #87: one-click divider. Appends the row server-side; router.refresh()
+  // picks up the new item and the preview reloads like any link save.
+  const [dividerPending, setDividerPending] = React.useState(false);
+  const router = useRouter();
+  const addDivider = async () => {
+    setDividerPending(true);
+    try {
+      const result = await createDivider(pageId);
+      if (result.success) {
+        router.refresh();
+        reloadPreview();
+      }
+    } finally {
+      setDividerPending(false);
+    }
+  };
+
   const openCreateSection = () => {
     setEditingSection(null);
     setSectionDialogOpen(true);
@@ -304,6 +323,8 @@ export function LinksManager({
         <div className="flex gap-2">
           <Button variant="outline" onClick={openCreateSection}>
             <FolderOpen className="size-4" />{t("addSection")}</Button>
+          <Button variant="outline" onClick={addDivider} disabled={dividerPending}>
+            <Minus className="size-4" />{t("addDivider")}</Button>
           <Button onClick={openCreate}>
             <Plus className="size-4" />{t("addLink")}</Button>
         </div>

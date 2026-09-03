@@ -19,6 +19,7 @@ import { isBot } from "@/lib/bot-detect";
 import { getSession } from "@/lib/auth";
 import { ProfileHeader } from "@/components/public/ProfileHeader";
 import { LinkCard } from "@/components/public/LinkCard";
+import { DividerElement } from "@/components/public/DividerElement";
 import { EmbedWidget } from "@/components/public/EmbedWidget";
 import { EmailCapture } from "@/components/public/EmailCapture";
 import { SectionHeader } from "@/components/public/SectionHeader";
@@ -323,6 +324,14 @@ export default async function PublicPage({ params }: PageProps) {
                       index={0}
                       baseDelayMs={delays[gi]?.links[li] ?? 0}
                       animationType={theme?.animationType || "lift"}
+                      theme={themeInput}
+                    />
+                  ) : link.type === "divider" ? (
+                    <DividerElement
+                      key={link.id}
+                      link={link}
+                      index={0}
+                      baseDelayMs={delays[gi]?.links[li] ?? 0}
                       theme={themeInput}
                     />
                   ) : (

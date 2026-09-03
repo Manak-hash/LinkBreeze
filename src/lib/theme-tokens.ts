@@ -51,11 +51,19 @@ export interface ThemeInput {
   cardBackground?: string | null;
   cardBorderColor?: string | null;
   /**
-   * Optional second font applied to link cards only. Same identifier
+   * Optional second font for link cards only. Same identifier
    * space as fontFamily (bundled id, "custom:<id>", legacy raw CSS).
    * Empty/null = cards inherit the site font.
    */
   cardFontFamily?: string | null;
+  /** Divider element styling (#87) — see resolveDivider*. */
+  dividerStyle?: string | null;
+  /** Raw CSS color or ""/null = inherit the card border color. */
+  dividerColor?: string | null;
+  /** Line thickness in px as a string ("1"–"8"). */
+  dividerThickness?: string | null;
+  /** Horizontal width as a percentage string ("100"). */
+  dividerWidth?: string | null;
   textColor?: string | null;
   mutedTextColor?: string | null;
 
@@ -382,6 +390,45 @@ export function resolveAvatarSize(size: string | null | undefined): string {
   return `${Math.round(Math.min(Math.max(num, 48), 180))}px`;
 }
 
+// ─── Divider element resolvers (#87) ────────────────────────────────────────
+
+/**
+ * Divider line style. Falls back to "solid" for unknown values so old rows
+ * and hand-edited backups always render a sane line.
+ */
+export function resolveDividerStyle(style: string | null | undefined): string {
+  switch (style?.trim()) {
+    case "dashed":
+      return "dashed";
+    case "dotted":
+      return "dotted";
+    case "gradient":
+      return "gradient";
+    default:
+      return "solid";
+  }
+}
+
+/**
+ * Divider line thickness in px, clamped to 1–8 (the customizer slider's
+ * range). Garbage falls back to 1px.
+ */
+export function resolveDividerThickness(thickness: string | null | undefined): string {
+  const num = Number(thickness);
+  if (!Number.isFinite(num) || num <= 0) return "1px";
+  return `${Math.round(Math.min(Math.max(num, 1), 8))}px`;
+}
+
+/**
+ * Divider width as a percentage, clamped to 20–100. Garbage falls back
+ * to 100% (full container width).
+ */
+export function resolveDividerWidth(width: string | null | undefined): string {
+  const num = Number(width);
+  if (!Number.isFinite(num) || num <= 0) return "100%";
+  return `${Math.round(Math.min(Math.max(num, 20), 100))}%`;
+}
+
 // ─── Reveal animation resolver ──────────────────────────────────────────────
 
 /** Keyframe name for each reveal animation type. */
@@ -511,6 +558,17 @@ export function resolveThemeTokens(
     // Avatar styling (1.3): shape → radius, border → ring/glow/gradient
     "--lb-avatar-radius": resolveAvatarRadius(str(theme.avatarShape, "circle")),
     "--lb-avatar-size": resolveAvatarSize(theme.avatarSize),
+    // Divider element (#87): per-theme line style. Color "" (the default)
+    // inherits the card border so dividers match every theme out of the box;
+    // an explicit color overrides it. "gradient" styles the line as an
+    // accent→transparent fade via --lb-divider-image (background takes over).
+    "--lb-divider-style": resolveDividerStyle(theme.dividerStyle),
+    "--lb-divider-color": theme.dividerColor?.trim() || "var(--lb-card-border)",
+    "--lb-divider-thickness": resolveDividerThickness(theme.dividerThickness),
+    "--lb-divider-width": resolveDividerWidth(theme.dividerWidth),
+    "--lb-divider-image": resolveDividerStyle(theme.dividerStyle) === "gradient"
+      ? `linear-gradient(90deg, transparent, ${theme.dividerColor?.trim() || accent}, transparent)`
+      : "none",
     "--lb-avatar-border": accent,
     "--lb-avatar-glow": glowValue,
     "--lb-avatar-gradient": `linear-gradient(135deg, ${accent}, ${secondary})`,

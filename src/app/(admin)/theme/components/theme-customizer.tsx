@@ -27,6 +27,7 @@ import {
   ColorsSection,
   TypographySection,
   CardStyleSection,
+  DividerSection,
   LayoutSection,
   EffectsSection,
   ProfileSection,
@@ -74,6 +75,14 @@ export type CustomizerState = {
   avatarFloat: string;
   /** "auto" or a px number string ("96"). */
   avatarSize: string;
+  // #87 divider element styling
+  dividerStyle: string;
+  /** "" = inherit the theme's card border color. */
+  dividerColor: string;
+  /** px thickness as a string ("1"–"8"). */
+  dividerThickness: string;
+  /** percentage width as a string ("100"). */
+  dividerWidth: string;
   profileLayout: string;
   textAnimation: string;
 };
@@ -118,6 +127,10 @@ function stateFromTheme(active: ThemeRow): CustomizerState {
     avatarBorder: active.avatarBorder ?? "solid",
     avatarFloat: active.avatarFloat ?? "false",
     avatarSize: active.avatarSize ?? "auto",
+    dividerStyle: active.dividerStyle ?? "solid",
+    dividerColor: active.dividerColor ?? "",
+    dividerThickness: active.dividerThickness ?? "1",
+    dividerWidth: active.dividerWidth ?? "100",
     profileLayout: active.profileLayout ?? "classic",
     textAnimation: active.textAnimation ?? "none",
   };
@@ -261,6 +274,9 @@ export function ThemeCustomizer({
             {tab === "links" ? (
               <>
                 <CardStyleSection s={state} set={set} />
+                <div className="mt-6">
+                  <DividerSection s={state} set={set} />
+                </div>
                 <div className="mt-6">
                   <LayoutSection s={state} set={set} />
                 </div>

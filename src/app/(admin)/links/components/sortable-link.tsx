@@ -16,6 +16,7 @@ import {
   Phone,
   Image as ImageIcon,
   Code2,
+  Minus,
 } from "lucide-react";
 import { toggleLink } from "@/server/actions/links";
 import { resolveIcon, isLucideIconName } from "@/lib/icon-registry";
@@ -57,6 +58,8 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
   // then uploaded image — then the cached favicon, then type icons and the
   // first-letter avatar, matching the public page's resolution order.
   const { displayIcon, displaySrc, letter } = React.useMemo(() => {
+    // #87 dividers: no icon, just the row glyph (rendered separately below).
+    if (link.type === "divider") return { displayIcon: Minus, displaySrc: null, letter: null };
     // Picked lucide icon stored as a dashed name.
     if (link.iconMode === "lucide" && link.icon && isLucideIconName(link.icon)) {
       return { displayIcon: resolveIcon(link.icon), displaySrc: null, letter: null };
@@ -142,10 +145,19 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-medium">{link.title}</span>
-              {link.isHighlighted ? (
-                <Badge className="shrink-0 border-transparent bg-[var(--aurora-grad)] text-white">{t("star")}</Badge>
-              ) : null}
+              {link.type === "divider" ? (
+                <>
+                  <Minus className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-sm text-muted-foreground">{t("dividerRow")}</span>
+                </>
+              ) : (
+                <>
+                  <span className="truncate text-sm font-medium">{link.title}</span>
+                  {link.isHighlighted ? (
+                    <Badge className="shrink-0 border-transparent bg-[var(--aurora-grad)] text-white">{t("star")}</Badge>
+                  ) : null}
+                </>
+              )}
               {!link.isActive ? (
                 <Badge variant="outline" className="shrink-0">{t("hidden")}</Badge>
               ) : null}
@@ -154,22 +166,26 @@ export function SortableLink({ link, onEdit, onDelete }: SortableLinkProps) {
                   <Clock className="size-3" />{t("scheduled")}</Badge>
               ) : null}
             </div>
-            <p className="truncate text-xs text-muted-foreground">{link.url}</p>
+            {link.type === "divider" ? null : (
+              <p className="truncate text-xs text-muted-foreground">{link.url}</p>
+            )}
           </div>
 
           <span className="hidden shrink-0 text-xs tabular-nums text-muted-foreground sm:inline">
             {t("clicksCount", { count: link.clicksCount })}
           </span>
 
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden shrink-0 text-muted-foreground hover:text-foreground sm:inline-flex"
-            aria-label={t("openLinkAria")}
-          >
-            <ExternalLink className="size-4" />
-          </a>
+          {link.type === "divider" ? null : (
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden shrink-0 text-muted-foreground hover:text-foreground sm:inline-flex"
+              aria-label={t("openLinkAria")}
+            >
+              <ExternalLink className="size-4" />
+            </a>
+          )}
 
           <Link
             href={`/links/${link.id}`}
