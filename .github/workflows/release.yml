@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      publish_test:
+        description: "Build AND push ghcr.io/manak-hash/linkbreeze:test (multi-arch, no version tag, no GitHub release)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,9 +19,28 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  setup:
+    name: Determine publish mode
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+    steps:
+      - name: Set publish mode
+        id: mode
+        run: |
+          # dispatch + publish_test=false -> dry-run | dispatch + true -> test tag | tag push -> release
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.publish_test }}" = "true" ]; then
+            echo "mode=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=dryrun" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
+    needs: setup
     strategy:
       fail-fast: false
       matrix:
@@ -45,9 +69,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Dry-run path (workflow_dispatch): build only, push nothing.
+      # Dry-run path (workflow_dispatch, publish_test=false): build only, push nothing.
       - name: Build (dry-run)
-        if: github.event_name == 'workflow_dispatch'
+        if: needs.setup.outputs.mode == 'dryrun'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -55,11 +79,11 @@ jobs:
           cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
-      # Release path (tag push): push the per-platform image by digest; the
-      # manifest list is assembled by the merge job.
+      # Test + release paths (publish): push the per-platform image by digest;
+      # the manifest list is assembled by the merge job.
       - name: Build and push by digest
         id: build
-        if: github.event_name == 'push'
+        if: needs.setup.outputs.mode != 'dryrun'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -69,14 +93,14 @@ jobs:
           cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
       - name: Export digest
-        if: github.event_name == 'push'
+        if: needs.setup.outputs.mode != 'dryrun'
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        if: github.event_name == 'push'
+        if: needs.setup.outputs.mode != 'dryrun'
         uses: actions/upload-artifact@v7
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -86,9 +110,9 @@ jobs:
 
   merge:
     name: Merge manifest list
-    if: github.event_name == 'push'
+    if: needs.setup.outputs.mode != 'dryrun'
     runs-on: ubuntu-latest
-    needs: build
+    needs: [setup, build]
     steps:
       - name: Prepare
         run: |
@@ -108,18 +132,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
-
-      - name: Docker meta
+      # Release path: latest + <version> tags. Test path: just :test.
+      - name: Docker meta (release)
+        if: needs.setup.outputs.mode == 'release'
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.VERSION }}
+            type=raw,value=${{ github.ref_name }}
+
+      - name: Docker meta (test)
+        if: needs.setup.outputs.mode == 'test'
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=test
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -131,4 +161,4 @@ jobs:
           docker buildx imagetools create $tags $digests
 
       - name: Inspect image
-        run: docker buildx imagetools inspect "${{ env.IMAGE }}:${{ steps.meta.outputs.version }}"
+        run: docker buildx imagetools inspect "${{ env.IMAGE }}:$(jq -r '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON" | sed 's|.*/||')"
