@@ -145,6 +145,7 @@ jobs:
 
       - name: Docker meta (test)
         if: needs.setup.outputs.mode == 'test'
+        id: meta-test
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
@@ -161,4 +162,4 @@ jobs:
           docker buildx imagetools create $tags $digests
 
       - name: Inspect image
-        run: docker buildx imagetools inspect "${{ env.IMAGE }}:$(jq -r '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON" | sed 's|.*/||')"
+        run: docker buildx imagetools inspect "${{ env.IMAGE }}:${{ steps.meta.outputs.version || steps.meta-test.outputs.version }}"
