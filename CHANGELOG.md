@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Dependency updates** — Merged 6 Dependabot PRs: the npm minor-and-patch group #101 (next 16.3.1→16.3.3, lucide-react 1.31.0→1.37.0, next-intl 4.13.7→4.14.1, shadcn 4.18.0→4.19.0, zod 4.4.3→4.5.2, sql.js 1.14.1→1.14.2, eslint-config-next 16.3.1→16.3.3, vitest 4.1.10→4.1.11, @types/node, @types/react-dom), `fast-uri` 3.1.5→3.1.7 (#102) and `qs` 6.15.3→6.16.0 (#103) in the lockfile, and the GitHub Actions group #98–#100 (docker/setup-buildx-action 3→4, actions/setup-node 4→7, actions/checkout 4→7 — CI already ran green on all three).
+- **Dependency updates** — Merged 2 Dependabot PRs: the npm minor-and-patch group #106 (@base-ui/react 1.7.0→1.8.0, lucide-react 1.37.0→1.41.0, next 16.3.3→16.3.4, next-intl 4.14.1→4.14.2, shadcn 4.19.0→4.21.0, zod 4.5.2→4.5.4, @types/node, @types/react-dom, eslint-config-next 16.3.3→16.3.4) and **vitest 4.1.11→5.0.0 (#107, first major bump)** — verified locally before merge on the full gate set: 771/771 tests pass on v5 with zero test-file changes (the repo's `maxWorkers: 1` threads config was already v5-clean; the default-mocks-cleared breaking change touches no existing suite), lint 0 warnings, tsc clean, 0 vulnerabilities.
 
 - **Popups are responsive bottom sheets on phones** — Under 520px the popup dialog becomes a full-width bottom sheet (the pattern map and share sheets use natively): top-rounded only, safe-area-aware CTA margin, map capped at 40vh so it never eats the sheet, and a dynamic-viewport (`dvh`) height chain with a `vh` fallback so the mobile URL bar can't clip the close row. The slide-up animation respects `prefers-reduced-motion`.
 
