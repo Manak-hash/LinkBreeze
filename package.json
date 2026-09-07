@@ -17,7 +17,8 @@
     "seed": "tsx src/scripts/seed-demo.ts",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:audit": "node scripts/locale-audit.mjs",
-    "docs:check": "node scripts/docs-check.mjs"
+    "docs:check": "node scripts/docs-check.mjs",
+    "changelog:check": "node scripts/check-changelog.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

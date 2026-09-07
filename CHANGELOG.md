@@ -5,6 +5,27 @@ All notable changes to LinkBreeze will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## [Unreleased]
 
 ### Added
@@ -102,16 +123,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Theme deletion works on themes the user created, duplicated, or imported. The 11 built-in presets can't be deleted, and neither can the currently active theme. Pages still using a deleted theme automatically fall back to the active theme.
   - Page deletion runs as a single database transaction, so a failure midway can't leave a half-deleted page behind.
 
+### Changed
+
+- **Dependency updates** — Bumped the minor-and-patch group with 6 updates (#88): `next` 16.3.0 → 16.3.1, `lucide-react` 1.30.0 → 1.31.0, `shadcn` 4.16.2 → 4.18.0, `@axe-core/playwright` 4.12.1 → 4.13.0, `@types/node` 26.1.2 → 26.2.0, `eslint-config-next` 16.3.0 → 16.3.1 Bumped `@types/better-sqlite3` from 7.6.13 to 9.6.0 (#89), aligning the type declarations with the runtime `better-sqlite3` v13
+
 ### Fixed
 
 - **Social icons editor: focus loss and dropped dataset while typing a URL (reported by @einlichtvogel)** — The social platform rows in the profile form were keyed by `` `${item.platform}-${item.url}` ``. The key changed on every keystroke in the URL field, so React unmounted and remounted the row mid-edit: the input lost focus after each character and the in-flight state could corrupt what gets saved. Rows are now keyed by platform plus index — stable while the URL is being typed — so editing stays smooth and the dataset survives the save.
 
 - **Link creation failing with "FOREIGN KEY constraint failed" (#86, reported by @einlichtvogel)** — Any new link failed to save once the page had at least one section. The link dialog's "No section" option submits an empty value, and the form schema coerced that empty string to `0` before the "empty means no section" check could run (`Number("") === 0`). The insert then referenced section 0, which doesn't exist, and SQLite rejected it with the FOREIGN KEY error. The section field now normalizes empty values to "no section" before numeric parsing, so the coercion can't misfire regardless of how the validation branches are ordered. Both the create and edit flows shared the flawed schema, so both are fixed. Covered by regression tests at the form-parsing layer, and the test database now enforces foreign keys the same way production does, so this class of bug can't slip through tests silently again.
-
-### Dependencies
-
-- Bumped the minor-and-patch group with 6 updates (#88): `next` 16.3.0 → 16.3.1, `lucide-react` 1.30.0 → 1.31.0, `shadcn` 4.16.2 → 4.18.0, `@axe-core/playwright` 4.12.1 → 4.13.0, `@types/node` 26.1.2 → 26.2.0, `eslint-config-next` 16.3.0 → 16.3.1
-- Bumped `@types/better-sqlite3` from 7.6.13 to 9.6.0 (#89), aligning the type declarations with the runtime `better-sqlite3` v13
 
 ## [1.3.0] - 2026-08-16
 
@@ -203,13 +223,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Email capture toggle in Settings UI** — The email capture feature existed in the database and public page renderer but had no UI to enable it. Settings → General now has an "Email subscription" Switch toggle. When enabled, the consent text field appears below it. Saves through both the page-specific and global settings paths.
 - **Multi-strategy favicon fetcher** — Replaced the single-source Google S2 favicon fetcher with a 3-strategy fallback chain: (1) fetch the site's HTML `<head>` and parse `<link rel="icon">`, `<link rel="shortcut icon">`, and `<link rel="apple-touch-icon">` hrefs; (2) try common favicon paths (`/favicon.ico`, `/favicon.png`, `/favicon.svg`, `/favicon-32x32.png`, `/favicon-96x96.png`); (3) fall back to DuckDuckGo's icon service (`icons.duckduckgo.com`). Rejects files under 100 bytes (filters out 1x1 transparent placeholders). Detects format from content-type and magic bytes (PNG, JPEG, GIF, SVG, WebP, ICO). Solves the previous issue where S2 returned generic 16x16 globe placeholders for newer/less-indexed domains.
 
-### Security
-
-- **Email capture consent (#75)** — The subscriber form now requires a consent checkbox before submission. Consent timestamp (`consent_at`) and the exact consent text shown at signup (`consent_text`) are stored in the database for audit trail. The consent text is customizable in Settings → General → Email consent text, with a sensible default ("I agree to receive emails and understand I can unsubscribe at any time."). CSV export now includes consent columns. Server-side validation rejects submissions without the checkbox checked.
-- **Removed Google S2 favicon fallback from public pages (#72)** — The link card builder previously fell back to `google.com/s2/favicons` when a link had no locally cached icon. This leaked visitor IPs, cookies, and browser data to Google on every page load for those links. The fallback is removed entirely; links without cached favicons now show a first-letter avatar in the accent color. New links continue to auto-fetch and cache favicons server-side, so no visitor ever touches a Google domain.
-- **Referrer stripping in analytics (#73)** — Analytics recording (pageviews and clicks) now stores only the origin of the Referer header instead of the full raw value. `instagram.com/p/Cxyz123/?igshid=...` is reduced to `https://www.instagram.com`. A `stripReferrer()` utility in `src/lib/visitor.ts` handles this at all three recording paths. Existing stored referrers are unchanged.
-- **CSP support for external analytics scripts (#74)** — The analytics script injection feature (Settings → General) was broken by CSP enforcement shipped in 1.2.5: external `<script src>` tags for Plausible, Umami, Matomo, etc. were silently blocked. Operators can now allowlist analytics domains via the `EXTRA_SCRIPT_SRC` environment variable (space-separated), which injects them into the CSP `script-src` directive at build time. Documented in `.env.example`, README configuration section, and the analytics script field hint in the UI.
-
 ### Changed
 
 - **Visitor hash k-anonymity documentation** — The `getVisitorHash()` function comment now explains that the 64-bit SHA-256 truncation is deliberate, providing k-anonymity within the daily salt window. The trade-off (potential undercounting of unique visitors behind the same NAT with identical user-agents) is documented inline.
@@ -225,6 +238,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup wizard theme picker empty on fresh database** — `getAllThemes()` was called before `getActiveTheme()` (which internally seeds theme presets via `seedThemesIfEmpty()`), so on a fresh install the theme grid was empty. Fixed by calling `seedThemesIfEmpty()` before `getAllThemes()` in the setup page.
 - **Email capture toggle not persisting** — `updatePageAction` did not call `revalidatePath("/settings")`. After saving, Next.js served the stale cached version of the settings page, so the email subscription toggle appeared to flip back to off. Added the missing revalidation call.
 - **Lighthouse CI build failure** — Turbopack (Next.js 16) intermittently gets 404s from `fonts.gstatic.com` during page data collection in CI. Fixed by using `npx next build --webpack` for the Lighthouse CI build only, with a 3-retry loop and `NODE_OPTIONS: "--max-old-space-size=4096"` for memory safety. Main CI continues to use Turbopack.
+
+### Security
+
+- **Email capture consent (#75)** — The subscriber form now requires a consent checkbox before submission. Consent timestamp (`consent_at`) and the exact consent text shown at signup (`consent_text`) are stored in the database for audit trail. The consent text is customizable in Settings → General → Email consent text, with a sensible default ("I agree to receive emails and understand I can unsubscribe at any time."). CSV export now includes consent columns. Server-side validation rejects submissions without the checkbox checked.
+- **Removed Google S2 favicon fallback from public pages (#72)** — The link card builder previously fell back to `google.com/s2/favicons` when a link had no locally cached icon. This leaked visitor IPs, cookies, and browser data to Google on every page load for those links. The fallback is removed entirely; links without cached favicons now show a first-letter avatar in the accent color. New links continue to auto-fetch and cache favicons server-side, so no visitor ever touches a Google domain.
+- **Referrer stripping in analytics (#73)** — Analytics recording (pageviews and clicks) now stores only the origin of the Referer header instead of the full raw value. `instagram.com/p/Cxyz123/?igshid=...` is reduced to `https://www.instagram.com`. A `stripReferrer()` utility in `src/lib/visitor.ts` handles this at all three recording paths. Existing stored referrers are unchanged.
+- **CSP support for external analytics scripts (#74)** — The analytics script injection feature (Settings → General) was broken by CSP enforcement shipped in 1.2.5: external `<script src>` tags for Plausible, Umami, Matomo, etc. were silently blocked. Operators can now allowlist analytics domains via the `EXTRA_SCRIPT_SRC` environment variable (space-separated), which injects them into the CSP `script-src` directive at build time. Documented in `.env.example`, README configuration section, and the analytics script field hint in the UI.
 
 ## [1.2.6] - 2026-08-12
 
@@ -254,24 +274,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-login middleware bypass** — `proxy.ts` middleware now skips cookie verification when `DEMO_AUTO_LOGIN=true`, allowing visitors to land directly on `/dashboard` without a session cookie. The admin layout's `getSession()` also returns a mock session in demo mode, so the page renders normally.
 - **Docker build args for demo mode** — Dockerfile accepts `DEMO_MODE`, `DEMO_AUTO_LOGIN`, `DEMO_FRAME_ORIGIN`, and `NEXT_PUBLIC_DEMO_MODE` as build args, passing them through to the build environment so `next.config.ts` can evaluate CSP conditions at build time (Next.js bakes config into standalone output). `docker-compose.demo.yml` updated to use `build:` with these args instead of pre-built image.
 - **TurbopackIgnore annotations** — `src/lib/uploads.ts` now includes `/*turbopackIgnore: true*/` comments on `path.resolve()` calls to prevent Turbopack from tracing the entire filesystem at build time (which caused build failures with the current Next.js 16 + Turbopack stack). Build output now succeeds without warnings.
+- **SQLite busy_timeout** — Database connection now sets a 5-second `busy_timeout` (both via `Database` constructor option and PRAGMA) to prevent "database is locked" errors when multiple workers access the same SQLite file during `next build` page data collection. Previously a missing timeout caused intermittent Lighthouse CI build failures.
+- **Lighthouse seed script cleanup** — `seed-lighthouse.ts` now calls `process.exit(0)` after seeding to immediately release the SQLite file handle, preventing WAL lock contention with the subsequent server start step.
+- **Demo env vars build-time evaluation** — `next.config.ts` now reads `DEMO_MODE` and `DEMO_FRAME_ORIGIN` at build time via `process.env`, not runtime. This is required because Next.js bakes CSP headers into the standalone build output. For demo builds, pass build args via `docker-compose.demo.yml` or set env vars before running `npx next build`.
 
 ### Security
 
 - **Demo mode security boundary** — All demo features (`DEMO_MODE`, `DEMO_AUTO_LOGIN`, `DEMO_FRAME_ORIGIN`, postMessage theme listener) are gated by env vars and explicitly documented as read-only for public demos. The demo instance cannot modify data (mutations are blocked by `DEMO_MODE=true`). PostMessage listener validates `event.source === window.parent` to ensure it only accepts events from the expected parent origin.
 - **CSP frame-ancestors validation** — When `DEMO_FRAME_ORIGIN` is set, it's included in `frame-ancestors` but all other CSP directives remain strict. Only the marketing website can embed the demo, not arbitrary origins.
 
-### Technical
-
-- **SQLite busy_timeout** — Database connection now sets a 5-second `busy_timeout` (both via `Database` constructor option and PRAGMA) to prevent "database is locked" errors when multiple workers access the same SQLite file during `next build` page data collection. Previously a missing timeout caused intermittent Lighthouse CI build failures.
-- **Lighthouse seed script cleanup** — `seed-lighthouse.ts` now calls `process.exit(0)` after seeding to immediately release the SQLite file handle, preventing WAL lock contention with the subsequent server start step.
-- **Demo env vars build-time evaluation** — `next.config.ts` now reads `DEMO_MODE` and `DEMO_FRAME_ORIGIN` at build time via `process.env`, not runtime. This is required because Next.js bakes CSP headers into the standalone build output. For demo builds, pass build args via `docker-compose.demo.yml` or set env vars before running `npx next build`.
-
 ## [1.2.5] - 2026-08-11
-
-### Fixed
-
-- **Secure cookie over HTTP (#70, reported by @mrtomtech)** — Session cookies were always flagged `Secure` in Docker because the flag was tied to `NODE_ENV === "production"`. Browsers silently reject Secure cookies over plain HTTP, so self-hosters on LAN IPs (e.g. `http://192.168.1.50:3000`, TrueNAS, Synology) could never log in. The flag is now derived from the actual request transport via the `X-Forwarded-Proto` header: non-secure over HTTP, secure when behind a TLS-terminating proxy (Caddy, nginx, Cloudflare). Zero configuration required.
-- **500 on login/setup without SECRET_KEY** — Bare `docker run` (without `docker-compose.yml`) doesn't set `SECRET_KEY`, causing `getSecret()` to throw FATAL in production mode and every login or setup attempt to 500. The app now auto-generates a 32-byte random key on first boot, persists it to `/app/data/.secret-key` (survives container restarts as long as the volume is mounted), and injects it into the process environment before any request is served. Existing `SECRET_KEY` env vars take priority and are never overridden.
 
 ### Added
 
@@ -285,6 +297,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CSP enforcement** — Promoted Content-Security-Policy from Report-Only (1.2.4) to enforced on all routes. Exceptions documented inline in `next.config.ts`: `script-src 'unsafe-inline'` (sendBeacon click tracker), `style-src 'unsafe-inline'` (theme CSS custom properties), `frame-src` (whitelisted embed providers only), `object-src 'none'`, `form-action 'self'`.
 - **Dependency bumps** — next 16.3.0, better-sqlite3 13.0.3, lucide-react 1.30.0, @base-ui/react 1.7.0, shadcn 4.16.2, eslint-config-next 16.3.0.
+
+### Fixed
+
+- **Secure cookie over HTTP (#70, reported by @mrtomtech)** — Session cookies were always flagged `Secure` in Docker because the flag was tied to `NODE_ENV === "production"`. Browsers silently reject Secure cookies over plain HTTP, so self-hosters on LAN IPs (e.g. `http://192.168.1.50:3000`, TrueNAS, Synology) could never log in. The flag is now derived from the actual request transport via the `X-Forwarded-Proto` header: non-secure over HTTP, secure when behind a TLS-terminating proxy (Caddy, nginx, Cloudflare). Zero configuration required.
+- **500 on login/setup without SECRET_KEY** — Bare `docker run` (without `docker-compose.yml`) doesn't set `SECRET_KEY`, causing `getSecret()` to throw FATAL in production mode and every login or setup attempt to 500. The app now auto-generates a 32-byte random key on first boot, persists it to `/app/data/.secret-key` (survives container restarts as long as the volume is mounted), and injects it into the process environment before any request is served. Existing `SECRET_KEY` env vars take priority and are never overridden.
 
 ### Security
 
@@ -336,18 +353,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Context provider values memoized** — `PreviewProvider` and `TabsContext` now wrap their context values in `useMemo()` to prevent unnecessary re-renders.
 - **`transition-all` replaced** — 4 admin components switched from `transition-all` to specific transition properties (colors, opacity, transform) to avoid browser layout thrashing.
 - **`map().filter(Boolean)` eliminated** — Public page JSON-LD now uses `flatMap()` for cleaner single-pass array processing.
+- **Glassmorphism card opacity** — Bumped from `rgba(255,255,255,0.08)` to `0.12` for better card visibility over mesh gradients. Border opacity `0.15` → `0.18`.
+- **Brutalist hover effect** — Changed from `lift` to `glow` with `glowColor: #000000` for a hard shadow punch matching the brutalist aesthetic. Added entrance animation (`animationType: lift`).
+- **Glow alpha** — Theme glow shadow opacity increased from `40` (25%) to `66` (40%) hex for more visible glow effects on Neon Cyberpunk and Retro Sunset.
 
 ### Removed
 
 - **5 dead UI scaffolding files** — `avatar.tsx`, `dropdown-menu.tsx`, `skeleton.tsx`, `sonner.tsx`, `theme-background.ts` — all unused, zero imports across the codebase.
 - **`sonner` and `next-themes` npm dependencies** — Uninstalled after their component files were removed as dead code.
 - **10 unused exports** — Cleaned up non-component exports (`badgeVariants`, `buttonVariants`) that broke Fast Refresh, plus 8 other unused function/const exports.
-
-### Security
-
-- **iframe sandbox attributes** — All embed iframes (YouTube, Spotify, SoundCloud, Vimeo, Bandcamp) and the admin preview pane iframe now have `sandbox` attributes restricting their capabilities.
-- **CI pipeline hardened** — Lighthouse CI workflow now uses `--ignore-scripts` on npm install to prevent package lifecycle scripts from running near CI secrets.
-- **npm dependency overrides** — Bumped `fast-uri` to `^3.1.5` (ReDoS via backslash authority), `brace-expansion` to `^5.0.9` (DoS via unbounded arrays), and added `hono` override to `^4.12.34` (ReDoS in CORS middleware). `npm audit` now reports 0 vulnerabilities.
 
 ### Fixed
 
@@ -369,11 +383,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Terminal Mono: muted `#4a8a55` → `#5da669` (4.45:1 → 4.8:1)
   - Minimal Light: primary `#3b82f6` → `#2563eb` (3.68:1 → 4.5:1)
 
-### Changed
+### Security
 
-- **Glassmorphism card opacity** — Bumped from `rgba(255,255,255,0.08)` to `0.12` for better card visibility over mesh gradients. Border opacity `0.15` → `0.18`.
-- **Brutalist hover effect** — Changed from `lift` to `glow` with `glowColor: #000000` for a hard shadow punch matching the brutalist aesthetic. Added entrance animation (`animationType: lift`).
-- **Glow alpha** — Theme glow shadow opacity increased from `40` (25%) to `66` (40%) hex for more visible glow effects on Neon Cyberpunk and Retro Sunset.
+- **iframe sandbox attributes** — All embed iframes (YouTube, Spotify, SoundCloud, Vimeo, Bandcamp) and the admin preview pane iframe now have `sandbox` attributes restricting their capabilities.
+- **CI pipeline hardened** — Lighthouse CI workflow now uses `--ignore-scripts` on npm install to prevent package lifecycle scripts from running near CI secrets.
+- **npm dependency overrides** — Bumped `fast-uri` to `^3.1.5` (ReDoS via backslash authority), `brace-expansion` to `^5.0.9` (DoS via unbounded arrays), and added `hono` override to `^4.12.34` (ReDoS in CORS middleware). `npm audit` now reports 0 vulnerabilities.
 
 ## [1.2.2] - 2026-08-02
 
@@ -399,21 +413,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.1] - 2026-07-29
 
+### Changed
+
+- **Migration wizard imports links in parallel instead of sequentially** — Significantly speeds up large imports.
+
+### Removed
+
+- **5 unused UI scaffolding files** — Dead code cleanup from earlier prototyping.
+
 ### Fixed
 
 - **Settings save no longer overwrites Display Name or wipes social links (#57, reported by @jmbillard)** — The Settings form and Profile form both route through the same server action. The Settings form sent a title field that collided with the Display Name column, silently overwriting it. Social links were also wiped because the shared action defaulted the missing field to an empty array.
 - **Settings tab now updates immediately when switching pages (#58, reported by @jmbillard)** — The Settings form used uncontrolled inputs that didn't react to page changes.
 - **Auto Icon toggle now correctly hides the icon when disabled (#59, reported by @jmbillard)** — The public page renderer ignored the autoIcon field entirely.
 
-### Security & Performance
+### Security
 
 - **Update-check server actions now require authentication** — Prevents unauthenticated users from triggering version-check API calls.
 - **Embed iframes (YouTube, Spotify, SoundCloud, Vimeo, Bandcamp) now sandboxed** — All third-party embeds are wrapped in `sandbox` attributes to restrict their capabilities.
-- **Migration wizard imports links in parallel instead of sequentially** — Significantly speeds up large imports.
-
-### Removed
-
-- **5 unused UI scaffolding files** — Dead code cleanup from earlier prototyping.
 
 ## [1.2.0] - 2026-07-28
 
@@ -434,6 +451,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependency security overrides** — Bumped npm overrides to resolve all 4 dependabot high-severity advisories: `postcss` ^8.5.18 (path traversal via sourceMappingURL, GHSA), `sharp` ^0.35.0 (libvips CVEs), `fast-uri` ^3.1.4 (host confusion via backslash/IDN), `brace-expansion` ^5.0.8 + minimatch ^10.0.1 (DoS via unbounded expansion, GHSA-mh99-v99m-4gvg). `npm audit` now reports 0 vulnerabilities.
 - **Dependency bumps** — next 16.2.11→16.2.12 (TypeScript 7 support backport), react/react-dom 19.2.7→19.2.8 (RSC decoding perf), eslint-config-next 16.2.11→16.2.12, better-sqlite3 12.11.1→13.0.1 (major: refactored to N-API/node-addon-api, removed prebuild-install dep, prebuilt binaries now cross-runtime compatible — all 269 tests pass). Supersedes dependabot PRs #55 and #56.
 - **Lighthouse CI workflow triggers on push to main** — Previously only ran on PRs and daily cron, so the seed-database fix went unverified until a PR was opened. Added `push: [main]` and `workflow_dispatch` triggers.
+- **Design system foundation: DESIGN.md + semantic tokens + FormField component** — Added `DESIGN.md` at repo root documenting the full visual language: color tokens (brand + semantic), 5-step spacing scale, typography, component conventions, motion, accessibility, and file structure. Created `--success` and `--warning` CSS tokens to split feedback colors from brand accent (previously `text-lavender` doubled as both brand accent and success, and raw Tailwind colors like `text-green-500` and `text-amber-400` were used ad-hoc). Created `FormField` component (`src/components/ui/form-field.tsx`) as the single source of truth for label + control + hint spacing. Migrated all 6 admin forms to FormField: `settings-form`, `change-password-form`, `profile-form`, `link-dialog`, `setup-form`, and `MigrationWizard` — 25 field instances total, each verified pixel-identical (8px label→input gap, 32px input height) against pre-migration baselines. Required fields now show asterisks automatically (accessibility improvement). Migrated all raw Tailwind color classes to semantic tokens (`text-green-500` → `text-success`, `text-amber-400` → `text-warning`, `text-red-400` → `text-destructive`, data-manager success messages `text-lavender` → `text-success`). Theme customizer (`field-controls.tsx`) intentionally NOT migrated — its denser 6px spacing is correct for a customizer panel context.
+- **Update checker** — Dashboard now polls `latest-version.json` from the repo (served via GitHub raw) on a 24h cache to detect new releases. When a newer version is found, a dismissible banner appears at the top of the dashboard: "LinkBreeze vX.Y.Z is available — You're running vX.Y.Z" with a "View release notes" link, a manual "Check again" button, and a dismiss button. Settings > Data card has an "Update notifications" toggle (default ON) to disable the check entirely. No user data sent, no phone-home, no auto-update — just a plain GET to the public JSON file. Silently fails on offline, rate-limit, or timeout (no error shown to user).
+- **`links-manager.tsx` split from 573 → 151 lines** — Extracted `SortableLink`, `LinkDialog`, and `DeleteDialog` into separate component files under `src/app/(admin)/links/components/`. Moved `LINK_TYPES`, label/placeholder maps, and URL-prefix logic into `link-helpers.ts` (where `prefixLinkUrl()` will be reused by the migration wizard). Fixed a stale-closure bug in `handleDragEnd` where `items.map()` read the pre-drag array instead of the post-drag order. The slim orchestrator is now structured to accept a `pageId` prop for multi-page support.
+- **`theme-manager.tsx` split from 782 → 159 lines** — Extracted `ColorField`, `SelectField`, `ToggleField`, `SliderField` into `field-controls.tsx`; `PresetGallery`, `ThemeCustomizer` (with 6 section sub-components), and `DuplicateTheme` into separate component files. Moved all constant arrays and the `swatchFor` helper into `theme-constants.ts`. The orchestrator is ready for theme-per-page work.
+- **`build-link-card.ts` signature modernized** — Changed from 5 positional params to an options object `buildLinkCardHtml({ link, theme, index, staggerMs? })`. Removed unused `_profile` parameter. Extracted `resolveLinkUrl()` and `buildContentRow()` helpers, eliminating the duplicated content-row HTML between the image and no-image code paths. Updated `LinkCard.tsx` caller to drop the now-unused `profile` prop.
 
 ### Fixed
 
@@ -451,15 +473,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Migration Wizard vulnerable to case-variant dangerous URL schemes (code-scanning #14)** — The `javascript:` scheme filter was case-sensitive, so `JavaScript:` or `JAVASCRIPT:` bypassed it. Fixed: replaced with a case-insensitive regex that also blocks `data:` and `vbscript:` schemes.
 - **Link dialog schedule inputs overflowed on small screens** — "Show from" and "Hide after" sat side-by-side on `sm+` breakpoints, pushing the dialog past the viewport height on mobile. Fixed: inputs now always stack vertically (Show from on top, Hide after below).
 
-### Refactored
-
-- **Design system foundation: DESIGN.md + semantic tokens + FormField component** — Added `DESIGN.md` at repo root documenting the full visual language: color tokens (brand + semantic), 5-step spacing scale, typography, component conventions, motion, accessibility, and file structure. Created `--success` and `--warning` CSS tokens to split feedback colors from brand accent (previously `text-lavender` doubled as both brand accent and success, and raw Tailwind colors like `text-green-500` and `text-amber-400` were used ad-hoc). Created `FormField` component (`src/components/ui/form-field.tsx`) as the single source of truth for label + control + hint spacing. Migrated all 6 admin forms to FormField: `settings-form`, `change-password-form`, `profile-form`, `link-dialog`, `setup-form`, and `MigrationWizard` — 25 field instances total, each verified pixel-identical (8px label→input gap, 32px input height) against pre-migration baselines. Required fields now show asterisks automatically (accessibility improvement). Migrated all raw Tailwind color classes to semantic tokens (`text-green-500` → `text-success`, `text-amber-400` → `text-warning`, `text-red-400` → `text-destructive`, data-manager success messages `text-lavender` → `text-success`). Theme customizer (`field-controls.tsx`) intentionally NOT migrated — its denser 6px spacing is correct for a customizer panel context.
-- **Update checker** — Dashboard now polls `latest-version.json` from the repo (served via GitHub raw) on a 24h cache to detect new releases. When a newer version is found, a dismissible banner appears at the top of the dashboard: "LinkBreeze vX.Y.Z is available — You're running vX.Y.Z" with a "View release notes" link, a manual "Check again" button, and a dismiss button. Settings > Data card has an "Update notifications" toggle (default ON) to disable the check entirely. No user data sent, no phone-home, no auto-update — just a plain GET to the public JSON file. Silently fails on offline, rate-limit, or timeout (no error shown to user).
-- **`links-manager.tsx` split from 573 → 151 lines** — Extracted `SortableLink`, `LinkDialog`, and `DeleteDialog` into separate component files under `src/app/(admin)/links/components/`. Moved `LINK_TYPES`, label/placeholder maps, and URL-prefix logic into `link-helpers.ts` (where `prefixLinkUrl()` will be reused by the migration wizard). Fixed a stale-closure bug in `handleDragEnd` where `items.map()` read the pre-drag array instead of the post-drag order. The slim orchestrator is now structured to accept a `pageId` prop for multi-page support.
-- **`theme-manager.tsx` split from 782 → 159 lines** — Extracted `ColorField`, `SelectField`, `ToggleField`, `SliderField` into `field-controls.tsx`; `PresetGallery`, `ThemeCustomizer` (with 6 section sub-components), and `DuplicateTheme` into separate component files. Moved all constant arrays and the `swatchFor` helper into `theme-constants.ts`. The orchestrator is ready for theme-per-page work.
-- **`build-link-card.ts` signature modernized** — Changed from 5 positional params to an options object `buildLinkCardHtml({ link, theme, index, staggerMs? })`. Removed unused `_profile` parameter. Extracted `resolveLinkUrl()` and `buildContentRow()` helpers, eliminating the duplicated content-row HTML between the image and no-image code paths. Updated `LinkCard.tsx` caller to drop the now-unused `profile` prop.
-
 ## [1.1.5] - 2026-07-25
+
+### Added
+
+- **Lighthouse CI workflow (#39)** — Added `.github/workflows/lighthouse.yml` with `lighthouserc.json` config. Runs Lighthouse audits on PRs targeting main and nightly on main. Includes a seed script (`src/scripts/seed-lighthouse.ts`) that creates a minimal profile + slug so Lighthouse audits a real public page instead of a /setup redirect. Reports uploaded as artifacts.
+- **Bot detection tests (37 tests)** — `src/lib/__tests__/bot-detect.test.ts` covers 21 known bot UAs (all match), 10 real browser UAs (none match), and edge cases (empty UA, whitespace, word-boundary false positives). Ensures the analytics bot filter doesn't over-filter legitimate traffic.
+
+### Changed
+
+- **Dependency bumps** — `lucide-react` 1.24→1.25, `shadcn` 4.13→4.13.1 (patch-level), `next` 16.2.10→16.2.11 (patch — resolves multiple Next.js security advisories), `eslint-config-next` 16.2.10→16.2.11. Supersedes Dependabot PR #43.
+- **Lighthouse thresholds tuned** — Performance set to warn at 0.7 (not 0.8) because third-party embeds (YouTube, Spotify) on user pages can load 1.4MB of third-party JS that the app doesn't control. Accessibility remains error-gated at 0.9. SEO set to warn at 0.7 for pages like /login that legitimately lack meta tags.
+- **Code cleanup from Herald audit** — 9 unused `cn` imports, 4 commented-out code blocks, and 4 flagged unused vars (`chartData`, `avatarSrc`, `jsonLd`, `anchorHtml`) were verified as already addressed during v1.1.4. No changes needed.
 
 ### Fixed
 
@@ -480,28 +505,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot alert #3 patched (brace-expansion DoS)** — Added npm override forcing `brace-expansion >= 5.0.7` to resolve the high-severity ReDoS vulnerability in the transitive dependency.
 - **Dependabot alert #4 patched (@hono/node-server path traversal)** — Added npm override forcing `@hono/node-server >= 2.0.5` to resolve the medium-severity path traversal vulnerability in the transitive dependency.
 
-### Added
-
-- **Lighthouse CI workflow (#39)** — Added `.github/workflows/lighthouse.yml` with `lighthouserc.json` config. Runs Lighthouse audits on PRs targeting main and nightly on main. Includes a seed script (`src/scripts/seed-lighthouse.ts`) that creates a minimal profile + slug so Lighthouse audits a real public page instead of a /setup redirect. Reports uploaded as artifacts.
-- **Bot detection tests (37 tests)** — `src/lib/__tests__/bot-detect.test.ts` covers 21 known bot UAs (all match), 10 real browser UAs (none match), and edge cases (empty UA, whitespace, word-boundary false positives). Ensures the analytics bot filter doesn't over-filter legitimate traffic.
-
-### Changed
-
-- **Dependency bumps** — `lucide-react` 1.24→1.25, `shadcn` 4.13→4.13.1 (patch-level), `next` 16.2.10→16.2.11 (patch — resolves multiple Next.js security advisories), `eslint-config-next` 16.2.10→16.2.11. Supersedes Dependabot PR #43.
-- **Lighthouse thresholds tuned** — Performance set to warn at 0.7 (not 0.8) because third-party embeds (YouTube, Spotify) on user pages can load 1.4MB of third-party JS that the app doesn't control. Accessibility remains error-gated at 0.9. SEO set to warn at 0.7 for pages like /login that legitimately lack meta tags.
-- **Code cleanup from Herald audit** — 9 unused `cn` imports, 4 commented-out code blocks, and 4 flagged unused vars (`chartData`, `avatarSrc`, `jsonLd`, `anchorHtml`) were verified as already addressed during v1.1.4. No changes needed.
-
 ## [1.1.4] - 2026-07-22
-
-### Fixed
-
-- **CI badge showed failing on default branch** — The CI workflow only triggered on `pull_request`, so no runs ever executed on `main`. Shields.io checks the default branch, causing the README badge to always show "failing". Added `push: branches: [main]` to the workflow triggers.
-- **Theme import card didn't state the expected file format (#44)** — The import/export card description was ambiguous about which file type to use, leaving users unsure whether to upload a zip or JSON. The system is and has always been JSON-only (export produces `.json`, import parses JSON). The card description and a new helper line under the import button now explicitly say `.json`. No behavior change — the input's `accept` attribute was already correct.
-- **Type error in manifest test** — `manifest.test.ts` called `.startsWith()` on `start_url` typed as `unknown`, causing a `tsc --noEmit` failure. Added the same `as string` cast already used for `short_name` on the line above.
-- **Image background overlay rendered as a dark gradient instead of a translucent tint** — `resolveBackground()` for `backgroundType: "image"` built the overlay layer as `linear-gradient(#00000080, #000000)` — alpha encoded on the first stop only, second stop dropped the alpha entirely. The result was a near-opaque dark layer over the image instead of the intended uniform translucent tint. Additionally, `overlayOpacity: "0"` still rendered the broken gradient instead of skipping the overlay. Fixed: the overlay is now a uniform translucent layer (`#color+alpha` at both gradient stops), and opacity 0 or missing skips the overlay entirely. No preset used the image background type, so no existing theme was visually affected — the bug only hit user-created image-background themes.
-- **`mode` column comment claimed `auto` was supported** — The schema comment on `themes.mode` documented `dark, light, auto`, but the Zod validator, the admin UI select, and the resolver only handle `dark` and `light`. A value of `auto` would have triggered the same silent `safeParse` reject as the v1.1.2 density bug (entire save payload rejected, error swallowed client-side). Comment aligned to reality; no behavior change, no migration.
-- **Click-inflation attack on `/go/:id` (security)** — The JS-free click redirect endpoint had no rate limit, while the JS fallback (`/api/track`) was throttled at 60 req/min/IP. A bot could hammer `/go/:id` in a loop to inflate any link's `clicksCount` and raw `analyticsClicks` rows indefinitely — polluting both the admin dashboard and the export. Fixed: `/go/:id` now applies the same `rateLimit("go:<ip>", 60, 60_000)` check as `/api/track`. Rate-limited requests still redirect (real users never hit the limit), but the click is not recorded. This closes the integrity gap between the two click-tracking paths.
-- **"Zero client JavaScript" claim was inaccurate** — The README, CONTRIBUTING, ADR-0001, and CHANGELOG all claimed the public page ships "zero client JS", but `build-link-card.ts` emits an inline `onclick="navigator.sendBeacon(...)"` for non-http links (mailto, tel, sms). While no JS *bundle* ships (no React runtime), inline handlers are technically client-side JS. Claims softened to "zero client-side JS bundles" / "no React runtime" across all docs. The architecture is unchanged; only the marketing/technical claims were corrected to match reality.
 
 ### Added
 
@@ -516,7 +520,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependency bumps** — Merged #36 (minor-and-patch group) and #33 (vitest 3.2.6 → 4.1.10). Closed #37 (typescript 7 — blocked by `@typescript-eslint` peer range), #26 (eslint 10 — blocked by `eslint-plugin-react` incompatibility), and #22 (node 26-alpine — non-LTS, conflicting).
 - **Disabled theme font preloading (perf)** — All 9 Google Fonts (21 woff2 files, 483KB) were preloaded on every page via `next/font`'s default `preload: true`, even though the public page only uses ONE font (the active theme's `fontFamily`). This was 62% of total page transfer. With `preload: false`, the `@font-face` rules remain in the CSS (so the admin theme picker still works), but the browser only downloads a font when an element actually renders with that font-family. Net effect on the public page: ~3 woff2 requests (~20KB) instead of 21 (483KB) — ~460KB saved per page view (~60% transfer reduction). No behavior change, no schema change. Admin theme picker: fonts swap in on-demand (~100ms FOUT when switching themes, no layout shift).
 
+### Fixed
+
+- **CI badge showed failing on default branch** — The CI workflow only triggered on `pull_request`, so no runs ever executed on `main`. Shields.io checks the default branch, causing the README badge to always show "failing". Added `push: branches: [main]` to the workflow triggers.
+- **Theme import card didn't state the expected file format (#44)** — The import/export card description was ambiguous about which file type to use, leaving users unsure whether to upload a zip or JSON. The system is and has always been JSON-only (export produces `.json`, import parses JSON). The card description and a new helper line under the import button now explicitly say `.json`. No behavior change — the input's `accept` attribute was already correct.
+- **Type error in manifest test** — `manifest.test.ts` called `.startsWith()` on `start_url` typed as `unknown`, causing a `tsc --noEmit` failure. Added the same `as string` cast already used for `short_name` on the line above.
+- **Image background overlay rendered as a dark gradient instead of a translucent tint** — `resolveBackground()` for `backgroundType: "image"` built the overlay layer as `linear-gradient(#00000080, #000000)` — alpha encoded on the first stop only, second stop dropped the alpha entirely. The result was a near-opaque dark layer over the image instead of the intended uniform translucent tint. Additionally, `overlayOpacity: "0"` still rendered the broken gradient instead of skipping the overlay. Fixed: the overlay is now a uniform translucent layer (`#color+alpha` at both gradient stops), and opacity 0 or missing skips the overlay entirely. No preset used the image background type, so no existing theme was visually affected — the bug only hit user-created image-background themes.
+- **`mode` column comment claimed `auto` was supported** — The schema comment on `themes.mode` documented `dark, light, auto`, but the Zod validator, the admin UI select, and the resolver only handle `dark` and `light`. A value of `auto` would have triggered the same silent `safeParse` reject as the v1.1.2 density bug (entire save payload rejected, error swallowed client-side). Comment aligned to reality; no behavior change, no migration.
+- **Click-inflation attack on `/go/:id` (security)** — The JS-free click redirect endpoint had no rate limit, while the JS fallback (`/api/track`) was throttled at 60 req/min/IP. A bot could hammer `/go/:id` in a loop to inflate any link's `clicksCount` and raw `analyticsClicks` rows indefinitely — polluting both the admin dashboard and the export. Fixed: `/go/:id` now applies the same `rateLimit("go:<ip>", 60, 60_000)` check as `/api/track`. Rate-limited requests still redirect (real users never hit the limit), but the click is not recorded. This closes the integrity gap between the two click-tracking paths.
+- **"Zero client JavaScript" claim was inaccurate** — The README, CONTRIBUTING, ADR-0001, and CHANGELOG all claimed the public page ships "zero client JS", but `build-link-card.ts` emits an inline `onclick="navigator.sendBeacon(...)"` for non-http links (mailto, tel, sms). While no JS *bundle* ships (no React runtime), inline handlers are technically client-side JS. Claims softened to "zero client-side JS bundles" / "no React runtime" across all docs. The architecture is unchanged; only the marketing/technical claims were corrected to match reality.
+
 ## [1.1.3] - 2026-07-16
+
+### Changed
+
+- **Theme export schema density default** — The `exportableThemeSchema` in backup/restore defaulted `density` to `"comfortable"` (the old invalid value that v1.1.2 migration 0006 fixed). Importing a theme file with a missing density field would create a theme with an invalid value. Default is now `"normal"`, matching the schema and Zod enum.
 
 ### Fixed
 
@@ -532,11 +550,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password complexity requirements (setup + change password)** — Password creation only enforced `min(8)` characters with no complexity checks. A password like `aaaaaaaa` was accepted. Both setup and change-password now require at least one lowercase letter, one uppercase letter, and one number. Closes #7.
 - **Open-redirect hardening on `/go/:id`** — The JS-free click tracking redirect (`/go/:id`) did `NextResponse.redirect(link.url)` without a runtime protocol check. The create/update validators already block non-http schemes, but a stale or tampered DB row could bypass that. The route now validates the URL protocol at redirect time — only `http:` and `https:` are allowed.
 
+## [1.1.2] - 2026-07-11
+
+### Added
+
+- **Unique visitor count in dashboard** — The `visitorHash` was collected on every pageview since v1.0.0 but the dashboard only displayed total views (`COUNT(*)`). The Views card now shows the unique visitor count alongside total views, computed via `COUNT(DISTINCT visitorHash)`.
+- **JS-free click tracking via `/go/:id` redirect** — Click tracking previously relied entirely on client-side `navigator.sendBeacon`, which fails for JS-disabled browsers, crawlers, and in-app browsers that block it. Public-page http(s) links now use `/go/:id` as their href — the server records the click (same visitor-hash logic as `/api/track`) then 302-redirects to the real URL. Non-http links (mailto, tel, etc.) still use the sendBeacon fallback. Closes #19.
+- **`vCard` and `File` link types in the admin UI** — The schema and URL validator supported 8 link types, but the admin dropdown only exposed 6 (`vcard` and `file` were missing). Both are now selectable when creating or editing a link.
+- **`npm run seed` script** — The demo seed script (`src/scripts/seed-demo.ts`) existed but had no `package.json` entry. Added `"seed": "tsx src/scripts/seed-demo.ts"` so developers can populate a fresh database with one command. Closes #8.
+- **Skip-to-content link on public pages** — Keyboard and screen-reader users previously had to tab through the entire header before reaching link content. A visually-hidden "Skip to content" link now appears on focus, jumping directly to the main content area.
+- **`prefers-reduced-motion` support for link card hover** — Hover effects on public-page link cards (lift, scale, glow transforms) were applied via inline JS and ignored the user's OS-level reduced-motion preference. Hover transforms are now disabled for users who request reduced motion, matching the existing aurora-background behavior.
+
 ### Changed
 
-- **Theme export schema density default** — The `exportableThemeSchema` in backup/restore defaulted `density` to `"comfortable"` (the old invalid value that v1.1.2 migration 0006 fixed). Importing a theme file with a missing density field would create a theme with an invalid value. Default is now `"normal"`, matching the schema and Zod enum.
-
-## [1.1.2] - 2026-07-11
+- **Dependency updates** — Merged 3 safe Dependabot PRs: recharts 3.9.1→3.9.2 + shadcn/ui 4.12→4.13 (minor), `@types/bcryptjs` 2.4.6→3.0.0 (dev types), `@types/node` 20.19.43→26.1.0 (dev types).
+- **`next.config.ts` optimizations** — Disabled `poweredByHeader` (no longer leaks `X-Powered-By: Next.js`). Enabled `experimental.optimizePackageImports` for `lucide-react`, `recharts`, and `@dnd-kit/*` to tree-shake barrel exports and reduce client bundle size.
+- **CSS-based link card hover** — Replaced inline `onmouseover`/`onmouseout` JS handlers on public-page link cards with CSS `:hover` rules using class + data attributes. This produces cleaner HTML output (2 fewer inline JS attributes per card) and enables proper `prefers-reduced-motion` gating.
 
 ### Fixed
 
@@ -555,32 +584,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stored XSS via backup restore (MEDIUM)** — `restoreBackup()` validated row shapes but not link URL schemes. A shared backup file could carry `javascript:` URLs that render as clickable links on the public page, executing script in every visitor's browser. Link URLs in backups are now re-validated through `isAllowedLinkUrl()` and offending rows are dropped.
 - **Host-header injection → QR phishing / OG spoofing (MEDIUM)** — Both `getOrigin()` functions (QR API + public page metadata) fully trusted `X-Forwarded-Host`/`X-Forwarded-Proto`. An attacker could make the instance generate a QR code pointing to `evil.com`, or emit `og:url`/canonical/JSON-LD pointing at an attacker domain. Added an optional `BASE_URL` env var — when set, forwarded host headers are ignored entirely.
 
-### Changed
-
-- **Dependency updates** — Merged 3 safe Dependabot PRs: recharts 3.9.1→3.9.2 + shadcn/ui 4.12→4.13 (minor), `@types/bcryptjs` 2.4.6→3.0.0 (dev types), `@types/node` 20.19.43→26.1.0 (dev types).
-- **`next.config.ts` optimizations** — Disabled `poweredByHeader` (no longer leaks `X-Powered-By: Next.js`). Enabled `experimental.optimizePackageImports` for `lucide-react`, `recharts`, and `@dnd-kit/*` to tree-shake barrel exports and reduce client bundle size.
-- **CSS-based link card hover** — Replaced inline `onmouseover`/`onmouseout` JS handlers on public-page link cards with CSS `:hover` rules using class + data attributes. This produces cleaner HTML output (2 fewer inline JS attributes per card) and enables proper `prefers-reduced-motion` gating.
-
-### Added
-
-- **Unique visitor count in dashboard** — The `visitorHash` was collected on every pageview since v1.0.0 but the dashboard only displayed total views (`COUNT(*)`). The Views card now shows the unique visitor count alongside total views, computed via `COUNT(DISTINCT visitorHash)`.
-- **JS-free click tracking via `/go/:id` redirect** — Click tracking previously relied entirely on client-side `navigator.sendBeacon`, which fails for JS-disabled browsers, crawlers, and in-app browsers that block it. Public-page http(s) links now use `/go/:id` as their href — the server records the click (same visitor-hash logic as `/api/track`) then 302-redirects to the real URL. Non-http links (mailto, tel, etc.) still use the sendBeacon fallback. Closes #19.
-- **`vCard` and `File` link types in the admin UI** — The schema and URL validator supported 8 link types, but the admin dropdown only exposed 6 (`vcard` and `file` were missing). Both are now selectable when creating or editing a link.
-- **`npm run seed` script** — The demo seed script (`src/scripts/seed-demo.ts`) existed but had no `package.json` entry. Added `"seed": "tsx src/scripts/seed-demo.ts"` so developers can populate a fresh database with one command. Closes #8.
-- **Skip-to-content link on public pages** — Keyboard and screen-reader users previously had to tab through the entire header before reaching link content. A visually-hidden "Skip to content" link now appears on focus, jumping directly to the main content area.
-- **`prefers-reduced-motion` support for link card hover** — Hover effects on public-page link cards (lift, scale, glow transforms) were applied via inline JS and ignored the user's OS-level reduced-motion preference. Hover transforms are now disabled for users who request reduced motion, matching the existing aurora-background behavior.
-
 ## [1.1.1] - 2026-07-07
-
-### Fixed
-
-- **Fresh-deploy crash (Next.js error 1654975601)** — On a fresh `docker compose` deploy, the SQLite database was created empty with no tables because migrations never ran. The first query threw `no such table: settings`, surfacing as a generic "server error" page with code 1654975601 on every reload. Migrations now run automatically on server startup via a Next.js instrumentation hook (`src/instrumentation.ts`). The setup wizard appears on first launch as documented. Fixes #34.
-- **Healthcheck false-positive** — The `/api/health` endpoint returned 200 without touching the database, so a broken instance (missing tables, corrupt DB) still reported "healthy". The health route now probes the DB with `SELECT 1` and returns 503 on failure, so the Docker healthcheck reflects real readiness.
 
 ### Changed
 
 - **Migration files explicitly bundled** — Added `outputFileTracingIncludes` to `next.config.ts` to guarantee Drizzle migration `.sql` files and `meta/_journal.json` are included in the standalone build output (previously worked by accident; now explicit).
 - **`db:migrate` script** — Added `npm run db:migrate` (`drizzle-kit migrate`) to `package.json` for manual migration in dev/CI. Docker deployments auto-migrate on boot and don't need this.
+
+### Fixed
+
+- **Fresh-deploy crash (Next.js error 1654975601)** — On a fresh `docker compose` deploy, the SQLite database was created empty with no tables because migrations never ran. The first query threw `no such table: settings`, surfacing as a generic "server error" page with code 1654975601 on every reload. Migrations now run automatically on server startup via a Next.js instrumentation hook (`src/instrumentation.ts`). The setup wizard appears on first launch as documented. Fixes #34.
+- **Healthcheck false-positive** — The `/api/health` endpoint returned 200 without touching the database, so a broken instance (missing tables, corrupt DB) still reported "healthy". The health route now probes the DB with `SELECT 1` and returns 503 on failure, so the Docker healthcheck reflects real readiness.
 
 ## [1.1.0] - 2026-07-06
 
@@ -608,15 +622,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Link scheduling UI** — The link scheduler existed in the database and query layer since v1.0.0 but had no admin UI. Added a Schedule toggle with datetime pickers (Show from / Hide after) in the link dialog, plus a "Scheduled" badge with clock icon on the links list.
 - **DEV_ORIGINS env var** — For dev servers accessed via Tailscale or LAN IPs. Set `DEV_ORIGINS` in `.env` to allow Server Actions from external origins (see `.env.example`).
 
-### Fixed
-
-- **Atomic click tracking** — `recordClick()` now wraps the analytics insert and the `clicksCount` increment in a single `db.transaction()`. Previously these were two separate statements that could drift out of sync if the second failed, leaving the denormalized count permanently wrong.
-- **JSON-LD XSS hardening** — The structured data `<script>` tag now escapes `<` characters (`\u003c`) in the `JSON.stringify` output, preventing profile text fields (displayName, bio) from breaking out of the script context.
-- **Embed widget rendering** — Spotify embeds now use a fixed 152px height (matching Spotify's native player) instead of a bloated 16:9 aspect ratio container that left empty space. YouTube embeds use `youtube-nocookie.com` with `rel=0` and `modestbranding=1` for a cleaner, privacy-respecting player. Redundant title captions removed for YouTube/Spotify (they show their own title). Fixed Spotify double `/embed/` path bug that caused 404s.
-- **Link thumbnail layout** — Cards with thumbnail images now use block layout (image on top, content row below) instead of `flex-wrap`, which was shrinking the image and crushing the title text between the image and the card's right border.
-
 ### Changed
 
+- **Dependency updates** — Bumped `actions/checkout` from v4 to v7 (#21) Bumped `actions/setup-node` from v4 to v6 (#20)
 - **Schema expanded** — Themes table rebuilt with ~25 new columns. Migration `0004_theme-rework.sql` handles the upgrade safely (copies existing data, new columns get sensible defaults). Old themes continue to work.
 - **Token resolver** — New `src/lib/theme-tokens.ts` (466 lines) provides `resolveThemeTokens()` → CSS vars + keyframes, `buildThemeStyleBlock()`, `resolveBackground()` (handles all 8 types), `resolveFont()`, and animated background detection.
 - **Public components refactored** — `build-link-card.ts`, `LinkCard.tsx`, `ProfileHeader.tsx`, `SocialIcons.tsx`, `EmailCapture.tsx`, and `page.tsx` now consume `var(--lb-*)` tokens instead of hardcoded values.
@@ -630,30 +638,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CONTRIBUTING.md** — Updated theme submission instructions to reference the new dedicated theme export feature and full token-based theme properties table.
 - **Migrations** — Four new migrations: `0001_remove_link_metadata`, `0002_add_image_url_to_links`, `0003_add_subscribers_table`, `0004_theme-rework`. All run automatically on next startup.
 
-### Dependencies
+### Fixed
 
-- Bumped `actions/checkout` from v4 to v7 (#21)
-- Bumped `actions/setup-node` from v4 to v6 (#20)
+- **Atomic click tracking** — `recordClick()` now wraps the analytics insert and the `clicksCount` increment in a single `db.transaction()`. Previously these were two separate statements that could drift out of sync if the second failed, leaving the denormalized count permanently wrong.
+- **JSON-LD XSS hardening** — The structured data `<script>` tag now escapes `<` characters (`\u003c`) in the `JSON.stringify` output, preventing profile text fields (displayName, bio) from breaking out of the script context.
+- **Embed widget rendering** — Spotify embeds now use a fixed 152px height (matching Spotify's native player) instead of a bloated 16:9 aspect ratio container that left empty space. YouTube embeds use `youtube-nocookie.com` with `rel=0` and `modestbranding=1` for a cleaner, privacy-respecting player. Redundant title captions removed for YouTube/Spotify (they show their own title). Fixed Spotify double `/embed/` path bug that caused 404s.
+- **Link thumbnail layout** — Cards with thumbnail images now use block layout (image on top, content row below) instead of `flex-wrap`, which was shrinking the image and crushing the title text between the image and the card's right border.
 
 ## [1.0.2] - 2026-07-04
-
-### Security
-
-- **SVG upload XSS eliminated** — Removed `.svg` from the upload allowlist entirely. Added `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` headers to the uploads serving route as defense-in-depth. Closes #15.
-- **Login rate limiting** — The login form is now rate-limited to 5 attempts/min per IP, preventing brute-force password attacks. Closes #1.
-- **Production secret key warning** — When `SECRET_KEY` is unset in production, both `session-token.ts` and `visitor.ts` now log a loud console warning. The `/api/health` endpoint exposes `secretKeySet: boolean` so monitoring tools can detect misconfiguration. Closes #9.
-- **Backup row validation** — `restoreBackup()` now validates every row (profiles, links, settings, themes) with Zod schemas before the database transaction. Malformed backup files are rejected instead of corrupting the DB.
-- **Analytics foreign key** — `analytics_clicks.link_id` now has a foreign key reference to `links.id` with `ON DELETE CASCADE`. `deleteLink()` also explicitly cleans up orphaned analytics rows for databases created before this constraint existed.
 
 ### Added
 
 - **Comprehensive test suite** — 134 tests across 16 files covering pure functions, server actions, and security validation. Includes tests for: rate limiting, visitor hashing, device detection, geo/country lookup, QR code generation, session tokens, social icon detection/normalization, link URL scheme validation, demo mode guards, upload content types, version reading, theme backgrounds, link card rendering, auth (login + setup), settings updates, link CRUD, and backup validation. (Closes #6, #17)
-
-### Fixed
-
-- **Login sidebar bug** — When already logged in, visiting `/login` showed the login form inside the admin sidebar layout. Now `/login` is a server component that redirects authenticated users to `/dashboard`. The page split into `page.tsx` (server, session check) + `login-form.tsx` (client, interactive form).
-- **Health endpoint version** — `/api/health` now reads the version dynamically from `package.json` instead of returning a hardcoded `1.0.0`.
-- **Backup version constant** — `exportBackup()` now uses `SUPPORTED_BACKUP_VERSION` instead of a hardcoded `1` literal.
 
 ### Changed
 
@@ -666,18 +662,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI workflow** — Now runs `npm run test` (Vitest) in addition to tsc + build. Closes #2.
 - **Docker release workflow** — Added `.github/workflows/release.yml` that builds and pushes Docker images to GHCR automatically on tag push (`v*`). Tags both `latest` and the version number.
 
-## [1.0.1] - 2026-07-03
+### Fixed
+
+- **Login sidebar bug** — When already logged in, visiting `/login` showed the login form inside the admin sidebar layout. Now `/login` is a server component that redirects authenticated users to `/dashboard`. The page split into `page.tsx` (server, session check) + `login-form.tsx` (client, interactive form).
+- **Health endpoint version** — `/api/health` now reads the version dynamically from `package.json` instead of returning a hardcoded `1.0.0`.
+- **Backup version constant** — `exportBackup()` now uses `SUPPORTED_BACKUP_VERSION` instead of a hardcoded `1` literal.
 
 ### Security
 
-- **Session invalidation on password change** — Changing your password now invalidates all existing sessions (stolen or old cookies become instantly invalid). Implemented via a `sessionVersion` counter in the settings table: tokens include the version at issue time, `getSession()` rejects mismatches.
-- **QR download endpoint rate limiting** — The `/api/qr` endpoint is now rate-limited to 30 requests/min per IP. Prevents CPU abuse from repeated QR generation.
-- **CSRF protection documented** — SECURITY.md now documents that Next.js 16 Server Actions verify `Origin`/`Host` headers on every non-GET submission (built-in framework protection, no manual token needed).
-- **SECURITY.md vulnerability reporting** — Added response timeline (48h ack, 7-day status, 30/90-day patch targets) and safe harbor clause for security researchers.
-- **Social icon URL detection hardened** — Platform detection in `social-icons.ts` now uses proper hostname matching (`isHost()`) instead of `.includes()`. Prevents `evil.com/github.com` from matching as GitHub. Resolves 11 CodeQL alerts.
-- **CI workflow permissions** — Added explicit `permissions: contents: read` to CI workflow. Follows least-privilege principle. Resolves 1 CodeQL alert.
-- **Link URL scheme validation** — Link URLs are now validated by type: only `http:`/`https:` for regular links, `mailto:` for email, `tel:` for phone, `wa.me` for WhatsApp, etc. Blocks `javascript:` and `data:` URI XSS. (Contributed by @MFA-G, PR #29, closes #14)
-- **Backup version validation** — Restoring a backup from an incompatible future version is now rejected before any database transaction runs. (Contributed by @vku2018, PR #30, closes #16)
+- **SVG upload XSS eliminated** — Removed `.svg` from the upload allowlist entirely. Added `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` headers to the uploads serving route as defense-in-depth. Closes #15.
+- **Login rate limiting** — The login form is now rate-limited to 5 attempts/min per IP, preventing brute-force password attacks. Closes #1.
+- **Production secret key warning** — When `SECRET_KEY` is unset in production, both `session-token.ts` and `visitor.ts` now log a loud console warning. The `/api/health` endpoint exposes `secretKeySet: boolean` so monitoring tools can detect misconfiguration. Closes #9.
+- **Backup row validation** — `restoreBackup()` now validates every row (profiles, links, settings, themes) with Zod schemas before the database transaction. Malformed backup files are rejected instead of corrupting the DB.
+- **Analytics foreign key** — `analytics_clicks.link_id` now has a foreign key reference to `links.id` with `ON DELETE CASCADE`. `deleteLink()` also explicitly cleans up orphaned analytics rows for databases created before this constraint existed.
+
+## [1.0.1] - 2026-07-03
 
 ### Added
 
@@ -689,16 +688,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slug management docs** — TROUBLESHOOTING.md now explains how slug changes work (no redirects, reserved words, QR code behavior).
 - **Accessibility docs** — SECURITY.md now documents the accessibility posture (Radix/shadcn WAI-ARIA, keyboard nav, WCAG AA contrast, screen-reader support).
 - **GitHub Discussions** — Enabled on the repository.
-
-### Fixed
-
-- **Middleware session validation** — Middleware now verifies the HMAC signature and expiry of the `lb_session` cookie instead of only checking for its existence. Forged or expired cookies are redirected to `/login`. Token logic extracted into `src/lib/session-token.ts` (shared between `proxy.ts` and `auth.ts`).
-- **README Docker commands** — Fixed PowerShell compatibility: `docker run` command now works on Windows (backslash continuation broke PowerShell). Added single-line variant.
-- **docker-compose.yml** — Now pulls pre-built image from GHCR by default instead of building from source.
-- **SECURITY.md** — Corrected 4 false claims: session expiry is 30 days (not 7), X-Frame-Options is `SAMEORIGIN` (not `DENY`), removed non-existent login rate-limiting claim, removed false Docker read-only filesystem claim. Added honest "Known Limitations" section.
-- **CONTRIBUTING.md** — Removed references to non-existent `public/themes/` directory (themes are DB-stored, managed via admin panel). Added test step to PR checklist.
-- **package.json** — Version aligned with release: `0.1.0` → `1.0.0`.
-- **Theme submission template** — Updated to reflect actual admin-panel-based theme workflow.
+- **GitHub social preview** — Uploaded 1280x640 banner image for link unfurls on Reddit, Twitter, Discord.
 
 ### Changed
 
@@ -711,9 +701,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **47 MB of unused screenshots** — Deleted uncompressed PNG variants that were never referenced by the README.
 
-### Social
+### Fixed
 
-- **GitHub social preview** — Uploaded 1280x640 banner image for link unfurls on Reddit, Twitter, Discord.
+- **Middleware session validation** — Middleware now verifies the HMAC signature and expiry of the `lb_session` cookie instead of only checking for its existence. Forged or expired cookies are redirected to `/login`. Token logic extracted into `src/lib/session-token.ts` (shared between `proxy.ts` and `auth.ts`).
+- **README Docker commands** — Fixed PowerShell compatibility: `docker run` command now works on Windows (backslash continuation broke PowerShell). Added single-line variant.
+- **docker-compose.yml** — Now pulls pre-built image from GHCR by default instead of building from source.
+- **SECURITY.md** — Corrected 4 false claims: session expiry is 30 days (not 7), X-Frame-Options is `SAMEORIGIN` (not `DENY`), removed non-existent login rate-limiting claim, removed false Docker read-only filesystem claim. Added honest "Known Limitations" section.
+- **CONTRIBUTING.md** — Removed references to non-existent `public/themes/` directory (themes are DB-stored, managed via admin panel). Added test step to PR checklist.
+- **package.json** — Version aligned with release: `0.1.0` → `1.0.0`.
+- **Theme submission template** — Updated to reflect actual admin-panel-based theme workflow.
+
+### Security
+
+- **Session invalidation on password change** — Changing your password now invalidates all existing sessions (stolen or old cookies become instantly invalid). Implemented via a `sessionVersion` counter in the settings table: tokens include the version at issue time, `getSession()` rejects mismatches.
+- **QR download endpoint rate limiting** — The `/api/qr` endpoint is now rate-limited to 30 requests/min per IP. Prevents CPU abuse from repeated QR generation.
+- **CSRF protection documented** — SECURITY.md now documents that Next.js 16 Server Actions verify `Origin`/`Host` headers on every non-GET submission (built-in framework protection, no manual token needed).
+- **SECURITY.md vulnerability reporting** — Added response timeline (48h ack, 7-day status, 30/90-day patch targets) and safe harbor clause for security researchers.
+- **Social icon URL detection hardened** — Platform detection in `social-icons.ts` now uses proper hostname matching (`isHost()`) instead of `.includes()`. Prevents `evil.com/github.com` from matching as GitHub. Resolves 11 CodeQL alerts.
+- **CI workflow permissions** — Added explicit `permissions: contents: read` to CI workflow. Follows least-privilege principle. Resolves 1 CodeQL alert.
+- **Link URL scheme validation** — Link URLs are now validated by type: only `http:`/`https:` for regular links, `mailto:` for email, `tel:` for phone, `wa.me` for WhatsApp, etc. Blocks `javascript:` and `data:` URI XSS. (Contributed by @MFA-G, PR #29, closes #14)
+- **Backup version validation** — Restoring a backup from an incompatible future version is now rejected before any database transaction runs. (Contributed by @vku2018, PR #30, closes #16)
 
 ## [1.0.0] - 2026-07-01
 
@@ -741,6 +748,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI pipeline** — TypeScript type-check + Next.js build on every PR
 - **Issue templates** — Bug report, feature request, theme submission
 - **4 ADR documents** — Technology decisions documented (Next.js, Drizzle, SQLite, abstraction layer)
+- **Framework**: Next.js 16 (App Router, Server Components, ISR)
+- **Database**: SQLite via better-sqlite3 (WAL mode)
+- **ORM**: Drizzle ORM (type-safe, zero-overhead)
+- **UI**: shadcn/ui + Tailwind CSS 4
+- **Public page**: No client-side JS bundles (no React runtime) — pure Server Components. http/https links use a JS-free `/go/:id` redirect for click tracking; mailto/tel links use a tiny inline `onclick` sendBeacon beacon.
+- **Performance**: <300ms FCP target, ISR with 60s revalidation
 
 ### Security
 
@@ -751,12 +764,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Path-traversal-safe file upload resolution
 - File upload restrictions: images only, 2 MB max, sanitized random filenames
 - Rate limiting on analytics tracking endpoint (60 req/min per IP)
-
-### Technical
-
-- **Framework**: Next.js 16 (App Router, Server Components, ISR)
-- **Database**: SQLite via better-sqlite3 (WAL mode)
-- **ORM**: Drizzle ORM (type-safe, zero-overhead)
-- **UI**: shadcn/ui + Tailwind CSS 4
-- **Public page**: No client-side JS bundles (no React runtime) — pure Server Components. http/https links use a JS-free `/go/:id` redirect for click tracking; mailto/tel links use a tiny inline `onclick` sendBeacon beacon.
-- **Performance**: <300ms FCP target, ISR with 60s revalidation

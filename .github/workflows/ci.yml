@@ -18,6 +18,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: node scripts/check-changelog.mjs
       - run: npm run lint
       - run: npx tsc --noEmit --skipLibCheck
       - run: npm run test
