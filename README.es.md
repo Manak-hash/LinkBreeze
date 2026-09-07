@@ -82,7 +82,7 @@ Después, abre http://localhost:3000 — el asistente de configuración tarda me
 <details>
 <summary>🐳 &nbsp;Docker</summary>
 
-No necesitas Node.js, npm ni archivos de configuración.
+No necesitas Node.js, npm ni archivos de configuración. Imágenes multi-arquitectura: `linux/amd64` y `linux/arm64` (Raspberry Pi 3/4/5, Apple Silicon, VPS ARM).
 
 **Linux / macOS / Windows CMD:**
 

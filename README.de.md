@@ -83,7 +83,7 @@ bash install.sh
 <details>
 <summary>🐳 &nbsp;Docker</summary>
 
-Kein Node.js, kein npm, keine Config-Dateien nötig.
+Kein Node.js, kein npm, keine Config-Dateien nötig. Multi-Arch-Images: `linux/amd64` und `linux/arm64` (Raspberry Pi 3/4/5, Apple Silicon, ARM-VPS).
 
 **Linux / macOS / Windows CMD:**
 

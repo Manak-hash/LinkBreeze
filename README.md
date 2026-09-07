@@ -77,7 +77,7 @@ Then open http://localhost:3000 — the setup wizard takes under 30 seconds.
 <details>
 <summary>🐳 &nbsp;Docker</summary>
 
-No Node.js, no npm, no config files needed.
+No Node.js, no npm, no config files needed. Multi-arch images: `linux/amd64` and `linux/arm64` (Raspberry Pi 3/4/5, Apple Silicon, ARM VPS).
 
 **Linux / macOS / Windows CMD:**
 

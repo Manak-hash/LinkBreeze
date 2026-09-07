@@ -82,7 +82,7 @@ bash install.sh
 <details>
 <summary>🐳 &nbsp;Docker</summary>
 
-不需要 Node.js、npm 或任何配置文件。
+不需要 Node.js、npm 或任何配置文件。多架构镜像：`linux/amd64` 与 `linux/arm64`（Raspberry Pi 3/4/5、Apple Silicon、ARM VPS）。
 
 **Linux / macOS / Windows CMD：**
 

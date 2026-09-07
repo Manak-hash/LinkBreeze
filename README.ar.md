@@ -82,7 +82,7 @@ bash install.sh
 <details>
 <summary>🐳 &nbsp;Docker</summary>
 
-لا حاجة إلى Node.js أو npm أو ملفات إعداد.
+لا حاجة إلى Node.js أو npm أو ملفات إعداد. صور متعددة المعماريات: `linux/amd64` و `linux/arm64`‏ (Raspberry Pi 3/4/5، Apple Silicon، VPS بمعمارية ARM).
 
 **Linux / macOS / Windows CMD:**
 

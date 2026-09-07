@@ -4,16 +4,36 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
+
+      - name: Prepare
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+          # GHCR requires lowercase image names
+          echo "IMAGE=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -21,29 +41,94 @@ jobs:
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Dry-run path (workflow_dispatch): build only, push nothing.
+      - name: Build (dry-run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+
+      # Release path (tag push): push the per-platform image by digest; the
+      # manifest list is assembled by the merge job.
+      - name: Build and push by digest
+        id: build
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+
+      - name: Export digest
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifest list
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Prepare
+        run: |
+          echo "IMAGE=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Download digests
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ steps.version.outputs.VERSION }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          tags="$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")"
+          digests="$(printf "${{ env.IMAGE }}@sha256:%s " *)"
+          # Intentional word splitting: $tags and $digests are multi-word arg lists.
+          # shellcheck disable=SC2046,SC2086
+          docker buildx imagetools create $tags $digests
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect "${{ env.IMAGE }}:${{ steps.meta.outputs.version }}"
