@@ -27,6 +27,8 @@ export const ErrorCode = {
   NOT_FOUND: "not_found",
   CONFLICT: "conflict",
   INTERNAL: "internal",
+  /** #5: credentials valid — a TOTP code is required to finish the login. */
+  TOTP_REQUIRED: "totp_required",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

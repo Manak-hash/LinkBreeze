@@ -90,6 +90,39 @@ export async function login(formData: FormData): Promise<ActionResult> {
     return { success: false, error: "Invalid username or password", errorCode: ErrorCode.UNAUTHORIZED };
   }
 
+  // #5: 2FA handoff. Credentials are valid, but the session is only minted
+  // after the TOTP step (verifyLoginTotp) succeeds. Trusted devices skip it:
+  // their trust cookie verifies against the stored (encrypted) secret.
+  if (user.totpEnabled && user.totpSecret) {
+    const { decryptSecret, verifyTrustToken } = await import("@/lib/two-factor");
+    const secret = decryptSecret(user.totpSecret);
+    if (secret) {
+      const h2 = await import("next/headers");
+      const trustCookie = (await (await h2.cookies()).get("lb_totp_trust"))?.value;
+      if (trustCookie) {
+        const [token, ...rest] = trustCookie.split("|");
+        if (verifyTrustToken(token, user.id, secret, rest.join("|"))) {
+          await createSession(user.id, user.username);
+          return { success: true };
+        }
+      }
+      const { pendingToken } = await import("@/lib/totp-pending");
+      const pending = pendingToken(user.username, Date.now());
+      return {
+        success: false,
+        error: "Enter your two-factor code",
+        errorCode: ErrorCode.TOTP_REQUIRED,
+        pending,
+      } as ActionResult & { pending: string };
+    }
+    // Unreadable secret: fall through to a no-session error — admin must use recovery flow.
+    return {
+      success: false,
+      error: "Two-factor state is unreadable (was SECRET_KEY changed?). See SECURITY.md for recovery.",
+      errorCode: ErrorCode.INTERNAL,
+    };
+  }
+
   await createSession(user.id, user.username);
   return { success: true };
 }

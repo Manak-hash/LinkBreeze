@@ -36,6 +36,7 @@ LinkBreeze implements the following security practices:
 
 - **Auth**: bcrypt password hashing (12 rounds), HMAC-signed session cookies
 - **Sessions**: httpOnly, SameSite cookies, 30-day expiry, **session invalidation on password change** (stolen cookies become invalid when you change your password)
+- **Two-factor authentication (#5)**: Optional TOTP (RFC 6238, 6 digits / 30s, SHA-1, ±1 window for clock drift) via any authenticator app. The TOTP secret is stored **encrypted at rest** (AES-256-GCM, key HKDF-derived from `SECRET_KEY` — never a key in the same database). Recovery codes are bcrypt-hashed, single-use (consumed on success), rejection-sampled to avoid modulo bias, and use a lookalike-free alphabet. "Trust this device" tokens bind user + secret + User-Agent (re-enrolling invalidates every trust by construction). Code entry reuses the login rate limiter (5/min per IP, 15/min global). Backup files **exclude** all 2FA state (the exporter never reads the `users` table) — restoring a backup de-facto disables 2FA rather than leaking the encrypted secret. `SECRET_KEY` dependency: rotating it without disabling/re-enabling 2FA makes the stored secret undecryptable and login requires a recovery code — see [Troubleshooting](#known-limitations-v127).
 - **Input validation**: Zod schemas on every server action and API route
 - **SQL injection prevention**: Drizzle ORM parameterized queries (no raw SQL)
 - **Security headers**: HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy on all routes
@@ -61,8 +62,12 @@ issue or contribute:
 - **Password recovery**: No self-service reset flow. If you lose your password,
   see the [Troubleshooting guide](TROUBLESHOOTING.md#forgot-admin-password)
   for three recovery methods (hash reset, full reset, or database deletion).
-- **2FA / MFA** (#5): Not yet available. Single-admin model with rate limiting
-  (5/min/IP, 15/min global) is the current mitigation.
+- **2FA / MFA** (#5): **Available since the next release** (TOTP with recovery
+  codes). Enable it in Settings → Security. Remaining limits: no WebAuthn /
+  passkey support (TOTP only), no enforced-2FA policy (single-admin model),
+  and recovery codes are only shown once at setup — if you lose both your
+  authenticator and your recovery codes, use the password-hash reset in the
+  Troubleshooting guide and then re-enroll.
 - **Argon2id password hashing** (#76): Currently uses bcrypt (12 rounds). Argon2id
   migration with transparent re-hash on login is planned.
 - **Email capture consent** (#75): The subscriber form has no consent checkbox or

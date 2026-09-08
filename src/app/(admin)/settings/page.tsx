@@ -10,9 +10,12 @@ import {
 } from "@/server/queries";
 import { isUpdateCheckEnabled } from "@/lib/update-check";
 import { parseQrStyle } from "@/lib/qr-style";
+import { getSession } from "@/lib/auth";
+import { getUserById } from "@/server/queries";
 import { QrCard } from "./qr-card";
 import { GeneralTab, IntegrationTab, AppearanceTab } from "./settings-tab-forms";
 import { ChangePasswordForm } from "./change-password-form";
+import { TwoFactorCard } from "./two-factor-card";
 import { DataManager } from "./data-manager";
 import { SubscribersCard } from "./subscribers-card";
 import { MigrationWizard } from "@/components/admin/MigrationWizard";
@@ -34,6 +37,11 @@ export default async function SettingsPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const { page: pageParam } = await searchParams;
+  const session = await getSession();
+  const currentUser = session ? await getUserById(session.userId) : null;
+  async function getTotpEnabled(): Promise<boolean> {
+    return Boolean(currentUser?.totpEnabled);
+  }
 
   const [allPages, defaultPage] = await Promise.all([
     getAllPages(),
@@ -133,7 +141,12 @@ export default async function SettingsPage({
               </Card>
             </div>
           ),
-          security: <ChangePasswordForm />,
+          security: (
+            <div className="flex flex-col gap-4">
+              <ChangePasswordForm />
+              <TwoFactorCard enabled={await getTotpEnabled()} />
+            </div>
+          ),
           data: (
             <div className="flex flex-col gap-4">
               <MigrationWizard pageId={activePage?.id ?? 0} />

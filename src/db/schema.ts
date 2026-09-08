@@ -7,6 +7,12 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  // #5 TOTP 2FA — all nullable/opt-in so existing users are untouched.
+  // totp_secret stores the AES-256-GCM ciphertext (see src/lib/two-factor.ts);
+  // recovery_codes is a JSON array of bcrypt hashes of used/unused codes.
+  totpSecret: text("totp_secret"),
+  totpEnabled: integer("totp_enabled", { mode: "boolean" }).notNull().default(false),
+  recoveryCodes: text("recovery_codes"),
 });
 
 // ─── Settings (key-value, runtime config) ─────────────

@@ -744,6 +744,21 @@ export async function updateUserPassword(
   await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
 }
 
+// #5 TOTP 2FA — user-scoped accessors. The secret is stored ENCRYPTED; these
+// functions are transport only — encrypt/decrypt happens in two-factor actions.
+
+export async function getUserById(userId: number): Promise<UserRow | null> {
+  const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function setUserTotp(
+  userId: number,
+  fields: { totpSecret: string | null; totpEnabled: boolean; recoveryCodes: string | null },
+): Promise<void> {
+  await db.update(users).set(fields).where(eq(users.id, userId));
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 /** Default analytics retention window in days, used when no setting is stored

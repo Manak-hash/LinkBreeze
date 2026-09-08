@@ -67,6 +67,14 @@ const en = {
     invalidCredentials: "Invalid username or password.",
     backToPage: "Back to page",
     welcomeBack: "Welcome back",
+    totpPrompt: "Two-factor authentication",
+    totpDesc: "Enter the 6-digit code from your authenticator app, or a recovery code.",
+    totpCode: "Authentication code",
+    totpSubmit: "Verify",
+    totpVerifying: "Verifying…",
+    totpTrust: "Trust this device for 30 days",
+    totpInvalid: "Invalid authentication code.",
+    totpExpired: "This login attempt expired. Please sign in again.",
   },
 
   setup: {
@@ -706,6 +714,30 @@ const en = {
       newPassword: "New password",
       passwordHint: "At least 8 characters with one uppercase letter and one number.",
       updated: "Password updated.",
+    
+
+      twoFactor: {
+      title: "Two-factor authentication",
+      idleDesc: "Add a second factor (authenticator app) to your admin login.",
+      enabledDesc: "Your admin login requires a code from your authenticator app.",
+      enable: "Enable 2FA",
+      disable: "Disable 2FA",
+      working: "Working…",
+      setupTitle: "Set up your authenticator",
+      setupDesc: "Scan the QR code with your authenticator app (Google Authenticator, Authy, 1Password…), then enter the 6-digit code to confirm.",
+      qrAlt: "Two-factor authentication QR code",
+      manualEntry: "Can't scan? Enter the code manually",
+      codeLabel: "6-digit code",
+      verify: "Verify and enable",
+      disableHint: "Enter a code from your authenticator app — or a recovery code — to turn 2FA off.",
+      disabled: "Two-factor authentication is now disabled.",
+      recoveryTitle: "Save your recovery codes",
+      recoveryDesc: "If you lose your authenticator, one of these one-time codes gets you back in.",
+      recoveryWarn: "These codes are shown once and stored only as hashes. Save them somewhere safe now — a password manager or printed paper.",
+      recoveryDone: "I've saved my codes",
+      recoveryCopy: "Copy all codes",
+      recoveryCopied: "Copied!",
+    },
     },
 
     data: {

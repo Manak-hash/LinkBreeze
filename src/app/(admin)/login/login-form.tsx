@@ -32,6 +32,16 @@ export function LoginForm() {
       if (result.success) {
         router.push(from);
         router.refresh();
+      } else if (
+        result.errorCode === "totp_required" &&
+        "pending" in result
+      ) {
+        // #5: 2FA handoff — carry username + pending token to the code step.
+        const username = String(formData.get("username") ?? "");
+        router.push(
+          `/login/totp?u=${encodeURIComponent(username)}&p=${encodeURIComponent(result.pending as string)}&from=${encodeURIComponent(from)}`,
+        );
+        router.refresh();
       }
       return result;
     },
