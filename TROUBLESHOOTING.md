@@ -42,16 +42,26 @@ docker run -d `
 
 ---
 
-## Forgot admin password
+## Forgot admin password or username
 
 LinkBreeze v1 is single-user and self-hosted — there is no self-service
-password reset (no email server, no SMTP). Pick one of these methods:
+password reset (no email server, no SMTP). Pick one of these methods.
+
+First, find your container name (it isn't always `linkbreeze` — compose
+projects and platforms like TrueNAS name it differently):
+
+```bash
+docker ps --format '{{.Names}}\t{{.Image}}' | grep -i linkbreeze
+```
+
+If you run it via docker compose, `docker compose ps` from the compose
+folder works too. Replace `<container>` in the commands below with that name.
 
 ### Option A — Reset the password hash (keeps all data)
 
 ```bash
 # Replace "newpassword" with your desired password
-docker exec -it linkbreeze node -e "
+docker exec -it <container> node -e "
   const Database = require('better-sqlite3');
   const bcrypt = require('bcryptjs');
   const db = new Database('/app/data/linkbreeze.db');
@@ -61,10 +71,19 @@ docker exec -it linkbreeze node -e "
 "
 ```
 
+If you also forgot the username, list it first:
+
+```bash
+docker exec -it <container> node -e "
+  const db = new (require('better-sqlite3'))('/app/data/linkbreeze.db');
+  console.log(db.prepare('SELECT username FROM users').all());
+"
+```
+
 ### Option B — Delete the volume and re-setup (loses all data)
 
 ```bash
-docker stop linkbreeze && docker rm linkbreeze
+docker stop <container> && docker rm <container>
 docker volume rm linkbreeze-data
 # Re-run the docker run command — the setup wizard will appear
 ```
