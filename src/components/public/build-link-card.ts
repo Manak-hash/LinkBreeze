@@ -14,9 +14,10 @@ export type LinkCardTheme = ThemeInput;
  * Render a picked lucide icon as an inline SVG string (#91) — no
  * react-dom/server (forbidden in client bundles) and no DOM. lucide's
  * forwardRef render function is pure: calling it directly yields the
- * element tree's props, including the raw iconNode ([tag, attrs][]),
+ * element tree's props, including the raw icon node ([tag, attrs][]),
  * which we serialize to plain SVG markup ourselves. Works identically
  * on the server (public page) and in a client bundle (theme preview).
+ * The node lives at props.iconNode (≤1.44) or props.icon.node (≥1.45).
  */
 const LUCIDE_SVG_ATTRS = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
 
@@ -31,12 +32,19 @@ function svgAttrs(attrs: Record<string, string>): string {
 function lucideIconSvg(name: string, size = 20): string | null {
   const Component = resolveIcon(name);
   if (!Component) return null;
-  // forwardRef.render(props, ref) → element with { iconNode, className }.
-  const el = (Component as unknown as { render: (p: Record<string, unknown>, ref: null) => { props: { iconNode?: Array<[string, Record<string, string>]> } } }).render(
+  // forwardRef.render(props, ref) → element whose props carry the raw icon
+  // node. lucide-react ≤1.44: props.iconNode. ≥1.45: props.icon.node.
+  type RenderedIcon = {
+    props: {
+      iconNode?: Array<[string, Record<string, string>]>;
+      icon?: { node?: Array<[string, Record<string, string>]> };
+    };
+  };
+  const el = (Component as unknown as { render: (p: Record<string, unknown>, ref: null) => RenderedIcon }).render(
     { size },
     null,
   );
-  const node = el.props.iconNode;
+  const node = el.props.iconNode ?? el.props.icon?.node;
   if (!node) return null;
   const inner = node
     .map(([tag, attrs]) => `<${tag} ${svgAttrs(attrs)}></${tag}>`)
