@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-14
+
 ### Added
 
 - **Two-factor authentication — TOTP (#5)** — The admin login can now require a second factor: a 6-digit code from any authenticator app (Google Authenticator, Authy, 1Password, …). Setup lives in Settings → Security: scan the QR (rendered server-side from an `otpauth://` URI stashed in a 10-minute cookie — the secret never appears in a URL), or paste the secret manually, then confirm with one live code. Recovery codes (8, bcrypt-hashed, shown exactly once, no lookalike characters, rejection-sampled against modulo bias) unlock a lost authenticator; each works once and is consumed on use. Disabling 2FA — or re-enrolling — requires a current code and invalidates every trusted device by construction. "Trust this device for 30 days" skips the code step on a per-browser basis (token bound to user + secret + User-Agent, statelessly verified against the stored secret); re-enrollment kills all trusts. The secret is stored **encrypted** (AES-256-GCM, key HKDF-derived from `SECRET_KEY`) and backups structurally exclude it — the backup exporter never reads the `users` table, so a restored backup de-facto disables 2FA (the safe direction; documented in SECURITY.md). Migration `0023` adds three nullable `users` columns; existing installs are untouched and a half-finished setup never locks anyone out (the secret stays inactive until a live code confirms it). TOTP attempts reuse the login rate limiter (5/min/IP + 15/min global).
