@@ -244,13 +244,17 @@ export function LinksManager({
     let insertAt = without.length;
     if (!overId.startsWith("section:")) {
       const overIdx = without.findIndex((l) => l.id === Number(overId));
-      const overLink = items.find((l) => l.id === Number(overId));
       if (overIdx >= 0) {
-        // Insert before/after based on where the dragged link came from.
+        // Insert before/after the drop target. Both indices must come from
+        // the SAME array: fromIdx is measured on the original order, so the
+        // target index is converted back to original coordinates. Comparing
+        // against `without`'s index instead was off by one for every move
+        // upward (drag up = silent no-op) and landed long down-moves one
+        // slot short.
         const fromIdx = items.findIndex((l) => l.id === linkId);
-        insertAt = fromIdx < overIdx ? overIdx : overIdx + 1;
+        const overIdxOrig = items.findIndex((l) => l.id === Number(overId));
+        insertAt = fromIdx < overIdxOrig ? overIdx + 1 : overIdx;
       }
-      void overLink;
     }
 
     const updated: LinkRow = { ...link, sectionId: targetSectionId };
