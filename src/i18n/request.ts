@@ -28,6 +28,7 @@ const Dictionaries = {
   de: () => import("@/locales/de"),
   zh: () => import("@/locales/zh"),
   ar: () => import("@/locales/ar"),
+  "pt-BR": () => import("@/locales/pt-BR"),
 } satisfies Record<
   (typeof AVAILABLE_LOCALES)[number],
   () => Promise<{ default: unknown }>
