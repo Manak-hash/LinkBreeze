@@ -19,6 +19,7 @@ export const AVAILABLE_LOCALES = [
   "de",
   "zh",
   "ar",
+  "pt-BR",
 ] as const;
 export type AvailableLocale = (typeof AVAILABLE_LOCALES)[number];
 

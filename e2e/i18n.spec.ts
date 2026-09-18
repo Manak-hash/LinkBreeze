@@ -140,3 +140,27 @@ test.describe("admin UI locale (ar)", () => {
     await expect(page.getByText("كلمة المرور")).toBeVisible();
   });
 });
+
+test.describe("admin UI locale (pt-BR)", () => {
+  test("login screen renders in Brazilian Portuguese when lb_locale=pt-BR", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "lb_locale",
+        value: "pt-BR",
+        url: BASE,
+      },
+    ]);
+
+    await page.goto("/login");
+
+    await expect(page.locator('[lang="pt-BR"]').first()).toBeVisible();
+
+    // translated labels (keys from src/locales/pt-BR.ts)
+    await expect(
+      page.getByRole("button", { name: "Entrar" }),
+    ).toBeVisible();
+    await expect(page.getByText("Nome de usuário")).toBeVisible();
+    await expect(page.getByText("Senha")).toBeVisible();
+  });
+});
+
