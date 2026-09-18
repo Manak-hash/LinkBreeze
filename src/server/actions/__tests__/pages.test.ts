@@ -78,6 +78,21 @@ describe("updatePageAction", () => {
     expect(mocks.updatePage).toHaveBeenCalledWith(3, expect.objectContaining({ isDefault: true }));
   });
 
+  it("preserves omitted fields like socialLinks during settings update", async () => {
+    const res = await updatePageAction(fd({ pageId: "1", footerText: "New footer" }));
+
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(1, { footerText: "New footer" });
+  });
+
+  it("updates socialLinks when explicitly provided by profile form", async () => {
+    const links = JSON.stringify([{ platform: "github", url: "https://github.com/me" }]);
+    const res = await updatePageAction(fd({ pageId: "1", socialLinks: links }));
+
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(1, { socialLinks: links });
+  });
+
   it("rejects when unauthenticated", async () => {
     mocks.getSession.mockResolvedValue(null);
     const res = await updatePageAction(fd({ pageId: "1" }));
