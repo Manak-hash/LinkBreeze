@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Admin UI in Brazilian Portuguese (#111, contributed by @WillxRv)** — Complete `pt-BR` dictionary ships with full key parity alongside en/fr/es/de/zh/ar, and Português (Brasil) joins the Settings language picker. `pt-BR` was a pre-registered T3 slot in the locale registry: the BCP-47 plumbing (the `localeTag` map, `LOCALE_NAMES` endonym, `LOCALE_HTML_LANG`, and both chart date-format switches) was already wired for exactly this entry, so the diff activates the reserved tier rather than growing the registry. The dependency-free global error boundary carries inline pt-BR copy alongside the other six locales, so the crash screen renders in-language even when the i18n layer itself caused the crash. The e2e i18n spec gains a pt-BR login case, `README.pt-BR.md` translates the full README with language-nav links added across all seven existing translations, and `docs/TRANSLATIONS.md` tracks it. ICU plural forms are used where counts appear; Latin digits per the i18n policy.
+
+### Fixed
+
+- **Settings saves cleared a page's social links (#112, reported and fixed by @WillxRv)** — Saving any settings tab other than Profile (General, Integration, Appearance, or the QR card) silently rewrote the page's social profiles to an empty list. `socialLinks` was the only page field with both a `.default("[]")` in the `updatePageSchema` and a `|| "[]"` fallback in the action, so every settings form — which never submits the field — ended up persisting an empty array over the real data. The field is now parsed only when the submitting form actually includes it (`formData.has("socialLinks")`, mirroring the pattern the `emailCapture` checkbox already used for the same class of problem), and `updatePage` writes only the keys that survive the undefined-strip, so an omitted `socialLinks` leaves the column genuinely untouched. The profile form still updates social links as before — including clearing them, since it explicitly submits `"[]"` when the list is emptied. No migration; two new unit tests cover both paths (omitted field preserved, explicit field persisted).
+
 ## [1.4.0] - 2026-09-14
 
 ### Added
