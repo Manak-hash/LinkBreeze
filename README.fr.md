@@ -48,6 +48,7 @@
 - **📈 Statistiques externes** — Injectez Plausible, Umami, Matomo ou Google Analytics d'un simple copier-coller
 - **🔔 Notifications de mise à jour** — Un bandeau du tableau de bord vous prévient quand une nouvelle version est disponible (pas de phone-home, pas de mise à jour automatique)
 - **🎨 Thèmes** — 11 préréglages intégrés (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + personnalisateur complet avec un système de tokens CSS (couleurs, 15 polices + upload de polices personnalisées, 8 types d'arrière-plan, 8 styles de cartes, contrôles de mise en page, effets) + duplication/import/export de thèmes
+- **🖼️ Images d'aperçu social (OG)** — Cartes de partage générées automatiquement à partir du thème de votre page, ou importez la vôtre avec un contrôle du recadrage, de la position et du zoom
 - **✏️ CSS personnalisé** — Ajustez votre page au pixel près avec une injection de CSS brut
 - **📧 Collecte d'e-mails** — Recoltez les e-mails des abonnés sur votre page publique, exportez en CSV
 - **📱 Mobile d'abord** — Superbe sur tous les écrans. Charge en moins de 300 ms. Zéro bundle JS côté client.

@@ -161,6 +161,10 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
         setAvatarAdj(pickerValueFrom(null, null, null, null));
         setAvatarAdjOpen(true);
         reloadPreview();
+        // Persist the new URL through the same autosave path as typing.
+        // rAF lets React commit the controlled input value before the
+        // flush reads FormData (same pattern as addSocialPlatform).
+        requestAnimationFrame(schedule);
       } else {
         setUploadError(localizeActionError(tErr, res.error));
       }
@@ -186,6 +190,8 @@ export function ProfileForm({ profile, pageId }: ProfileFormProps) {
         setBannerAdj(pickerValueFrom(null, null, null, null));
         setBannerAdjOpen(true);
         reloadPreview();
+        // Same autosave contract as the avatar upload above.
+        requestAnimationFrame(schedule);
       } else {
         setBannerError(localizeActionError(tErr, res.error));
       }

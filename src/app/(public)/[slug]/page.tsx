@@ -76,7 +76,17 @@ export async function generateMetadata({
   const origin = await getOrigin();
   const url = `${origin}/${slug}`;
 
-  const ogImage = `${origin}/${slug}/opengraph-image`;
+  // Custom OG image (per-page): when the page has an uploaded image AND the
+  // mode is custom, point og:image at the file directly (scaled to the
+  // crop the user picked); crawlers never hit the dynamic renderer.
+  // Custom mode WITHOUT an upload (or any URL problem) falls back to auto.
+  const useCustomOg =
+    page.ogImageMode === "custom" && !!page.ogImageUrl;
+  const ogImage = useCustomOg
+    ? page.ogImageUrl!.startsWith("http")
+      ? page.ogImageUrl!
+      : `${origin}${page.ogImageUrl!.startsWith("/") ? "" : "/"}${page.ogImageUrl!}`
+    : `${origin}/${slug}/opengraph-image`;
 
   // Search-engine visibility (#94): when the operator hides the page from
   // settings, it stays crawlable (see robots.ts for why) but sends a
@@ -124,7 +134,9 @@ export async function generateMetadata({
       url,
       type: "profile",
       siteName: title,
-      images: [{ url: ogImage, width: 1200, height: 630 }],
+      images: useCustomOg
+        ? [{ url: ogImage }] // uploaded file: real dimensions unknown, omit
+        : [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",

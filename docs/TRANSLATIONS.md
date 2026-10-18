@@ -6,12 +6,12 @@ authoritative; translations may lag behind.
 | Language | File | Source commit (README.md) | Status |
 |----------|------|--------------------------|--------|
 | English | [README.md](../README.md) | — | authoritative |
-| Español | [README.es.md](../README.es.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
-| Français | [README.fr.md](../README.fr.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
-| Deutsch | [README.de.md](../README.de.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
-| 中文 | [README.zh.md](../README.zh.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
-| العربية | [README.ar.md](../README.ar.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
-| Português (Brasil) | [README.pt-BR.md](../README.pt-BR.md) | `2b9f5367c03a29cd2234039e1df7404c129758f6` | in review |
+| Español | [README.es.md](../README.es.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
+| Français | [README.fr.md](../README.fr.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
+| Deutsch | [README.de.md](../README.de.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
+| 中文 | [README.zh.md](../README.zh.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
+| العربية | [README.ar.md](../README.ar.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
+| Português (Brasil) | [README.pt-BR.md](../README.pt-BR.md) | `0c9ba69706be10753ba18e1b6c0925be609d8457` | in review |
 
 ## Keeping translations fresh
 

@@ -18,6 +18,7 @@ import {
   deletePage as deletePageQuery,
   getDefaultPage,
   getAllPages,
+  getPageById,
 } from "@/server/queries";
 
 
@@ -103,6 +104,11 @@ const updatePageSchema = z.object({
   faviconUrl: safeMediaUrl.max(500).optional().nullable(),
   privacyPolicy: z.string().max(20000).optional(),
   qrSettings: z.string().max(500).optional(),
+  // OG image (per page): mode + uploaded custom image. ogImageUrl goes
+  // through safeMediaUrl (same http(s)/site-relative allowlist as the other
+  // media columns — the CodeQL XSS-through-dom boundary); "" → null.
+  ogImageMode: z.enum(["auto", "custom"]).optional(),
+  ogImageUrl: safeMediaUrl.max(500).optional().nullable(),
   // Per-upload image adjustments (Spec: Image-Positioning). Numbers arrive
   // as FormData strings; empty string = clear (reset to default rendering).
   avatarFit: z.enum(["cover", "contain"]).optional(),
@@ -117,6 +123,11 @@ const updatePageSchema = z.object({
   backgroundPosX: z.coerce.number().min(0).max(1).optional(),
   backgroundPosY: z.coerce.number().min(0).max(1).optional(),
   backgroundZoom: z.coerce.number().min(1).max(3).optional(),
+  // OG image adjustments (custom upload crop metadata; NULL = default).
+  ogImageFit: z.enum(["cover", "contain"]).optional().nullable(),
+  ogImagePosX: z.coerce.number().min(0).max(1).optional().nullable(),
+  ogImagePosY: z.coerce.number().min(0).max(1).optional().nullable(),
+  ogImageZoom: z.coerce.number().min(1).max(3).optional().nullable(),
 });
 
 export async function updatePageAction(formData: FormData): Promise<ActionResult> {
@@ -171,6 +182,16 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     qrSettings: formData.has("qrSettings")
       ? String(formData.get("qrSettings") ?? "") || null
       : undefined,
+    // OG image tri-state: present = write (empty string → NULL = no custom
+    // image); absent = leave unchanged. Mode falls back to auto.
+    ogImageMode: formData.has("ogImageMode")
+      ? String(formData.get("ogImageMode") ?? "") === "custom"
+        ? "custom"
+        : "auto"
+      : undefined,
+    ogImageUrl: formData.has("ogImageUrl")
+      ? String(formData.get("ogImageUrl") ?? "") || null
+      : undefined,
     // Checkbox tri-state, same contract as emailCapture: present = explicit
     // on/off from a form that contains it; absent = leave unchanged.
     shareEnabled: formData.has("shareEnabled")
@@ -191,6 +212,9 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
     ["backgroundPosX", 0, 1],
     ["backgroundPosY", 0, 1],
     ["backgroundZoom", 1, 3],
+    ["ogImagePosX", 0, 1],
+    ["ogImagePosY", 0, 1],
+    ["ogImageZoom", 1, 3],
   ];
   for (const [key, min, max] of ADJ_NUMERIC) {
     if (!formData.has(key)) continue;
@@ -202,7 +226,7 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
       if (!Number.isNaN(n)) data[key] = Math.min(max, Math.max(min, n));
     }
   }
-  for (const key of ["avatarFit", "bannerFit", "backgroundFitOverride"]) {
+  for (const key of ["avatarFit", "bannerFit", "backgroundFitOverride", "ogImageFit"]) {
     if (!formData.has(key)) continue;
     const raw = String(formData.get(key) ?? "").trim();
     data[key] = raw === "" ? null : raw; // "" = reset to default
@@ -254,6 +278,11 @@ export async function updatePageAction(formData: FormData): Promise<ActionResult
   revalidatePath("/");
   if (updateData.slug) {
     revalidatePath(`/${updateData.slug}/privacy`, "layout");
+  }
+  // OG metadata changes must reach the public page's generateMetadata.
+  const finalSlug = updateData.slug || (await getPageById(pageId))?.slug;
+  if (finalSlug) {
+    revalidatePath(`/${finalSlug}`, "layout");
   }
   return { success: true };
 }

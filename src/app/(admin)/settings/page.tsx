@@ -1,4 +1,5 @@
 import { QrCode } from "lucide-react";
+import { createHash } from "node:crypto";
 import {
   getAllPages,
   getDefaultPage,
@@ -13,7 +14,8 @@ import { parseQrStyle } from "@/lib/qr-style";
 import { getSession } from "@/lib/auth";
 import { getUserById } from "@/server/queries";
 import { QrCard } from "./qr-card";
-import { GeneralTab, IntegrationTab, AppearanceTab } from "./settings-tab-forms";
+import { GeneralTab, IntegrationTab, AppearanceTab, CustomCssCard } from "./settings-tab-forms";
+import { OgImageCard } from "./og-image-card";
 import { ChangePasswordForm } from "./change-password-form";
 import { TwoFactorCard } from "./two-factor-card";
 import { DataManager } from "./data-manager";
@@ -68,6 +70,25 @@ export default async function SettingsPage({
 
   const slug = activePage?.slug || "u";
   const t = await getTranslations("settings");
+
+  // Cache-buster for the OG preview: a hash of every page input the rendered
+  // card consumes (theme, display name/title, bio, avatar). ANY change to any
+  // of them — theme pick, profile edits, avatar upload — yields a new version,
+  // so the preview in the Appearance tab re-fetches without a manual reload.
+  const ogPreviewVersion = createHash("sha1")
+    .update(
+      [
+        activePage?.id ?? 0,
+        activePage?.themeId ?? 0,
+        activePage?.title ?? "",
+        activePage?.bio ?? "",
+        activePage?.avatarUrl ?? "",
+        activePage?.ogImageUrl ?? "",
+        activePage?.ogImagePosX ?? 0,
+      ].join("|"),
+    )
+    .digest("hex")
+    .slice(0, 12);
 
   // Theme accent swatches offered as one-click QR colors (valid hex only).
   const qrThemePresets = Array.from(
@@ -125,6 +146,20 @@ export default async function SettingsPage({
                 themes={themes}
                 activeThemeId={activePage?.themeId ?? active?.id ?? null}
               />
+              {/* Social preview (OG) image — lives in the appearance tab */}
+              {activePage ? (
+                <OgImageCard
+                  pageId={activePage.id}
+                  slug={slug}
+                  initialMode={activePage.ogImageMode ?? null}
+                  initialUrl={activePage.ogImageUrl ?? null}
+                  initialFit={activePage.ogImageFit ?? null}
+                  initialPosX={activePage.ogImagePosX ?? null}
+                  initialPosY={activePage.ogImagePosY ?? null}
+                  initialZoom={activePage.ogImageZoom ?? null}
+                  previewVersion={ogPreviewVersion}
+                />
+              ) : null}
               {/* QR Code customizer in appearance tab */}
               <Card>
                 <CardHeader>
@@ -145,6 +180,12 @@ export default async function SettingsPage({
                   />
                 </CardContent>
               </Card>
+              {/* Custom CSS — own container, bottom of the tab */}
+              <CustomCssCard
+                pageId={activePage?.id}
+                slug={slug}
+                customCss={activePage?.customCss || ""}
+              />
             </div>
           ),
           security: (

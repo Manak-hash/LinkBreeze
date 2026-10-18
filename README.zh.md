@@ -48,6 +48,7 @@
 - **📈 第三方统计** — 粘贴一次即可接入 Plausible、Umami、Matomo 或 Google Analytics
 - **🔔 更新通知** — 有新版本时仪表盘横幅会提醒你（不回传数据、不自动更新）
 - **🎨 主题** — 11 个内置预设（Aurora、Glassmorphism、Neon Cyberpunk、Editorial Paper、Terminal Mono、Pastel Soft、Brutalist、Retro Sunset、Minimal Light、8-Bit Retro、Frutiger Aero）+ 基于 CSS 令牌系统的完整自定义器（颜色、15 种字体 + 自定义字体上传、8 种背景类型、8 种卡片样式、布局控制、特效）+ 主题复制/导入/导出
+- **🖼️ 社交预览（OG）图片** — 根据页面主题自动生成分享卡片，也可上传自定义图片并调整裁剪、位置与缩放
 - **✏️ 自定义 CSS** — 通过原生 CSS 注入精细调整你的页面
 - **📧 邮件收集** — 在公共页面收集订阅者邮箱，导出为 CSV
 - **📱 移动优先** — 在任何屏幕上都惊艳。加载时间低于 300 毫秒。客户端零 JS 打包。

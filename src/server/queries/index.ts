@@ -205,6 +205,13 @@ export interface UpdatePageInput {
   backgroundPosX?: number | null;
   backgroundPosY?: number | null;
   backgroundZoom?: number | null;
+  // OG image (per page) — NULL mode = auto; ogImageUrl NULL = none.
+  ogImageMode?: string | null;
+  ogImageUrl?: string | null;
+  ogImageFit?: string | null;
+  ogImagePosX?: number | null;
+  ogImagePosY?: number | null;
+  ogImageZoom?: number | null;
 }
 
 export async function updatePage(id: number, data: UpdatePageInput): Promise<void> {

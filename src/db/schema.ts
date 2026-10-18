@@ -82,6 +82,17 @@ export const pages = sqliteTable("pages", {
   backgroundPosX: real("background_pos_x"),
   backgroundPosY: real("background_pos_y"),
   backgroundZoom: real("background_zoom"),
+  // ─── OG image (per page) ───
+  // 'auto' (NULL) = the dynamic opengraph-image route renders a card that
+  // follows the page's theme (background/colors/avatar). 'custom' = serve
+  // the uploaded og_image_url directly; the fit/pos/zoom columns are the
+  // shared Image-Positioning adjustment shape (NULL = cover/center/no zoom).
+  ogImageMode: text("og_image_mode"), // 'auto' | 'custom' | NULL (= auto)
+  ogImageUrl: text("og_image_url"),
+  ogImageFit: text("og_image_fit"),
+  ogImagePosX: real("og_image_pos_x"),
+  ogImagePosY: real("og_image_pos_y"),
+  ogImageZoom: real("og_image_zoom"),
 });
 
 // ─── Link sections (1.3) ──────────────────────────────

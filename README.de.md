@@ -49,6 +49,7 @@
 - **📈 Externe Analysen** — Füge Plausible, Umami, Matomo oder Google Analytics mit einem einzigen Einfügen hinzu
 - **🔔 Update-Benachrichtigungen** — Ein Banner im Dashboard benachrichtigt dich, wenn eine neue Version verfügbar ist (kein Phone-Home, kein Auto-Update)
 - **🎨 Themes** — 11 eingebaute Presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + vollständiger Anpassungs-Editor mit CSS-Token-System (Farben, 15 Schriftarten + Upload eigener Schriftarten, 8 Hintergrundtypen, 8 Kartenstile, Layout-Steuerung, Effekte) + Themes duplizieren/importieren/exportieren
+- **🖼️ Social-Vorschaubilder (OG)** — Vorschaukarten werden automatisch aus deinem Seiten-Design erzeugt, oder lade ein eigenes Bild mit Zuschnitt-, Positions- und Zoomeinstellung hoch
 - **✏️ Eigenes CSS** — Feintune deine Seite mit direkter CSS-Injektion
 - **📧 E-Mail-Sammlung** — Sammle Abonnenten-E-Mails auf deiner öffentlichen Seite, Export als CSV
 - **📱 Mobile zuerst** — Großartig auf jedem Bildschirm. Lädt in unter 300 ms. Null clientseitige JS-Bundles.

@@ -1,9 +1,17 @@
 import { ImageResponse } from "next/og";
 import { headers } from "next/headers";
-import { getPageBySlug, getActiveTheme } from "@/server/queries";
+import { getPageBySlug, getActiveTheme, getThemeById } from "@/server/queries";
+import { resolveOgThemeBackground } from "@/lib/og-theme";
 
 export const runtime = "nodejs";
 
+/**
+ * Dynamic OG image (AUTO mode). When the page has a custom uploaded OG image
+ * (ogImageMode === "custom" && ogImageUrl), generateMetadata points og:image
+ * at that file directly and crawlers never hit this route. This route serves
+ * the auto card: it follows the page's theme for EVERY background type
+ * (see src/lib/og-theme.ts), plus the page avatar/title/bio.
+ */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -18,24 +26,34 @@ export async function GET(
         "localhost"
       ).toString()}`;
 
-  const [page, theme] = await Promise.all([
-    getPageBySlug(slug),
-    getActiveTheme(),
-  ]);
+  const page = await getPageBySlug(slug);
+
+  // Per-page theme override first, then the globally active one — the same
+  // resolution order the public page uses, so the card matches THE page.
+  const theme = page?.themeId
+    ? ((await getThemeById(page.themeId)) ?? (await getActiveTheme()))
+    : await getActiveTheme();
 
   const name = page?.title || "LinkBreeze";
   const bio = page?.bio || "All my links in one place";
   const textColor = theme?.textColor || "#eceafe";
   const primary = theme?.primaryColor || "#533fd6";
-  const parts = (theme?.backgroundValue || "#0f0c29,#14112e").split(",");
-  const bgA = parts[0] || "#0f0c29";
-  const bgB = parts[1] || "#14112e";
+
+  const og = resolveOgThemeBackground(theme);
 
   const rawAvatar = page?.avatarUrl || null;
   const avatarSrc = rawAvatar
     ? rawAvatar.startsWith("http")
       ? rawAvatar
       : `${origin}${rawAvatar.startsWith("/") ? "" : "/"}${rawAvatar}`
+    : null;
+
+  // Theme background IMAGE (image/gif types): draw as the card backdrop,
+  // with the theme's overlay color layered above for text legibility.
+  const backdropSrc = og.imageUrl
+    ? og.imageUrl.startsWith("http")
+      ? og.imageUrl
+      : `${origin}${og.imageUrl.startsWith("/") ? "" : "/"}${og.imageUrl}`
     : null;
 
   return new ImageResponse(
@@ -48,10 +66,35 @@ export async function GET(
           alignItems: "flex-start",
           width: "100%",
           height: "100%",
-          background: `linear-gradient(135deg, ${bgA} 0%, ${bgB} 100%)`,
+          background: og.background,
           padding: 80,
+          position: "relative",
         }}
       >
+        {backdropSrc ? (
+          <img
+            src={backdropSrc}
+            alt=""
+            width={1200}
+            height={630}
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              objectFit: "cover",
+            }}
+          />
+        ) : null}
+        {backdropSrc && og.overlay ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              background: overlayRgba(og.overlay.color, og.overlay.opacity),
+            }}
+          />
+        ) : null}
         {avatarSrc ? (
           <img
             src={avatarSrc}
@@ -111,4 +154,15 @@ export async function GET(
     ),
     { width: 1200, height: 630 }
   );
+}
+
+/** rgba() string for the overlay layer (satori-safe color form). */
+function overlayRgba(color: string, opacity: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(color.trim());
+  if (!m) return color;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }

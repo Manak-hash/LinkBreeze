@@ -43,6 +43,7 @@
 - **📈 External Analytics** — Inject Plausible, Umami, Matomo, or Google Analytics with one paste
 - **🔔 Update Notifications** — Dashboard banner notifies you when a new version is available (no phone-home, no auto-update)
 - **🎨 Themes** — 11 built-in presets (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + full customizer with CSS token system (colors, 15 fonts + custom font upload, 8 background types, 8 card styles, layout controls, effects) + theme duplicate/import/export
+- **🖼️ Social Preview (OG) Images** — Share cards auto-rendered from your page's theme, or upload your own with fit, position, and zoom control
 - **✏️ Custom CSS** — Fine-tune your page with raw CSS injection
 - **📧 Email Capture** — Collect subscriber emails on your public page, export to CSV
 - **📱 Mobile-First** — Gorgeous on every screen. Loads in under 300ms. Zero client-side JS bundles.

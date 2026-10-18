@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   deletePage: vi.fn(async () => undefined),
   getDefaultPage: vi.fn(async () => ({ id: 1, slug: "home" })),
   getAllPages: vi.fn(async (): Promise<{ id: number; slug: string }[]> => []),
+  getPageById: vi.fn(async () => ({ id: 1, slug: "home" })),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -20,6 +21,7 @@ vi.mock("@/server/queries", () => ({
   deletePage: mocks.deletePage,
   getDefaultPage: mocks.getDefaultPage,
   getAllPages: mocks.getAllPages,
+  getPageById: mocks.getPageById,
 }));
 
 import { createPageAction, updatePageAction, setPageThemeAction, deletePageAction } from "@/server/actions/pages";
@@ -96,6 +98,78 @@ describe("updatePageAction", () => {
   it("rejects when unauthenticated", async () => {
     mocks.getSession.mockResolvedValue(null);
     const res = await updatePageAction(fd({ pageId: "1" }));
+    expect(res.success).toBe(false);
+  });
+
+  // ── OG image tri-state (present = write even when empty; absent = keep) ──
+  it("og mode + url: writes both when present", async () => {
+    const res = await updatePageAction(
+      fd({ pageId: "1", ogImageMode: "custom", ogImageUrl: "/api/uploads/og.png" }),
+    );
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ ogImageMode: "custom", ogImageUrl: "/api/uploads/og.png" }),
+    );
+  });
+
+  it("og url cleared: present-but-empty persists NULL (delete path)", async () => {
+    const res = await updatePageAction(
+      fd({ pageId: "1", ogImageMode: "auto", ogImageUrl: "" }),
+    );
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ ogImageMode: "auto", ogImageUrl: null }),
+    );
+  });
+
+  it("og fields absent: left unchanged", async () => {
+    const res = await updatePageAction(fd({ pageId: "1", footerText: "x" }));
+    expect(res.success).toBe(true);
+    const call = (mocks.updatePage.mock as { lastCall?: unknown[] }).lastCall?.[1] as
+      | Record<string, unknown>
+      | undefined;
+    expect(call).toBeDefined();
+    expect(call).not.toHaveProperty("ogImageMode");
+    expect(call).not.toHaveProperty("ogImageUrl");
+  });
+
+  it("og mode: any non-custom value normalizes to auto", async () => {
+    const res = await updatePageAction(fd({ pageId: "1", ogImageMode: "bogus" }));
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ ogImageMode: "auto" }),
+    );
+  });
+
+  it("og adjustments: numeric tri-state with clamping, empty = reset", async () => {
+    const res = await updatePageAction(
+      fd({
+        pageId: "1",
+        ogImagePosX: "0.25",
+        ogImagePosY: "",
+        ogImageZoom: "9",
+        ogImageFit: "contain",
+      }),
+    );
+    expect(res.success).toBe(true);
+    expect(mocks.updatePage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        ogImagePosX: 0.25,
+        ogImagePosY: null, // empty = explicit reset
+        ogImageZoom: 3, // clamped to 1-3
+        ogImageFit: "contain",
+      }),
+    );
+  });
+
+  it("og url rejects non-media schemes (safeMediaUrl allowlist)", async () => {
+    const res = await updatePageAction(
+      fd({ pageId: "1", ogImageMode: "custom", ogImageUrl: "javascript:alert(1)" }),
+    );
     expect(res.success).toBe(false);
   });
 });

@@ -27,7 +27,7 @@ export interface ImagePositionPickerValue {
   zoom: number; // 1–3
 }
 
-export type ImageSurface = "avatar" | "banner" | "background";
+export type ImageSurface = "avatar" | "banner" | "background" | "og";
 
 // Larger frames than the first cut: a 160px avatar preview made precise
 // dragging impossible. Banner shows at a taller ratio than the public
@@ -37,6 +37,8 @@ const SURFACE_FRAME: Record<ImageSurface, { aspect: string; rounded: string; wid
   avatar: { aspect: "1 / 1", rounded: "rounded-full", width: 260 },
   banner: { aspect: "3 / 1", rounded: "rounded-xl", width: 460 },
   background: { aspect: "9 / 14", rounded: "rounded-xl", width: 300 },
+  // OG images render at 1200x630 (~1.9:1); the picker window mirrors it.
+  og: { aspect: "1200 / 630", rounded: "rounded-xl", width: 460 },
 };
 
 export function ImagePositionPicker({

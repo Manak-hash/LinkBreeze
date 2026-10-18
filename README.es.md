@@ -48,6 +48,7 @@
 - **📈 Estadísticas externas** — Integra Plausible, Umami, Matomo o Google Analytics con un simple copiar y pegar.
 - **🔔 Notificaciones de actualización** — Un banner en el panel te avisa cuando hay una nueva versión disponible (sin conexiones automáticas al servidor ni actualizaciones automáticas).
 - **🎨 Temas** — 11 preajustes integrados (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro y Frutiger Aero), además de un personalizador completo con un sistema de tokens CSS (colores, 15 fuentes y carga de fuentes personalizadas, 8 tipos de fondo, 8 estilos de tarjeta, controles de diseño y efectos), junto con duplicación, importación y exportación de temas.
+- **🖼️ Imágenes de vista previa (OG)** — Tarjetas para compartir generadas automáticamente a partir del tema de tu página, o sube la tuya con control de ajuste, posición y zoom
 - **✏️ CSS personalizado** — Ajusta tu página al píxel mediante la inyección de CSS sin procesar.
 - **📧 Recopilación de correos electrónicos** — Recopila los correos de tus suscriptores desde tu página pública y expórtalos a CSV.
 - **📱 Diseño mobile-first** — Se ve excelente en cualquier pantalla. Carga en menos de 300 ms. Cero bundle de JavaScript en el cliente.

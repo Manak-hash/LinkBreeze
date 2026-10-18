@@ -32,7 +32,27 @@ export function SettingsTabs({
   tabs: Record<string, React.ReactNode>;
 }) {
   const t = useTranslations("settings.tabs");
-  const [active, setActive] = React.useState("general");
+
+  // The active tab lives in the URL hash (`/settings#security`) so a refresh,
+  // reopen, or shared link lands in the same tab. URL state is read through
+  // useSyncExternalStore: SSR renders "general", the client takes over from
+  // the hash after hydration, and no setState-in-effect cascade occurs.
+  const subscribe = React.useCallback((onStoreChange: () => void) => {
+    window.addEventListener("hashchange", onStoreChange);
+    return () => window.removeEventListener("hashchange", onStoreChange);
+  }, []);
+  const getSnapshot = React.useCallback(() => {
+    const fromHash = window.location.hash.slice(1);
+    return TABS.some((tab) => tab.id === fromHash) ? fromHash : "general";
+  }, []);
+  const active = React.useSyncExternalStore(subscribe, getSnapshot, () => "general");
+
+  const select = (id: string) => {
+    const { pathname, search } = window.location;
+    // replaceState doesn't fire hashchange — announce it so the store re-reads.
+    window.history.replaceState(null, "", id === "general" ? `${pathname}${search}` : `#${id}`);
+    window.dispatchEvent(new Event("hashchange"));
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,7 +62,7 @@ export function SettingsTabs({
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActive(tab.id)}
+            onClick={() => select(tab.id)}
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
               active === tab.id

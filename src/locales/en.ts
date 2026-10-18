@@ -51,6 +51,7 @@ const en = {
     signedInAs: "Signed in as <b>{name}</b>",
     signOut: "Sign out",
     pagesSection: "Pages",
+    visitSite: "Visit linkbreeze.omnirise.dev",
     demoBannerLead: "Live demo.",
     demoBannerVisit: "Visit LinkBreeze",
     demoBannerDeploy: "Deploy your own instance",
@@ -674,6 +675,22 @@ const en = {
       save: "Save general settings",
     },
 
+    ogImage: {
+      title: "Social preview image (OG)",
+      description: "The image shown when your page is shared on social media and messaging apps.",
+      modeAria: "OG image mode",
+      modeAuto: "Auto (theme)",
+      modeCustom: "Custom image",
+      autoHint: "A card generated from your page's theme: background, colors and avatar update automatically when you change the theme.",
+      customHint: "Upload your own image (1200 x 630 recommended). It is served directly as the share image.",
+      previewAlt: "Social share image preview",
+      upload: "Upload image",
+      uploading: "Uploading…",
+      adjustPosition: "Adjust crop",
+      remove: "Remove",
+      crawlerCacheHint: "Social platforms cache share images aggressively - after a change, it can take days to refresh everywhere.",
+    },
+
     integration: {
       saving: "Saving…",
       saveIntegration: "Save integration settings",
@@ -715,6 +732,7 @@ const en = {
       title: "Appearance",
       description: "Favicon and per-page visual defaults.",
       activeTheme: "Active theme",
+      changeTheme: "Change theme",
       favicon: "Favicon",
       faviconHint: "Upload .ico, .png, .svg, .gif or .webp (max 1 MB).",
       currentFavicon: "Current favicon",

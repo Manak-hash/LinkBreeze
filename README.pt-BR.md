@@ -46,6 +46,7 @@
 - **📈 Estatísticas Externas** — Conecte Plausible, Umami, Matomo ou Google Analytics colando seu script
 - **🔔 Notificações de Atualização** — Banner no painel avisa quando uma nova versão estiver disponível (sem rastreamento de uso, sem atualizações automáticas invasivas)
 - **🎨 Temas** — 11 temas prontos (Aurora, Glassmorphism, Neon Cyberpunk, Editorial Paper, Terminal Mono, Pastel Soft, Brutalist, Retro Sunset, Minimal Light, 8-Bit Retro, Frutiger Aero) + personalizador completo com sistema de tokens CSS (cores, 15 fontes + upload de fontes personalizadas, 8 tipos de fundo, 8 estilos de cartão, controles de layout, efeitos) + duplicação/importação/exportação de temas
+- **🖼️ Imagens de pré-visualização (OG)** — Cartões de compartilhamento gerados automaticamente a partir do tema da sua página, ou envie a sua com controle de ajuste, posição e zoom
 - **✏️ CSS Personalizado** — Ajuste fino na sua página com injeção direta de CSS
 - **📧 Captura de E-mails** — Colete e-mails de inscritos na sua página pública e exporte para CSV
 - **📱 Foco no Mobile (Mobile-First)** — Visual impecável em qualquer tela. Carrega em menos de 300 ms. Sem pacotes JS pesados no cliente.

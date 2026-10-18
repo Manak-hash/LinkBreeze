@@ -461,6 +461,89 @@ export function IntegrationTab({
 }
 
 // ── Appearance Tab ───────────────────────────────────────────────────────
+//
+// Structure (Spec: "Appearance redesign"):
+//   <AppearanceTab>   — theme showcase card + favicon card (one autosaving form)
+//   <CustomCssCard>   — own container, mounted last in the tab by page.tsx
+
+import { Check, ChevronDown, ChevronUp, ImagePlus } from "lucide-react";
+import { resolveBackground } from "@/lib/theme-tokens";
+
+/** Mini live preview of a theme built from its real tokens (mirrors the
+ * /theme page's preset gallery so both feel like the same component). */
+function ThemeMiniPreview({ theme }: { theme: ThemeRow }) {
+  const isAurora = theme.backgroundType === "aurora";
+  const bg = resolveBackground(theme);
+  const bgStyle: React.CSSProperties = isAurora
+    ? { background: theme.backgroundValue?.split(",")[0]?.trim() || "#0a0820" }
+    : { background: bg };
+  return (
+    <div className="flex h-20 flex-col items-center justify-center overflow-hidden" style={bgStyle}>
+      <div
+        className="mb-1 size-4 rounded-full"
+        style={{ background: theme.primaryColor ?? "#7c5ff0" }}
+      />
+      <div
+        className="mb-1.5 h-1 w-12 rounded-full"
+        style={{ background: theme.textColor ?? "#fff", opacity: 0.8 }}
+      />
+      <div className="w-full px-1.5">
+        <div
+          className="rounded border p-1"
+          style={{
+            background: theme.cardBackground ?? "rgba(255,255,255,0.1)",
+            borderColor: theme.cardBorderColor ?? "rgba(255,255,255,0.1)",
+          }}
+        >
+          <div
+            className="h-0.5 w-full rounded-full"
+            style={{ background: theme.textColor ?? "#fff", opacity: 0.5 }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Swatch dots for a theme (background stops + accent colors, deduped). */
+function themeSwatches(theme: ThemeRow): string[] {
+  const fromBg = (theme.backgroundValue ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter((c) => /^#|rgb|hsl/.test(c));
+  return Array.from(
+    new Set([theme.primaryColor, theme.secondaryColor, ...fromBg].filter(Boolean)),
+  ).slice(0, 4);
+}
+
+function ThemeOptionCard({
+  theme,
+  active,
+  onSelect,
+}: {
+  theme: ThemeRow;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      data-active={active}
+      className="group relative overflow-hidden rounded-xl border border-border text-left transition-all hover:ring-2 hover:ring-ring/50 data-[active=true]:ring-2 data-[active=true]:ring-primary"
+    >
+      <ThemeMiniPreview theme={theme} />
+      <div className="flex items-center justify-between gap-2 bg-card p-2">
+        <span className="truncate text-xs font-medium">{theme.name}</span>
+        {active ? (
+          <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="size-2.5" />
+          </span>
+        ) : null}
+      </div>
+    </button>
+  );
+}
 
 interface AppearanceTabProps {
   pageId?: number;
@@ -474,25 +557,31 @@ interface AppearanceTabProps {
 export function AppearanceTab({
   pageId,
   slug,
-  customCss,
   faviconUrl: initialFaviconUrl,
   themes,
   activeThemeId,
 }: AppearanceTabProps) {
   const t = useTranslations("settings.appearance");
-  const tInt = useTranslations("settings.integration");
-  const startTransition = (fn: () => Promise<void>) => void fn();
   const savedAction = useSavedAction();
+  const startTransition = (fn: () => Promise<void>) => void fn();
   const { reload: reloadPreview } = usePreview();
   const router = useRouter();
   const [selectedTheme, setSelectedTheme] = React.useState<string>(
     activeThemeId ? String(activeThemeId) : "",
   );
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const [faviconUrl, setFaviconUrl] = React.useState(initialFaviconUrl);
+
+  const currentThemeId = selectedTheme || (activeThemeId ? String(activeThemeId) : "");
+  const activeTheme = themes.find((th) => String(th.id) === currentThemeId) ?? null;
 
   const handleFaviconUploaded = (url: string) => {
     setFaviconUrl(url);
     reloadPreview();
+    // The hidden faviconUrl input just changed — flush it through the same
+    // autosave path as any field (rAF so React commits the value before the
+    // flush reads FormData).
+    requestAnimationFrame(schedule);
   };
 
   const handleSubmit = (formData: FormData) => {
@@ -512,8 +601,8 @@ export function AppearanceTab({
     });
   };
 
-  // Debounced autosave for the customCss textarea; theme chips already save
-  // immediately on click (see selectTheme below).
+  // Debounced autosave; theme chips already save immediately on click (see
+  // selectTheme below).
   const selectedThemeRef = React.useRef(selectedTheme);
   React.useEffect(() => {
     selectedThemeRef.current = selectedTheme;
@@ -529,10 +618,11 @@ export function AppearanceTab({
     return savedAction.run(updateSettings, formData);
   });
 
-  // Theme chip click = immediate save (a deliberate choice, like the old
-  // Save flow — selection is intentional and rare, unlike typing).
+  // Theme pick = immediate save (selection is intentional and rare, unlike
+  // typing) — and the showcase collapses back to the single selected card.
   const selectTheme = (id: string) => {
     setSelectedTheme(id);
+    setPickerOpen(false);
     const fd = new FormData();
     if (pageId) {
       fd.set("pageId", String(pageId));
@@ -547,49 +637,158 @@ export function AppearanceTab({
   };
 
   return (
+    <form ref={formRef} action={handleSubmit} onBlurCapture={() => flushNow()}>
+      <div className="flex flex-col gap-4">
+        {/* Theme showcase — only the selected theme, full visual treatment */}
+        {themes.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("title")}</CardTitle>
+              <CardDescription>{t("description")}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {activeTheme ? (
+                <div className="flex items-center gap-4 rounded-xl border border-border p-3">
+                  <div className="w-32 shrink-0 overflow-hidden rounded-lg border border-border">
+                    <ThemeMiniPreview theme={activeTheme} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">
+                        {activeTheme.name}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-violet/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-lavender">
+                        {t("activeTheme")}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex gap-1.5">
+                      {themeSwatches(activeTheme).map((c) => (
+                        <span
+                          key={c}
+                          className="size-3.5 rounded-full border border-white/10"
+                          style={{ background: c }}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen((v) => !v)}
+                      aria-expanded={pickerOpen}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+                    >
+                      {pickerOpen ? (
+                        <ChevronUp className="size-3.5" />
+                      ) : (
+                        <ChevronDown className="size-3.5" />
+                      )}
+                      {t("changeTheme")}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {pickerOpen ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {themes.map((th) => (
+                    <ThemeOptionCard
+                      key={th.id}
+                      theme={th}
+                      active={String(th.id) === currentThemeId}
+                      onSelect={() => selectTheme(String(th.id))}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Favicon — prominent branding card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImagePlus className="size-5" />
+              {t("favicon")}
+            </CardTitle>
+            <CardDescription>{t("faviconHint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40">
+                {faviconUrl ? (
+                  <Image
+                    src={faviconUrl}
+                    alt={t("currentFavicon")}
+                    width={40}
+                    height={40}
+                    unoptimized
+                    className="size-10 rounded object-contain"
+                  />
+                ) : (
+                  <ImagePlus className="size-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <FaviconUpload faviconUrl={faviconUrl} onUpload={handleFaviconUploaded} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </form>
+  );
+}
+
+// ── Custom CSS — own container, bottom of the Appearance tab ─────────────
+
+/** Own container: custom CSS lives at the bottom of the Appearance tab. */
+export function CustomCssCard({ pageId, slug, customCss }: {
+  pageId?: number;
+  slug?: string;
+  customCss: string;
+}) {
+  const tInt = useTranslations("settings.integration");
+  const savedAction = useSavedAction();
+  const router = useRouter();
+  const startTransition = (fn: () => Promise<void>) => void fn();
+
+  const handleSubmit = (formData: FormData) => {
+    if (pageId) {
+      formData.set("pageId", String(pageId));
+      startTransition(async () => {
+        await savedAction.run(updatePageAction, formData);
+        router.refresh();
+      });
+      return;
+    }
+    // updateSettings requires the page identity on every call.
+    formData.set("slug", slug ?? "u");
+    startTransition(async () => {
+      await savedAction.run(updateSettings, formData);
+      router.refresh();
+    });
+  };
+
+  const { formRef, schedule, flushNow } = useAutosavedForm((formData) => {
+    if (pageId) {
+      formData.set("pageId", String(pageId));
+      return savedAction.run(updatePageAction, formData);
+    }
+    formData.set("slug", slug ?? "u");
+    return savedAction.run(updateSettings, formData);
+  });
+
+  return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
+        <CardTitle>{tInt("customCss")}</CardTitle>
         <CardDescription>
-          {t("description")}
+          {tInt.rich("customCssHintRich", { code: (chunk) => <code>{chunk}</code> })}
         </CardDescription>
       </CardHeader>
       <form ref={formRef} action={handleSubmit} onBlurCapture={() => flushNow()}>
-        <CardContent className="flex flex-col gap-4">
-          {themes.length > 0 ? (
-            <FormField label={t("activeTheme")}>
-              <div className="flex flex-wrap gap-2">
-                {themes.map((t) => {
-                  const isActive =
-                    selectedTheme === String(t.id) ||
-                    (!selectedTheme && t.id === activeThemeId);
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => selectTheme(String(t.id))}
-                      className={
-                        "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-muted " +
-                        (isActive ? "border-violet bg-violet/10 text-lavender" : "border-border")
-                      }
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </FormField>
-          ) : null}
-
-          <input type="hidden" name="faviconUrl" value={faviconUrl} />
-
-          <FaviconUpload faviconUrl={faviconUrl} onUpload={handleFaviconUploaded} />
-
-          <FormField
-            label={tInt("customCss")}
-            htmlFor="customCss"
-            hint={tInt.rich("customCssHintRich", { code: (chunk) => <code>{chunk}</code> })}
-          >
+        <CardContent>
+          <FormField htmlFor="customCss">
             <textarea
               id="customCss"
               name="customCss"

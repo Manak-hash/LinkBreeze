@@ -190,6 +190,13 @@
       "when": 1966777700600,
       "tag": "0026_link_redirect_slug",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1966777700700,
+      "tag": "0027_og_image",
+      "breakpoints": true
     }
   ]
 }

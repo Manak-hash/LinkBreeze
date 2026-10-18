@@ -174,6 +174,48 @@ export async function uploadFavicon(formData: FormData): Promise<UploadResult> {
   return { success: true, url: `/api/uploads/${filename}` };
 }
 
+/**
+ * Accepts a custom OG image upload (1200x630 recommended). Same image
+ * allowlist as avatar/background (no svg: raster formats only — the image
+ * becomes an og:image target, which social scrapers render as raster).
+ * 5 MB cap: OG images get re-fetched by scrapers, keep them light.
+ */
+const OG_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+export async function uploadOgImage(formData: FormData): Promise<UploadResult> {
+  const blocked = demoGuard();
+  if (blocked) return { success: false, error: blocked.error, errorCode: blocked.errorCode };
+  if (!(await getSession())) return unauthorizedError();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return validationError("No file provided");
+  }
+  if (file.size === 0) return validationError("File is empty");
+  if (file.size > OG_IMAGE_MAX_BYTES) {
+    return validationError("File too large (max 5 MB)");
+  }
+
+  const ext = path.extname(file.name).toLowerCase();
+  if (!ALLOWED_EXT.has(ext)) {
+    return validationError("Unsupported file type");
+  }
+  if (file.type && !file.type.startsWith("image/")) {
+    return validationError("File must be an image");
+  }
+
+  await ensureUploadsDir();
+  const id = crypto.randomBytes(12).toString("hex");
+  const filename = `${id}${ext}`;
+  const dest = path.join(UPLOADS_DIR, filename);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(dest, buffer);
+
+  revalidatePath("/settings");
+  return { success: true, url: `/api/uploads/${filename}` };
+}
+
 export type CustomFontUploadResult =
   | {
       success: true;
